@@ -1,0 +1,6 @@
+.env
+*.exe
+main
+.idea/
+.DS_Store
+AI-Architecture.md

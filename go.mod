@@ -7,3 +7,5 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/sashabaranov/go-openai v1.41.2
 )
+
+require github.com/google/go-cmp v0.7.0

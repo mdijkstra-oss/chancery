@@ -7,8 +7,11 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
+	"hermes-logos/internal/lib/utils"
+	"hermes-logos/internal/parser"
 )
 
 type ChatRequest struct {
@@ -51,13 +54,14 @@ func (h StreamHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.streamCompletion(r.Context(), req.Message, w, flusher)
+	meta := buildRequestMeta(h.model, req.Message)
+	err := h.streamCompletion(r.Context(), req.Message, w, flusher, meta)
 	if err != nil {
 		slog.Error("stream error", "error", err)
 	}
 }
 
-func (h StreamHandler) streamCompletion(ctx context.Context, message string, w io.Writer, flusher http.Flusher) error {
+func (h StreamHandler) streamCompletion(ctx context.Context, message string, w io.Writer, flusher http.Flusher, meta parser.RequestMeta) error {
 	stream, err := h.client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
 		Model: h.model,
 		Messages: []openai.ChatCompletionMessage{
@@ -70,6 +74,8 @@ func (h StreamHandler) streamCompletion(ctx context.Context, message string, w i
 	}
 	defer stream.Close()
 
+	state := parser.NewState()
+
 	for {
 		resp, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -80,11 +86,27 @@ func (h StreamHandler) streamCompletion(ctx context.Context, message string, w i
 		}
 
 		if len(resp.Choices) > 0 && resp.Choices[0].Delta.Content != "" {
-			_, writeErr := w.Write([]byte(resp.Choices[0].Delta.Content))
-			if writeErr != nil {
-				return writeErr
+			chunk := resp.Choices[0].Delta.Content
+			result := parser.Process(state, chunk, meta)
+			state = result.State
+
+			if result.Output != "" {
+				_, writeErr := w.Write([]byte(result.Output))
+				if writeErr != nil {
+					return writeErr
+				}
+				flusher.Flush()
 			}
-			flusher.Flush()
 		}
+	}
+}
+
+func buildRequestMeta(model, prompt string) parser.RequestMeta {
+	return parser.RequestMeta{
+		Model:      model,
+		RequestID:  utils.GenerateID(),
+		PromptHash: utils.HashString(prompt),
+		Timestamp:  time.Now().UTC().Format(time.RFC3339),
+		Nonce:      utils.GenerateID(),
 	}
 }

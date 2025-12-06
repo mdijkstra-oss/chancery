@@ -18,7 +18,7 @@ func main() {
 	cfg := config.Load()
 	bootstrap.SetupLogger(cfg.LogLevel)
 
-	systemPrompt := prompts.Get()
+	systemPrompt := prompts.MustLoad(cfg.SystemPromptPath)
 	loadedTools := tools.MustLoad(cfg.CommandsFile)
 
 	slog.Info("loaded",
@@ -30,8 +30,10 @@ func main() {
 		cfg.OpenRouterKey,
 		cfg.OpenRouterURL,
 		cfg.Model,
+		cfg.Provider,
 		systemPrompt,
 		loadedTools,
+		cfg.Debug,
 	)
 
 	r := chi.NewRouter()

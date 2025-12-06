@@ -9,8 +9,6 @@ import (
 	"net/http"
 
 	"github.com/sashabaranov/go-openai"
-	"hermes-logos/internal/lib/utils"
-	"hermes-logos/internal/parser"
 )
 
 type Message struct {
@@ -26,15 +24,17 @@ type StreamHandler struct {
 	client       *openai.Client
 	model        string
 	systemPrompt string
+	tools        []openai.Tool
 }
 
-func NewStreamHandler(apiKey, baseURL, model, systemPrompt string) StreamHandler {
+func NewStreamHandler(apiKey, baseURL, model, systemPrompt string, tools []openai.Tool) StreamHandler {
 	cfg := openai.DefaultConfig(apiKey)
 	cfg.BaseURL = baseURL
 	return StreamHandler{
 		client:       openai.NewClientWithConfig(cfg),
 		model:        model,
 		systemPrompt: systemPrompt,
+		tools:        tools,
 	}
 }
 
@@ -60,37 +60,25 @@ func (h StreamHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meta := buildRequestMeta(h.model)
-	err := h.streamCompletion(r.Context(), req.Messages, w, flusher, meta)
+	err := h.streamCompletion(r.Context(), req.Messages, w, flusher)
 	if err != nil {
 		slog.Error("stream error", "error", err)
 	}
 }
 
-func (h StreamHandler) streamCompletion(ctx context.Context, messages []Message, w io.Writer, flusher http.Flusher, meta parser.RequestMeta) error {
-	openaiMessages := make([]openai.ChatCompletionMessage, 0, len(messages)+1)
-	openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: h.systemPrompt,
-	})
-	for _, m := range messages {
-		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-			Role:    m.Role,
-			Content: m.Content,
-		})
-	}
+func (h StreamHandler) streamCompletion(ctx context.Context, messages []Message, w io.Writer, flusher http.Flusher) error {
+	openaiMessages := buildMessages(h.systemPrompt, messages)
 
 	stream, err := h.client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
 		Model:    h.model,
 		Messages: openaiMessages,
+		Tools:    h.tools,
 		Stream:   true,
 	})
 	if err != nil {
 		return err
 	}
 	defer stream.Close()
-
-	state := parser.NewState()
 
 	for {
 		resp, err := stream.Recv()
@@ -102,30 +90,26 @@ func (h StreamHandler) streamCompletion(ctx context.Context, messages []Message,
 		}
 
 		if len(resp.Choices) > 0 && resp.Choices[0].Delta.Content != "" {
-			chunk := resp.Choices[0].Delta.Content
-			result := parser.Process(state, chunk, meta)
-			state = result.State
-
-			if result.Output != "" {
-				_, writeErr := w.Write([]byte(result.Output))
-				if writeErr != nil {
-					return writeErr
-				}
-				flusher.Flush()
+			_, writeErr := w.Write([]byte(resp.Choices[0].Delta.Content))
+			if writeErr != nil {
+				return writeErr
 			}
-
-			if result.ReplyCompleted {
-				w.Write([]byte("\n```\n"))
-				flusher.Flush()
-				return nil
-			}
+			flusher.Flush()
 		}
 	}
 }
 
-func buildRequestMeta(model string) parser.RequestMeta {
-	return parser.RequestMeta{
-		Model:     model,
-		RequestID: utils.GenerateID(),
+func buildMessages(systemPrompt string, messages []Message) []openai.ChatCompletionMessage {
+	result := make([]openai.ChatCompletionMessage, 0, len(messages)+1)
+	result = append(result, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: systemPrompt,
+	})
+	for _, m := range messages {
+		result = append(result, openai.ChatCompletionMessage{
+			Role:    m.Role,
+			Content: m.Content,
+		})
 	}
+	return result
 }

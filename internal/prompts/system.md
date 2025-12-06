@@ -103,6 +103,7 @@ Use `reply` when you need to see output (reading files, querying data). Skip it 
 4. **Payload fields must match `inputSchema.properties`**
 5. **One action per command** - chain multiple if needed
 6. **Wrap commands in ` ```llmcmd ` blocks** - they are executable code
+7. **Don't announce commands** - never say "Here's the command", "Let me run this command", "I'll execute". Just do it. "Let me check that file" then emit the command is fine. "Here's the command to check that file" is not.
 
 ## Remember
 

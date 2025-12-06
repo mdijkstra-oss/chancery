@@ -113,6 +113,12 @@ func (h StreamHandler) streamCompletion(ctx context.Context, messages []Message,
 				}
 				flusher.Flush()
 			}
+
+			if result.ReplyCompleted {
+				w.Write([]byte("\n```\n"))
+				flusher.Flush()
+				return nil
+			}
 		}
 	}
 }

@@ -42,7 +42,7 @@ func processInCmd(state State, chunk string, meta RequestMeta) Result {
 	return scanLoop(state, chunk, meta, state.IsReply, matchInCmd)
 }
 
-func matchInCmd(buffer string, _ State, _ RequestMeta) MatchOutcome {
+func matchInCmd(buffer string, state State, _ RequestMeta) MatchOutcome {
 	payloadMatch := MatchPayloadOpen(buffer)
 	closeMatch := MatchCmdClose(buffer)
 
@@ -50,15 +50,16 @@ func matchInCmd(buffer string, _ State, _ RequestMeta) MatchOutcome {
 		return MatchOutcome{
 			Match:    FullMatch,
 			Output:   TagPayloadOut,
-			NewState: TransitionToPayload(),
+			NewState: TransitionToPayload(state.IsReply),
 		}
 	}
 
 	if closeMatch == FullMatch {
 		return MatchOutcome{
-			Match:    FullMatch,
-			Output:   TagLLMCMDCloseOut,
-			NewState: TransitionToOutside(),
+			Match:          FullMatch,
+			Output:         TagLLMCMDCloseOut,
+			NewState:       TransitionToOutside(),
+			ReplyCompleted: state.IsReply,
 		}
 	}
 
@@ -83,19 +84,24 @@ func processInPayload(state State, chunk string, meta RequestMeta) Result {
 	closeTagLen := findClosePayloadTagLen(combined[closeIdx:])
 	output := payloadContent + TagPayloadCloseOut + formatSignature()
 
-	newState := TransitionToCmd(false)
+	newState := TransitionToCmd(state.IsReply)
 	remaining := combined[closeIdx+closeTagLen:]
 
 	if len(remaining) > 0 {
-		return continueProcess(newState, remaining, output, meta, sawReply)
+		return continueProcess(newState, remaining, output, meta, sawReply, false)
 	}
 
 	return Result{State: newState, Output: output, SawReply: sawReply}
 }
 
-func continueProcess(state State, remaining string, outputSoFar string, meta RequestMeta, sawReply bool) Result {
+func continueProcess(state State, remaining string, outputSoFar string, meta RequestMeta, sawReply bool, replyCompleted bool) Result {
 	result := Process(state, remaining, meta)
-	return Result{State: result.State, Output: outputSoFar + result.Output, SawReply: sawReply || result.SawReply}
+	return Result{
+		State:          result.State,
+		Output:         outputSoFar + result.Output,
+		SawReply:       sawReply || result.SawReply,
+		ReplyCompleted: replyCompleted || result.ReplyCompleted,
+	}
 }
 
 type AccumStep struct {
@@ -106,39 +112,47 @@ type AccumStep struct {
 }
 
 type MatchOutcome struct {
-	Match    TagMatch
-	Output   string
-	NewState State
-	SawReply bool
+	Match          TagMatch
+	Output         string
+	NewState       State
+	SawReply       bool
+	ReplyCompleted bool
 }
 
 type Matcher func(buffer string, state State, meta RequestMeta) MatchOutcome
 
 func scanLoop(state State, chunk string, meta RequestMeta, sawReply bool, match Matcher) Result {
 	acc := AccumStep{Input: chunk, Buffer: state.Buffer, Output: ""}
+	replyCompleted := false
 
 	for len(acc.Input) > 0 || len(acc.Buffer) > 0 {
 		acc = accumulate(acc.Input, acc.Buffer, acc.Output)
 		if acc.Exhausted {
-			return Result{State: clearBuffer(state), Output: acc.Output, SawReply: sawReply}
+			return Result{State: clearBuffer(state), Output: acc.Output, SawReply: sawReply, ReplyCompleted: replyCompleted}
 		}
 
 		outcome := match(acc.Buffer, state, meta)
 		if outcome.SawReply {
 			sawReply = true
 		}
+		if outcome.ReplyCompleted {
+			replyCompleted = true
+		}
 
 		switch outcome.Match {
 		case FullMatch:
 			output := acc.Output + outcome.Output
-			if len(acc.Input) > 0 {
-				return continueProcess(outcome.NewState, acc.Input, output, meta, sawReply)
+			if replyCompleted {
+				return Result{State: outcome.NewState, Output: output, SawReply: sawReply, ReplyCompleted: true}
 			}
-			return Result{State: outcome.NewState, Output: output, SawReply: sawReply}
+			if len(acc.Input) > 0 {
+				return continueProcess(outcome.NewState, acc.Input, output, meta, sawReply, replyCompleted)
+			}
+			return Result{State: outcome.NewState, Output: output, SawReply: sawReply, ReplyCompleted: replyCompleted}
 
 		case PartialMatch:
 			if len(acc.Input) == 0 {
-				return Result{State: withBuffer(state, acc.Buffer), Output: acc.Output, SawReply: sawReply}
+				return Result{State: withBuffer(state, acc.Buffer), Output: acc.Output, SawReply: sawReply, ReplyCompleted: replyCompleted}
 			}
 
 		case NoMatch:
@@ -148,7 +162,7 @@ func scanLoop(state State, chunk string, meta RequestMeta, sawReply bool, match 
 		}
 	}
 
-	return Result{State: clearBuffer(state), Output: acc.Output, SawReply: sawReply}
+	return Result{State: clearBuffer(state), Output: acc.Output, SawReply: sawReply, ReplyCompleted: replyCompleted}
 }
 
 func accumulate(input, buffer, output string) AccumStep {

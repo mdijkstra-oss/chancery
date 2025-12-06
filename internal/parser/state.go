@@ -16,9 +16,10 @@ type State struct {
 }
 
 type Result struct {
-	State    State
-	Output   string
-	SawReply bool
+	State          State
+	Output         string
+	SawReply       bool
+	ReplyCompleted bool
 }
 
 type RequestMeta struct {
@@ -34,8 +35,8 @@ func TransitionToCmd(isReply bool) State {
 	return State{Phase: InCmd, IsReply: isReply}
 }
 
-func TransitionToPayload() State {
-	return State{Phase: InPayload}
+func TransitionToPayload(isReply bool) State {
+	return State{Phase: InPayload, IsReply: isReply}
 }
 
 func TransitionToOutside() State {

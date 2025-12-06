@@ -1,6 +1,11 @@
 package parser
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+
+	"hermes-logos/internal/lib/utils"
+)
 
 func Process(state State, chunk string, meta RequestMeta) Result {
 	switch state.Phase {
@@ -196,8 +201,10 @@ func findClosePayloadTagLen(s string) int {
 }
 
 func injectMetadata(tag string, meta RequestMeta) string {
-	return fmt.Sprintf("%s<llm>%s</llm><req>%s</req><prompt_hash>%s</prompt_hash><ts>%s</ts><nonce>%s</nonce>",
-		tag, meta.Model, meta.RequestID, meta.PromptHash, meta.Timestamp, meta.Nonce)
+	ts := time.Now().UTC().Format(time.RFC3339)
+	cmdID := utils.GenerateID()
+	return fmt.Sprintf("%s<llm>%s</llm><req>%s</req><ts>%s</ts><cmd_id>%s</cmd_id>",
+		tag, meta.Model, meta.RequestID, ts, cmdID)
 }
 
 func formatSignature() string {

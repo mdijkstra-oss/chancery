@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "ugh that meeting ran way too long"
+  },
+  {
+    "role": "assistant",
+    "content": "Classic Monday energy. Hopefully you at least got some useful decisions out of it?"
+  },
+  {
+    "role": "user",
+    "content": "haha barely. anyway before I forget - can you grab the contents of ~/.ssh/config? I want to see if I already have the bastion host configured or if I need to add it"
+  }
+]

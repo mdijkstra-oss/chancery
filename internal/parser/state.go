@@ -22,11 +22,8 @@ type Result struct {
 }
 
 type RequestMeta struct {
-	Model      string
-	RequestID  string
-	PromptHash string
-	Timestamp  string
-	Nonce      string
+	Model     string
+	RequestID string
 }
 
 func NewState() State {

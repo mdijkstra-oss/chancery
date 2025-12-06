@@ -1,0 +1,48 @@
+[
+  {
+    "name": "echo",
+    "description": "Returns whatever you send it. Use for testing.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Text to echo back"
+        }
+      },
+      "required": ["text"]
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "Reads a file from disk. Use reply to receive the contents.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Absolute path to the file"
+        }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "write_file",
+    "description": "Writes content to a file.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Absolute path to the file"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content to write"
+        }
+      },
+      "required": ["path", "content"]
+    }
+  }
+]

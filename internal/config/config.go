@@ -12,6 +12,7 @@ type Config struct {
 	OpenRouterURL   string
 	CorsOrigins     []string
 	LogLevel        slog.Level
+	CommandsFile    string
 }
 
 func Load() Config {
@@ -22,6 +23,7 @@ func Load() Config {
 		OpenRouterURL: getEnv("OPENROUTER_URL", "https://openrouter.ai/api/v1"),
 		CorsOrigins:   []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:      parseLogLevel(getEnv("LOG_LEVEL", "info")),
+		CommandsFile:  os.Getenv("COMMANDS_FILE"),
 	}
 }
 

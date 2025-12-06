@@ -1,0 +1,14 @@
+[
+  {
+    "role": "user",
+    "content": "Hey! I'm trying to debug this weird issue with our deployment. The logs are saying something about a config mismatch but I can't SSH into the server right now."
+  },
+  {
+    "role": "assistant",
+    "content": "That sounds frustrating! Config mismatches can be tricky. What kind of config are we looking at - environment variables, a JSON file, or something else?"
+  },
+  {
+    "role": "user",
+    "content": "It's a JSON file. Could you check what's in /var/app/config.json for me? I think someone might have changed the database host setting."
+  }
+]

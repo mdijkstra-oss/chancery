@@ -9,11 +9,8 @@ import (
 
 func testMeta() RequestMeta {
 	return RequestMeta{
-		Model:      "test-model",
-		RequestID:  "req123",
-		PromptHash: "hash456",
-		Timestamp:  "2025-01-01T00:00:00Z",
-		Nonce:      "nonce789",
+		Model:     "test-model",
+		RequestID: "req123",
 	}
 }
 
@@ -54,6 +51,11 @@ func TestProcessFullMessage(t *testing.T) {
 			Name:           "angle bracket not a tag",
 			Chunks:         []string{"1 < 2 and 3 > 1"},
 			ExpectContains: []string{"1 < 2 and 3 > 1"},
+		},
+		{
+			Name:           "arbitrary tags before payload pass through",
+			Chunks:         []string{"<LLMCMD><message>Opening doors</message><payload>{}</payload></LLMCMD>"},
+			ExpectContains: []string{"<LLMCMD>", "<message>Opening doors</message>", "<payload>", "{}", "</payload>", "</LLMCMD>"},
 		},
 	}
 

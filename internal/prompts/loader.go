@@ -2,23 +2,46 @@ package prompts
 
 import (
 	"os"
+
+	"hermes-logos/internal/lib/utils"
 )
 
-func Load(commandsFile string) (string, error) {
-	if commandsFile == "" {
-		return System, nil
-	}
-	commands, err := os.ReadFile(commandsFile)
-	if err != nil {
-		return "", err
-	}
-	return System + "\n\n# Available Commands\n\n" + string(commands), nil
+type LoadResult struct {
+	Combined      string
+	SystemTokens  int
+	CommandTokens int
 }
 
-func MustLoad(commandsFile string) string {
-	prompt, err := Load(commandsFile)
+func Load(commandsFile string) (LoadResult, error) {
+	systemTokens := utils.EstimateTokens(System)
+
+	if commandsFile == "" {
+		return LoadResult{
+			Combined:      System,
+			SystemTokens:  systemTokens,
+			CommandTokens: 0,
+		}, nil
+	}
+
+	commands, err := os.ReadFile(commandsFile)
+	if err != nil {
+		return LoadResult{}, err
+	}
+
+	commandTokens := utils.EstimateTokens(string(commands))
+	combined := System + "\n\n# Available Commands\n\n" + string(commands)
+
+	return LoadResult{
+		Combined:      combined,
+		SystemTokens:  systemTokens,
+		CommandTokens: commandTokens,
+	}, nil
+}
+
+func MustLoad(commandsFile string) LoadResult {
+	result, err := Load(commandsFile)
 	if err != nil {
 		panic("failed to load commands file: " + err.Error())
 	}
-	return prompt
+	return result
 }

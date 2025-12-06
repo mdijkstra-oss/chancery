@@ -10,7 +10,6 @@ import (
 	"hermes-logos/internal/bootstrap"
 	"hermes-logos/internal/config"
 	httpHandlers "hermes-logos/internal/handlers/http"
-	"hermes-logos/internal/lib/utils"
 	"hermes-logos/internal/prompts"
 )
 
@@ -18,11 +17,15 @@ func main() {
 	cfg := config.Load()
 	bootstrap.SetupLogger(cfg.LogLevel)
 
-	systemPrompt := prompts.MustLoad(cfg.CommandsFile)
-	promptTokens := utils.EstimateTokens(systemPrompt)
-	slog.Info("system prompt loaded", "tokens", promptTokens, "chars", len(systemPrompt))
+	promptResult := prompts.MustLoad(cfg.CommandsFile)
+	totalTokens := promptResult.SystemTokens + promptResult.CommandTokens
+	slog.Info("prompts loaded",
+		"system_tokens", promptResult.SystemTokens,
+		"command_tokens", promptResult.CommandTokens,
+		"total_tokens", totalTokens,
+	)
 
-	streamHandler := httpHandlers.NewStreamHandler(cfg.OpenRouterKey, cfg.OpenRouterURL, cfg.Model, systemPrompt)
+	streamHandler := httpHandlers.NewStreamHandler(cfg.OpenRouterKey, cfg.OpenRouterURL, cfg.Model, promptResult.Combined)
 
 	r := chi.NewRouter()
 	httpHandlers.SetupRoutes(r, streamHandler, cfg.CorsOrigins)

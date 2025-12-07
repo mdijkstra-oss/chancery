@@ -13,45 +13,31 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-type ToolCall struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Function struct {
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"`
-	} `json:"function"`
-}
-
-type Message struct {
-	Role       string     `json:"role"`
-	Content    string     `json:"content"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
-}
-
 type ChatRequest struct {
-	Messages []Message `json:"messages"`
+	Messages []json.RawMessage `json:"messages"`
 }
 
 type StreamHandler struct {
-	apiKey       string
-	baseURL      string
-	model        string
-	provider     string
-	systemPrompt string
-	tools        []openai.Tool
-	debug        bool
+	apiKey           string
+	baseURL          string
+	model            string
+	provider         string
+	systemPrompt     string
+	tools            []openai.Tool
+	debug            bool
+	includeReasoning bool
 }
 
-func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, tools []openai.Tool, debug bool) StreamHandler {
+func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, tools []openai.Tool, debug, includeReasoning bool) StreamHandler {
 	return StreamHandler{
-		apiKey:       apiKey,
-		baseURL:      baseURL,
-		model:        model,
-		provider:     provider,
-		systemPrompt: systemPrompt,
-		tools:        tools,
-		debug:        debug,
+		apiKey:           apiKey,
+		baseURL:          baseURL,
+		model:            model,
+		provider:         provider,
+		systemPrompt:     systemPrompt,
+		tools:            tools,
+		debug:            debug,
+		includeReasoning: includeReasoning,
 	}
 }
 
@@ -67,7 +53,7 @@ func (h StreamHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	openaiReq := buildOpenAIRequest(h.model, h.provider, h.systemPrompt, h.tools, req.Messages, h.debug)
+	openaiReq := buildOpenAIRequest(h.model, h.provider, h.systemPrompt, h.tools, req.Messages, h.debug, h.includeReasoning)
 
 	proxyReq, err := http.NewRequestWithContext(r.Context(), "POST", h.baseURL+"/chat/completions", jsonReader(openaiReq))
 	if err != nil {
@@ -142,13 +128,19 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher) 
 	}
 }
 
+type systemMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
 type openAIRequest struct {
-	Model    string                         `json:"model"`
-	Messages []openai.ChatCompletionMessage `json:"messages"`
-	Tools    []openai.Tool                  `json:"tools,omitempty"`
-	Stream   bool                           `json:"stream"`
-	Usage    *usageRequest                  `json:"usage,omitempty"`
-	Provider *providerPreference            `json:"provider,omitempty"`
+	Model            string            `json:"model"`
+	Messages         []json.RawMessage `json:"messages"`
+	Tools            []openai.Tool     `json:"tools,omitempty"`
+	Stream           bool              `json:"stream"`
+	Usage            *usageRequest     `json:"usage,omitempty"`
+	Provider         *providerPreference `json:"provider,omitempty"`
+	IncludeReasoning *bool             `json:"include_reasoning,omitempty"`
 }
 
 type usageRequest struct {
@@ -159,10 +151,10 @@ type providerPreference struct {
 	Only []string `json:"only"`
 }
 
-func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []Message, debug bool) openAIRequest {
+func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []json.RawMessage, debug, includeReasoning bool) openAIRequest {
 	req := openAIRequest{
 		Model:    model,
-		Messages: buildMessages(systemPrompt, messages),
+		Messages: prependSystemMessage(systemPrompt, messages),
 		Tools:    tools,
 		Stream:   true,
 	}
@@ -172,44 +164,14 @@ func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Too
 	if provider != "" {
 		req.Provider = &providerPreference{Only: []string{provider}}
 	}
+	req.IncludeReasoning = &includeReasoning
 	return req
 }
 
-func convertToolCalls(calls []ToolCall) []openai.ToolCall {
-	result := make([]openai.ToolCall, len(calls))
-	for i, tc := range calls {
-		result[i] = openai.ToolCall{
-			ID:   tc.ID,
-			Type: openai.ToolType(tc.Type),
-			Function: openai.FunctionCall{
-				Name:      tc.Function.Name,
-				Arguments: tc.Function.Arguments,
-			},
-		}
-	}
-	return result
-}
-
-func buildMessages(systemPrompt string, messages []Message) []openai.ChatCompletionMessage {
-	result := make([]openai.ChatCompletionMessage, 0, len(messages)+1)
-	result = append(result, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: systemPrompt,
-	})
-	for _, m := range messages {
-		msg := openai.ChatCompletionMessage{
-			Role:    m.Role,
-			Content: m.Content,
-		}
-		if len(m.ToolCalls) > 0 {
-			msg.ToolCalls = convertToolCalls(m.ToolCalls)
-		}
-		if m.ToolCallID != "" {
-			msg.ToolCallID = m.ToolCallID
-		}
-		result = append(result, msg)
-	}
-	return result
+func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []json.RawMessage {
+	sysMsg := systemMessage{Role: "system", Content: systemPrompt}
+	sysMsgJSON, _ := json.Marshal(sysMsg)
+	return append([]json.RawMessage{sysMsgJSON}, messages...)
 }
 
 func jsonReader(v any) io.Reader {

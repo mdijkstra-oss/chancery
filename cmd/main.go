@@ -34,6 +34,7 @@ func main() {
 		systemPrompt,
 		loadedTools,
 		cfg.Debug,
+		cfg.IncludeReasoning,
 	)
 
 	r := chi.NewRouter()

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"hermes-logos/internal/utils"
 	"log/slog"
 	"os"
 )
@@ -16,6 +17,7 @@ type Config struct {
 	CommandsFile     string
 	SystemPromptPath string
 	Debug            bool
+	IncludeReasoning bool
 }
 
 func Load() Config {
@@ -34,6 +36,7 @@ func Load() Config {
 		CommandsFile:     os.Getenv("COMMANDS_FILE"),
 		SystemPromptPath: os.Getenv("SYSTEM_PROMPT_PATH"),
 		Debug:            os.Getenv("DEBUG") != "",
+		IncludeReasoning: utils.IsTruthy(os.Getenv("INCLUDE_REASONING")),
 	}
 }
 

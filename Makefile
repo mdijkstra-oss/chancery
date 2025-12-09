@@ -22,6 +22,9 @@ gpt:
 sonnet:
 	MODEL=anthropic/claude-sonnet-4.5 PROVIDER=anthropic go run cmd/main.go
 
+haiku:
+	MODEL=anthropic/claude-haiku-4.5 PROVIDER=anthropic go run cmd/main.go
+
 mistral:
 	MODEL=mistralai/ministral-14b-2512 go run cmd/main.go
 

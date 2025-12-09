@@ -13,6 +13,20 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+// {
+//   "model": "anthropic/claude-haiku-4.5",
+//   "messages": [
+//     {
+//       "role": "system",
+//       "content": "system prompt + tools definitions from files",
+//       "cache_control": {"type": "ephemeral"}  // <-- CACHE BREAKPOINT
+//     },
+//     {"role": "user", "content": "hello"},
+//     {"role": "assistant", "content": "hi there"},
+//     {"role": "user", "content": "what's 2+2?"}
+//   ]
+// }
+
 type ChatRequest struct {
 	Messages []json.RawMessage `json:"messages"`
 }
@@ -128,9 +142,14 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher) 
 	}
 }
 
+type cacheControl struct {
+	Type string `json:"type"`
+}
+
 type systemMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role         string        `json:"role"`
+	Content      string        `json:"content"`
+	CacheControl *cacheControl `json:"cache_control,omitempty"`
 }
 
 type openAIRequest struct {
@@ -154,7 +173,7 @@ type providerPreference struct {
 func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []json.RawMessage, debug, includeReasoning bool) openAIRequest {
 	req := openAIRequest{
 		Model:    model,
-		Messages: prependSystemMessage(systemPrompt, messages),
+		Messages: prependSystemMessage(systemPrompt, shouldEnablePromptCaching(model), messages),
 		Tools:    tools,
 		Stream:   true,
 	}
@@ -168,8 +187,15 @@ func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Too
 	return req
 }
 
-func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []json.RawMessage {
+func shouldEnablePromptCaching(model string) bool {
+	return strings.Contains(model, "claude") || strings.Contains(model, "anthropic")
+}
+
+func prependSystemMessage(systemPrompt string, enableCaching bool, messages []json.RawMessage) []json.RawMessage {
 	sysMsg := systemMessage{Role: "system", Content: systemPrompt}
+	if enableCaching {
+		sysMsg.CacheControl = &cacheControl{Type: "ephemeral"}
+	}
 	sysMsgJSON, _ := json.Marshal(sysMsg)
 	return append([]json.RawMessage{sysMsgJSON}, messages...)
 }

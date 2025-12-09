@@ -33,8 +33,8 @@ func Load() Config {
 		OpenRouterURL:    getEnv("OPENROUTER_URL", "https://openrouter.ai/api/v1"),
 		CorsOrigins:      []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:         parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		CommandsFile:     os.Getenv("COMMANDS_FILE"),
-		SystemPromptPath: os.Getenv("SYSTEM_PROMPT_PATH"),
+		CommandsFile:     "/home/hermes/hermes-mcp/tools.json",
+		SystemPromptPath: "/home/hermes/hermes-mcp/prompts/",
 		Debug:            os.Getenv("DEBUG") != "",
 		IncludeReasoning: utils.IsTruthy(os.Getenv("INCLUDE_REASONING")),
 	}

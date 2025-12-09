@@ -23,7 +23,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Port:             getEnv("PORT", "8081"),
-		OpenRouterKey:    mustEnv("OPENROUTER_API_KEY"),
+		OpenRouterKey:    "REDACTED-OPENROUTER-API-KEY",
 		// Caching: DeepSeek/OpenAI/Gemini 2.5 = automatic, Anthropic/Gemini = needs cache_control in messages.
 		// Not all providers support caching. Use PROVIDER to pin to a specific provider for consistent cache hits.
 		// Privacy settings affect provider availability: https://openrouter.ai/settings/privacy

@@ -23,18 +23,14 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Port:             getEnv("PORT", "8081"),
-		OpenRouterKey:    "REDACTED-OPENROUTER-API-KEY",
-		// Caching: DeepSeek/OpenAI/Gemini 2.5 = automatic, Anthropic/Gemini = needs cache_control in messages.
-		// Not all providers support caching. Use PROVIDER to pin to a specific provider for consistent cache hits.
-		// Privacy settings affect provider availability: https://openrouter.ai/settings/privacy
-		// Self-hosting models like DeepSeek gives full control over caching and data privacy.
-		Model:    getEnv("MODEL", "deepseek/deepseek-v3.2"),
-		Provider: os.Getenv("PROVIDER"),
+		OpenRouterKey:    getEnv("OPENROUTER_API_KEY", ""),
+		Model:            getEnv("MODEL", "deepseek/deepseek-v3.2"),
+		Provider:         os.Getenv("PROVIDER"),
 		OpenRouterURL:    getEnv("OPENROUTER_URL", "https://openrouter.ai/api/v1"),
 		CorsOrigins:      []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:         parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		CommandsFile:     "/home/hermes/hermes-mcp/tools.json",
-		SystemPromptPath: "/home/hermes/hermes-mcp/prompts/",
+		CommandsFile:     getEnv("COMMANDS_FILE", "/home/hermes/hermes-mcp/tools.json"),
+		SystemPromptPath: getEnv("SYSTEM_PROMPT_PATH", "/home/hermes/hermes-mcp/prompts/"),
 		Debug:            os.Getenv("DEBUG") != "",
 		IncludeReasoning: utils.IsTruthy(os.Getenv("INCLUDE_REASONING")),
 	}

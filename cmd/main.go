@@ -35,6 +35,8 @@ func main() {
 		loadedTools,
 		cfg.Verbose,
 		cfg.IncludeReasoning,
+		cfg.CacheInterval,
+		cfg.MaxTokenWindow,
 	)
 
 	r := chi.NewRouter()

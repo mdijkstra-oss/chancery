@@ -4,6 +4,7 @@ import (
 	"hermes-logos/internal/utils"
 	"log/slog"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -18,6 +19,8 @@ type Config struct {
 	SystemPromptPath string
 	Verbose          bool
 	IncludeReasoning bool
+	CacheInterval    int
+	MaxTokenWindow   int
 }
 
 func Load() Config {
@@ -33,6 +36,8 @@ func Load() Config {
 		SystemPromptPath: getEnv("SYSTEM_PROMPT_PATH", "/home/hermes/hermes-mcp/prompts/"),
 		Verbose:          os.Getenv("VERBOSE") != "",
 		IncludeReasoning: utils.IsTruthy(os.Getenv("INCLUDE_REASONING")),
+		CacheInterval:    parseInt(getEnv("CACHE_INTERVAL", "30000")),
+		MaxTokenWindow:   parseInt(getEnv("MAX_TOKEN_WINDOW", "150000")),
 	}
 }
 
@@ -64,4 +69,12 @@ func parseLogLevel(s string) slog.Level {
 	default:
 		panic("unknown log level: " + s)
 	}
+}
+
+func parseInt(s string) int {
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		panic("invalid integer: " + s)
+	}
+	return v
 }

@@ -42,9 +42,11 @@ type StreamHandler struct {
 	tools            []openai.Tool
 	verbose          bool
 	includeReasoning bool
+	cacheInterval    int
+	maxTokenWindow   int
 }
 
-func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, tools []openai.Tool, verbose, includeReasoning bool) StreamHandler {
+func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, tools []openai.Tool, verbose, includeReasoning bool, cacheInterval, maxTokenWindow int) StreamHandler {
 	return StreamHandler{
 		apiKey:           apiKey,
 		baseURL:          baseURL,
@@ -54,6 +56,8 @@ func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, too
 		tools:            tools,
 		verbose:          verbose,
 		includeReasoning: includeReasoning,
+		cacheInterval:    cacheInterval,
+		maxTokenWindow:   maxTokenWindow,
 	}
 }
 
@@ -69,10 +73,20 @@ func (h StreamHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	openaiReq := buildOpenAIRequest(h.model, h.provider, h.systemPrompt, h.tools, req.Messages, h.includeReasoning)
+	enableCaching := shouldEnablePromptCaching(h.model)
+	messagesWithCache, breakpoints := addCacheBreakpoints(req.Messages, enableCaching, h.cacheInterval)
+
+	openaiReq := buildOpenAIRequest(h.model, h.provider, h.systemPrompt, h.tools, messagesWithCache, h.includeReasoning, enableCaching)
 
 	breakdown := calculateTokenBreakdown(openaiReq, h.systemPrompt)
-	logOutgoingRequest(openaiReq, breakdown, h.verbose)
+	totalEstimated := sumTokenBreakdown(breakdown)
+
+	if h.maxTokenWindow > 0 && totalEstimated > h.maxTokenWindow {
+		http.Error(w, "Out of context, please reload", http.StatusInternalServerError)
+		return
+	}
+
+	logOutgoingRequest(openaiReq, breakdown, breakpoints, enableCaching, h.verbose)
 
 	proxyReq, err := http.NewRequestWithContext(r.Context(), "POST", h.baseURL+"/chat/completions", jsonReader(openaiReq))
 	if err != nil {
@@ -146,15 +160,19 @@ type cacheControl struct {
 }
 
 type systemMessage struct {
-	Role         string        `json:"role"`
-	Content      string        `json:"content"`
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type toolWithCache struct {
+	openai.Tool
 	CacheControl *cacheControl `json:"cache_control,omitempty"`
 }
 
 type openAIRequest struct {
 	Model            string            `json:"model"`
 	Messages         []json.RawMessage `json:"messages"`
-	Tools            []openai.Tool     `json:"tools,omitempty"`
+	Tools            []toolWithCache   `json:"tools,omitempty"`
 	Stream           bool              `json:"stream"`
 	Usage            *usageRequest     `json:"usage,omitempty"`
 	Provider         *providerPreference `json:"provider,omitempty"`
@@ -169,11 +187,11 @@ type providerPreference struct {
 	Only []string `json:"only"`
 }
 
-func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []json.RawMessage, includeReasoning bool) openAIRequest {
+func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []json.RawMessage, includeReasoning, enableCaching bool) openAIRequest {
 	req := openAIRequest{
 		Model:    model,
-		Messages: prependSystemMessage(systemPrompt, shouldEnablePromptCaching(model), messages),
-		Tools:    tools,
+		Messages: prependSystemMessage(systemPrompt, messages),
+		Tools:    wrapToolsWithCache(tools, enableCaching),
 		Stream:   true,
 		Usage:    &usageRequest{Include: true},
 	}
@@ -188,11 +206,99 @@ func shouldEnablePromptCaching(model string) bool {
 	return strings.Contains(model, "claude") || strings.Contains(model, "anthropic")
 }
 
-func prependSystemMessage(systemPrompt string, enableCaching bool, messages []json.RawMessage) []json.RawMessage {
-	sysMsg := systemMessage{Role: "system", Content: systemPrompt}
-	if enableCaching {
-		sysMsg.CacheControl = &cacheControl{Type: "ephemeral"}
+func wrapToolsWithCache(tools []openai.Tool, enableCaching bool) []toolWithCache {
+	wrapped := make([]toolWithCache, len(tools))
+	for i, tool := range tools {
+		wrapped[i] = toolWithCache{Tool: tool}
 	}
+	if enableCaching && len(wrapped) > 0 {
+		wrapped[len(wrapped)-1].CacheControl = &cacheControl{Type: "ephemeral"}
+	}
+	return wrapped
+}
+
+type messageWithCache struct {
+	Role         string        `json:"role"`
+	Content      string        `json:"content,omitempty"`
+	ToolCalls    interface{}   `json:"tool_calls,omitempty"`
+	ToolCallID   string        `json:"tool_call_id,omitempty"`
+	CacheControl *cacheControl `json:"cache_control,omitempty"`
+}
+
+type cacheBreakpointInfo struct {
+	messageIndex int
+	tokenPos     int
+	breakpointNum int
+}
+
+func addCacheBreakpoints(messages []json.RawMessage, enableCaching bool, cacheInterval int) ([]json.RawMessage, []cacheBreakpointInfo) {
+	if !enableCaching || cacheInterval <= 0 {
+		return messages, nil
+	}
+
+	result := make([]json.RawMessage, len(messages))
+	accumulated := 0
+	nextThreshold := cacheInterval
+	breakpointsUsed := 0
+	maxBreakpoints := 3
+	var breakpoints []cacheBreakpointInfo
+
+	for i, rawMsg := range messages {
+		var msg map[string]interface{}
+		if err := json.Unmarshal(rawMsg, &msg); err != nil {
+			result[i] = rawMsg
+			continue
+		}
+
+		content, _ := msg["content"].(string)
+		msgTokens := estimateTokens(content)
+
+		if toolCalls, ok := msg["tool_calls"].([]interface{}); ok {
+			toolCallsJSON, _ := json.Marshal(toolCalls)
+			msgTokens += estimateTokens(string(toolCallsJSON))
+		}
+
+		accumulated += msgTokens
+
+		if accumulated >= nextThreshold && breakpointsUsed < maxBreakpoints {
+			msgWithCache := messageWithCache{
+				CacheControl: &cacheControl{Type: "ephemeral"},
+			}
+
+			if role, ok := msg["role"].(string); ok {
+				msgWithCache.Role = role
+			}
+			if c, ok := msg["content"].(string); ok {
+				msgWithCache.Content = c
+			}
+			if tc, ok := msg["tool_calls"]; ok {
+				msgWithCache.ToolCalls = tc
+			}
+			if tid, ok := msg["tool_call_id"].(string); ok {
+				msgWithCache.ToolCallID = tid
+			}
+
+			msgJSON, _ := json.Marshal(msgWithCache)
+			result[i] = msgJSON
+
+			breakpoints = append(breakpoints, cacheBreakpointInfo{
+				messageIndex: i,
+				tokenPos:     accumulated,
+				breakpointNum: breakpointsUsed + 2,
+			})
+
+			breakpointsUsed++
+			nextThreshold += cacheInterval
+		} else {
+			result[i] = rawMsg
+		}
+	}
+
+	return result, breakpoints
+}
+
+func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []json.RawMessage {
+	sysMsg := systemMessage{Role: "system", Content: systemPrompt}
 	sysMsgJSON, _ := json.Marshal(sysMsg)
 	return append([]json.RawMessage{sysMsgJSON}, messages...)
 }
@@ -255,10 +361,7 @@ func formatRatio(prompt, completion int) string {
 
 func logUsage(u *usageResponse, breakdown map[string]int) {
 	ratio := formatRatio(u.PromptTokens, u.CompletionTokens)
-	totalEstimate := 0
-	for _, v := range breakdown {
-		totalEstimate += v
-	}
+	totalEstimate := sumTokenBreakdown(breakdown)
 
 	slog.Info("usage",
 		"prompt_tokens", u.PromptTokens,
@@ -278,6 +381,14 @@ func logUsage(u *usageResponse, breakdown map[string]int) {
 
 func estimateTokens(text string) int {
 	return len(text) / 4
+}
+
+func sumTokenBreakdown(breakdown map[string]int) int {
+	total := 0
+	for _, v := range breakdown {
+		total += v
+	}
+	return total
 }
 
 func calculateTokenBreakdown(req openAIRequest, systemPrompt string) map[string]int {
@@ -321,11 +432,8 @@ func calculateTokenBreakdown(req openAIRequest, systemPrompt string) map[string]
 	return breakdown
 }
 
-func logOutgoingRequest(req openAIRequest, breakdown map[string]int, verbose bool) {
-	totalEstimate := 0
-	for _, v := range breakdown {
-		totalEstimate += v
-	}
+func logOutgoingRequest(req openAIRequest, breakdown map[string]int, breakpoints []cacheBreakpointInfo, enableCaching bool, verbose bool) {
+	totalEstimate := sumTokenBreakdown(breakdown)
 
 	slog.Info("outgoing_request",
 		"model", req.Model,
@@ -340,6 +448,18 @@ func logOutgoingRequest(req openAIRequest, breakdown map[string]int, verbose boo
 		"est_tool_responses", breakdown["tool_responses"],
 		"est_total", totalEstimate,
 	)
+
+	if enableCaching && len(req.Tools) > 0 {
+		slog.Info("cache_breakpoint", "bp", 1, "location", "last_tool")
+	}
+
+	for _, bp := range breakpoints {
+		slog.Info("cache_breakpoint",
+			"bp", bp.breakpointNum,
+			"message_index", bp.messageIndex,
+			"token_pos", bp.tokenPos,
+		)
+	}
 
 	if verbose {
 		reqJSON, _ := json.Marshal(req)

@@ -33,7 +33,7 @@ func main() {
 		cfg.Provider,
 		systemPrompt,
 		loadedTools,
-		cfg.Debug,
+		cfg.Verbose,
 		cfg.IncludeReasoning,
 	)
 

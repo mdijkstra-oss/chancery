@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	"strings"
 
@@ -38,11 +40,11 @@ type StreamHandler struct {
 	provider         string
 	systemPrompt     string
 	tools            []openai.Tool
-	debug            bool
+	verbose          bool
 	includeReasoning bool
 }
 
-func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, tools []openai.Tool, debug, includeReasoning bool) StreamHandler {
+func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, tools []openai.Tool, verbose, includeReasoning bool) StreamHandler {
 	return StreamHandler{
 		apiKey:           apiKey,
 		baseURL:          baseURL,
@@ -50,7 +52,7 @@ func NewStreamHandler(apiKey, baseURL, model, provider, systemPrompt string, too
 		provider:         provider,
 		systemPrompt:     systemPrompt,
 		tools:            tools,
-		debug:            debug,
+		verbose:          verbose,
 		includeReasoning: includeReasoning,
 	}
 }
@@ -67,7 +69,10 @@ func (h StreamHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	openaiReq := buildOpenAIRequest(h.model, h.provider, h.systemPrompt, h.tools, req.Messages, h.debug, h.includeReasoning)
+	openaiReq := buildOpenAIRequest(h.model, h.provider, h.systemPrompt, h.tools, req.Messages, h.includeReasoning)
+
+	breakdown := calculateTokenBreakdown(openaiReq, h.systemPrompt)
+	logOutgoingRequest(openaiReq, breakdown, h.verbose)
 
 	proxyReq, err := http.NewRequestWithContext(r.Context(), "POST", h.baseURL+"/chat/completions", jsonReader(openaiReq))
 	if err != nil {
@@ -102,43 +107,37 @@ func (h StreamHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.debug {
-		streamWithUsageLogging(resp.Body, w, flusher)
-	} else {
-		streamSimple(resp.Body, w, flusher)
-	}
+	streamWithUsageLogging(resp.Body, w, flusher, breakdown, h.verbose)
 }
 
-func streamSimple(src io.Reader, dst io.Writer, flusher http.Flusher) {
-	buf := make([]byte, 4096)
-	for {
-		n, err := src.Read(buf)
-		if n > 0 {
-			dst.Write(buf[:n])
-			flusher.Flush()
-		}
-		if err != nil {
-			if isUnexpectedStreamError(err) {
-				slog.Error("stream read error", "error", err)
-			}
-			return
-		}
-	}
-}
-
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher) {
+func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, breakdown map[string]int, verbose bool) {
 	scanner := bufio.NewScanner(src)
+	lineCount := 0
+	var collected strings.Builder
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		dst.Write([]byte(line + "\n"))
+		lineWithNewline := line + "\n"
+		dst.Write([]byte(lineWithNewline))
 		flusher.Flush()
+		lineCount++
+
+		if verbose {
+			collected.WriteString(lineWithNewline)
+		}
 
 		if usage := extractUsage(line); usage != nil {
-			logUsage(usage)
+			logUsage(usage, breakdown)
 		}
 	}
+
 	if err := scanner.Err(); err != nil && isUnexpectedStreamError(err) {
 		slog.Error("stream read error", "error", err)
+	} else {
+		slog.Info("stream_complete", "lines_received", lineCount)
+		if verbose {
+			slog.Info("raw_response", "data", collected.String())
+		}
 	}
 }
 
@@ -170,15 +169,13 @@ type providerPreference struct {
 	Only []string `json:"only"`
 }
 
-func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []json.RawMessage, debug, includeReasoning bool) openAIRequest {
+func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []json.RawMessage, includeReasoning bool) openAIRequest {
 	req := openAIRequest{
 		Model:    model,
 		Messages: prependSystemMessage(systemPrompt, shouldEnablePromptCaching(model), messages),
 		Tools:    tools,
 		Stream:   true,
-	}
-	if debug {
-		req.Usage = &usageRequest{Include: true}
+		Usage:    &usageRequest{Include: true},
 	}
 	if provider != "" {
 		req.Provider = &providerPreference{Only: []string{provider}}
@@ -248,11 +245,104 @@ func extractUsage(line string) *usageResponse {
 	return chunk.Usage
 }
 
-func logUsage(u *usageResponse) {
+func formatRatio(prompt, completion int) string {
+	if completion == 0 {
+		return "0:1"
+	}
+	ratio := math.Round(float64(prompt) / float64(completion))
+	return fmt.Sprintf("%.0f:1", ratio)
+}
+
+func logUsage(u *usageResponse, breakdown map[string]int) {
+	ratio := formatRatio(u.PromptTokens, u.CompletionTokens)
+	totalEstimate := 0
+	for _, v := range breakdown {
+		totalEstimate += v
+	}
+
 	slog.Info("usage",
 		"prompt_tokens", u.PromptTokens,
 		"completion_tokens", u.CompletionTokens,
 		"total_tokens", u.TotalTokens,
+		"input_output_ratio", ratio,
 		"cache_discount", u.CacheDiscount,
+		"est_system", breakdown["system"],
+		"est_tool_defs", breakdown["tool_defs"],
+		"est_user_msgs", breakdown["user_msgs"],
+		"est_assistant_msgs", breakdown["assistant_msgs"],
+		"est_tool_calls", breakdown["tool_calls"],
+		"est_tool_responses", breakdown["tool_responses"],
+		"est_total", totalEstimate,
 	)
+}
+
+func estimateTokens(text string) int {
+	return len(text) / 4
+}
+
+func calculateTokenBreakdown(req openAIRequest, systemPrompt string) map[string]int {
+	breakdown := map[string]int{
+		"system":         estimateTokens(systemPrompt),
+		"tool_defs":      0,
+		"user_msgs":      0,
+		"assistant_msgs": 0,
+		"tool_calls":     0,
+		"tool_responses": 0,
+	}
+
+	toolsJSON, _ := json.Marshal(req.Tools)
+	breakdown["tool_defs"] = estimateTokens(string(toolsJSON))
+
+	for _, rawMsg := range req.Messages {
+		var msg map[string]interface{}
+		if err := json.Unmarshal(rawMsg, &msg); err != nil {
+			continue
+		}
+
+		role, _ := msg["role"].(string)
+		content, _ := msg["content"].(string)
+
+		switch role {
+		case "system":
+			continue
+		case "user":
+			breakdown["user_msgs"] += estimateTokens(content)
+		case "assistant":
+			breakdown["assistant_msgs"] += estimateTokens(content)
+			if toolCalls, ok := msg["tool_calls"].([]interface{}); ok {
+				toolCallsJSON, _ := json.Marshal(toolCalls)
+				breakdown["tool_calls"] += estimateTokens(string(toolCallsJSON))
+			}
+		case "tool":
+			breakdown["tool_responses"] += estimateTokens(content)
+		}
+	}
+
+	return breakdown
+}
+
+func logOutgoingRequest(req openAIRequest, breakdown map[string]int, verbose bool) {
+	totalEstimate := 0
+	for _, v := range breakdown {
+		totalEstimate += v
+	}
+
+	slog.Info("outgoing_request",
+		"model", req.Model,
+		"message_count", len(req.Messages),
+		"tool_count", len(req.Tools),
+		"stream", req.Stream,
+		"est_system", breakdown["system"],
+		"est_tool_defs", breakdown["tool_defs"],
+		"est_user_msgs", breakdown["user_msgs"],
+		"est_assistant_msgs", breakdown["assistant_msgs"],
+		"est_tool_calls", breakdown["tool_calls"],
+		"est_tool_responses", breakdown["tool_responses"],
+		"est_total", totalEstimate,
+	)
+
+	if verbose {
+		reqJSON, _ := json.Marshal(req)
+		slog.Info("raw_outgoing_request", "data", string(reqJSON))
+	}
 }

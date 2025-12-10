@@ -16,7 +16,7 @@ type Config struct {
 	LogLevel         slog.Level
 	CommandsFile     string
 	SystemPromptPath string
-	Debug            bool
+	Verbose          bool
 	IncludeReasoning bool
 }
 
@@ -31,7 +31,7 @@ func Load() Config {
 		LogLevel:         parseLogLevel(getEnv("LOG_LEVEL", "info")),
 		CommandsFile:     getEnv("COMMANDS_FILE", "/home/hermes/hermes-mcp/tools.json"),
 		SystemPromptPath: getEnv("SYSTEM_PROMPT_PATH", "/home/hermes/hermes-mcp/prompts/"),
-		Debug:            os.Getenv("DEBUG") != "",
+		Verbose:          os.Getenv("VERBOSE") != "",
 		IncludeReasoning: utils.IsTruthy(os.Getenv("INCLUDE_REASONING")),
 	}
 }

@@ -121,10 +121,10 @@ func (h StreamHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, breakdown, h.verbose)
+	streamWithUsageLogging(resp.Body, w, flusher, breakdown, breakpoints, enableCaching, len(openaiReq.Tools) > 0, h.verbose)
 }
 
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, breakdown map[string]int, verbose bool) {
+func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, breakdown map[string]int, breakpoints []cacheBreakpointInfo, enableCaching, hasTools, verbose bool) {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var collected strings.Builder
@@ -141,7 +141,7 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 		}
 
 		if usage := extractUsage(line); usage != nil {
-			logUsage(usage, breakdown)
+			logUsage(usage, breakdown, breakpoints, enableCaching, hasTools)
 		}
 	}
 
@@ -359,11 +359,11 @@ func formatRatio(prompt, completion int) string {
 	return fmt.Sprintf("%.0f:1", ratio)
 }
 
-func logUsage(u *usageResponse, breakdown map[string]int) {
+func logUsage(u *usageResponse, breakdown map[string]int, breakpoints []cacheBreakpointInfo, enableCaching, hasTools bool) {
 	ratio := formatRatio(u.PromptTokens, u.CompletionTokens)
 	totalEstimate := sumTokenBreakdown(breakdown)
 
-	slog.Info("usage",
+	attrs := []any{
 		"prompt_tokens", u.PromptTokens,
 		"completion_tokens", u.CompletionTokens,
 		"total_tokens", u.TotalTokens,
@@ -376,7 +376,17 @@ func logUsage(u *usageResponse, breakdown map[string]int) {
 		"est_tool_calls", breakdown["tool_calls"],
 		"est_tool_responses", breakdown["tool_responses"],
 		"est_total", totalEstimate,
-	)
+	}
+
+	if enableCaching && hasTools {
+		attrs = append(attrs, "bp1", "tools")
+	}
+
+	for _, bp := range breakpoints {
+		attrs = append(attrs, fmt.Sprintf("bp%d", bp.breakpointNum), bp.tokenPos)
+	}
+
+	slog.Info("usage", attrs...)
 }
 
 func estimateTokens(text string) int {
@@ -448,18 +458,6 @@ func logOutgoingRequest(req openAIRequest, breakdown map[string]int, breakpoints
 		"est_tool_responses", breakdown["tool_responses"],
 		"est_total", totalEstimate,
 	)
-
-	if enableCaching && len(req.Tools) > 0 {
-		slog.Info("cache_breakpoint", "bp", 1, "location", "last_tool")
-	}
-
-	for _, bp := range breakpoints {
-		slog.Info("cache_breakpoint",
-			"bp", bp.breakpointNum,
-			"message_index", bp.messageIndex,
-			"token_pos", bp.tokenPos,
-		)
-	}
 
 	if verbose {
 		reqJSON, _ := json.Marshal(req)

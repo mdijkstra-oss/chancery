@@ -359,9 +359,32 @@ func formatRatio(prompt, completion int) string {
 	return fmt.Sprintf("%.0f:1", ratio)
 }
 
+func calculateCachedTokens(breakdown map[string]int, breakpoints []cacheBreakpointInfo, enableCaching, hasTools bool) int {
+	if !enableCaching {
+		return 0
+	}
+
+	if len(breakpoints) == 0 {
+		if hasTools {
+			return breakdown["system"] + breakdown["tool_defs"]
+		}
+		return 0
+	}
+
+	maxPos := 0
+	for _, bp := range breakpoints {
+		if bp.tokenPos > maxPos {
+			maxPos = bp.tokenPos
+		}
+	}
+	return maxPos
+}
+
 func logUsage(u *usageResponse, breakdown map[string]int, breakpoints []cacheBreakpointInfo, enableCaching, hasTools bool) {
 	ratio := formatRatio(u.PromptTokens, u.CompletionTokens)
 	totalEstimate := sumTokenBreakdown(breakdown)
+	estCached := calculateCachedTokens(breakdown, breakpoints, enableCaching, hasTools)
+	estUncached := totalEstimate - estCached
 
 	attrs := []any{
 		"prompt_tokens", u.PromptTokens,
@@ -376,6 +399,8 @@ func logUsage(u *usageResponse, breakdown map[string]int, breakpoints []cacheBre
 		"est_tool_calls", breakdown["tool_calls"],
 		"est_tool_responses", breakdown["tool_responses"],
 		"est_total", totalEstimate,
+		"est_cached", estCached,
+		"est_uncached", estUncached,
 	}
 
 	if enableCaching && hasTools {

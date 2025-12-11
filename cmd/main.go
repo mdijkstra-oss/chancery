@@ -26,21 +26,21 @@ func main() {
 		"tools_count", len(loadedTools),
 	)
 
-	streamHandler := httpHandlers.NewStreamHandler(
-		cfg.OpenRouterKey,
-		cfg.OpenRouterURL,
-		cfg.Model,
-		cfg.Provider,
-		systemPrompt,
-		loadedTools,
-		cfg.Verbose,
-		cfg.IncludeReasoning,
-		cfg.CacheInterval,
-		cfg.MaxTokenWindow,
-	)
+	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
+		APIKey:           cfg.OpenRouterKey,
+		BaseURL:          cfg.OpenRouterURL,
+		Model:            cfg.Model,
+		Provider:         cfg.Provider,
+		SystemPrompt:     systemPrompt,
+		Tools:            loadedTools,
+		Verbose:          cfg.Verbose,
+		IncludeReasoning: cfg.IncludeReasoning,
+		CacheInterval:    cfg.CacheInterval,
+		MaxTokenWindow:   cfg.MaxTokenWindow,
+	})
 
 	r := chi.NewRouter()
-	httpHandlers.SetupRoutes(r, streamHandler, cfg.CorsOrigins)
+	httpHandlers.SetupRoutes(r, chatHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server starting", "port", cfg.Port, "model", cfg.Model)

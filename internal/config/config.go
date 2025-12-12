@@ -1,7 +1,6 @@
 package config
 
 import (
-	"hermes-logos/internal/utils"
 	"log/slog"
 	"os"
 	"strconv"
@@ -9,35 +8,31 @@ import (
 
 type Config struct {
 	Port             string
-	OpenRouterKey    string
+	APIKey           string
 	Model            string
-	Provider         string
-	OpenRouterURL    string
+	BaseURL          string
 	CorsOrigins      []string
 	LogLevel         slog.Level
 	CommandsFile     string
 	SystemPromptPath string
 	Verbose          bool
-	IncludeReasoning bool
-	CacheInterval    int
-	MaxTokenWindow   int
+	GPTVerbosity     string
+	ReasoningEffort  string
 }
 
 func Load() Config {
 	return Config{
 		Port:             getEnv("PORT", "8081"),
-		OpenRouterKey:    getEnv("OPENROUTER_API_KEY", ""),
-		Model:            getEnv("MODEL", "deepseek/deepseek-v3.2"),
-		Provider:         os.Getenv("PROVIDER"),
-		OpenRouterURL:    getEnv("OPENROUTER_URL", "https://openrouter.ai/api/v1"),
+		APIKey:           getEnv("API_KEY", ""),
+		Model:            getEnv("MODEL", "gpt-5.1"),
+		BaseURL:          getEnv("BASE_URL", "https://api.openai.com/v1"),
 		CorsOrigins:      []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:         parseLogLevel(getEnv("LOG_LEVEL", "info")),
 		CommandsFile:     getEnv("COMMANDS_FILE", "/home/hermes/hermes-mcp/tools.json"),
 		SystemPromptPath: getEnv("SYSTEM_PROMPT_PATH", "/home/hermes/hermes-mcp/prompts/"),
 		Verbose:          os.Getenv("VERBOSE") != "",
-		IncludeReasoning: utils.IsTruthy(os.Getenv("INCLUDE_REASONING")),
-		CacheInterval:    parseInt(getEnv("CACHE_INTERVAL", "30000")),
-		MaxTokenWindow:   parseInt(getEnv("MAX_TOKEN_WINDOW", "150000")),
+		GPTVerbosity:     os.Getenv("GPT_VERBOSITY"),
+		ReasoningEffort:  os.Getenv("REASONING_EFFORT"),
 	}
 }
 

@@ -23,10 +23,13 @@ gemini:
 	MODEL=google/gemini-2.5-flash $(RUN_CMD)
 
 gpt-mini:
-	MODEL=openai/gpt-5-mini $(RUN_CMD)
+	MODEL=gpt-4o-mini BASE_URL=https://api.openai.com/v1 $(RUN_CMD)
 
 gpt:
-	MODEL=openai/gpt-5 $(RUN_CMD)
+	MODEL=gpt-5.1 BASE_URL=https://api.openai.com/v1 INCLUDE_REASONING= $(RUN_CMD)
+
+gpt-4:
+	MODEL=gpt-4.1 BASE_URL=https://api.openai.com/v1 $(RUN_CMD)
 
 sonnet:
 	MODEL=anthropic/claude-sonnet-4.5 PROVIDER=anthropic $(RUN_CMD)

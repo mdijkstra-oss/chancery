@@ -11,20 +11,14 @@ type ChatRequest struct {
 }
 
 type Config struct {
-	APIKey           string
-	BaseURL          string
-	Model            string
-	Provider         string
-	SystemPrompt     string
-	Tools            []openai.Tool
-	Verbose          bool
-	IncludeReasoning bool
-	CacheInterval    int
-	MaxTokenWindow   int
-}
-
-type CacheControl struct {
-	Type string `json:"type"`
+	APIKey         string
+	BaseURL        string
+	Model          string
+	SystemPrompt   string
+	Tools          []openai.Tool
+	Verbose        bool
+	GPTVerbosity   string
+	ReasoningEffort string
 }
 
 type SystemMessage struct {
@@ -32,61 +26,33 @@ type SystemMessage struct {
 	Content string `json:"content"`
 }
 
-type ToolWithCache struct {
-	openai.Tool
-	CacheControl *CacheControl `json:"cache_control,omitempty"`
-}
-
 type OpenAIRequest struct {
-	Model            string            `json:"model"`
-	Messages         []json.RawMessage `json:"messages"`
-	Tools            []ToolWithCache   `json:"tools,omitempty"`
-	Stream           bool              `json:"stream"`
-	Usage            *UsageRequest     `json:"usage,omitempty"`
-	Provider         *ProviderPreference `json:"provider,omitempty"`
-	IncludeReasoning *bool             `json:"include_reasoning,omitempty"`
+	Model           string            `json:"model"`
+	Messages        []json.RawMessage `json:"messages"`
+	Tools           []openai.Tool     `json:"tools,omitempty"`
+	Stream          bool              `json:"stream"`
+	StreamOptions   *StreamOptions    `json:"stream_options,omitempty"`
+	Verbosity       *string           `json:"verbosity,omitempty"`
+	ReasoningEffort *string           `json:"reasoning_effort,omitempty"`
 }
 
-type UsageRequest struct {
-	Include bool `json:"include"`
-}
-
-type ProviderPreference struct {
-	Only []string `json:"only"`
-}
-
-type MessageWithCache struct {
-	Role         string        `json:"role"`
-	Content      string        `json:"content,omitempty"`
-	ToolCalls    interface{}   `json:"tool_calls,omitempty"`
-	ToolCallID   string        `json:"tool_call_id,omitempty"`
-	CacheControl *CacheControl `json:"cache_control,omitempty"`
-}
-
-type CacheBreakpointInfo struct {
-	MessageIndex  int
-	TokenPos      int
-	BreakpointNum int
+type StreamOptions struct {
+	IncludeUsage bool `json:"include_usage"`
 }
 
 type StreamChunk struct {
 	Usage *UsageResponse `json:"usage,omitempty"`
 }
 
-type UsageResponse struct {
-	PromptTokens     int     `json:"prompt_tokens"`
-	CompletionTokens int     `json:"completion_tokens"`
-	TotalTokens      int     `json:"total_tokens"`
-	CacheDiscount    float64 `json:"cache_discount,omitempty"`
+type PromptTokensDetails struct {
+	CachedTokens int `json:"cached_tokens"`
 }
 
-type TokenBreakdown struct {
-	System         int
-	ToolDefs       int
-	UserMsgs       int
-	AssistantMsgs  int
-	ToolCalls      int
-	ToolResponses  int
+type UsageResponse struct {
+	PromptTokens        int                  `json:"prompt_tokens"`
+	CompletionTokens    int                  `json:"completion_tokens"`
+	TotalTokens         int                  `json:"total_tokens"`
+	PromptTokensDetails *PromptTokensDetails `json:"prompt_tokens_details,omitempty"`
 }
 
 type Message struct {

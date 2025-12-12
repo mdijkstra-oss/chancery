@@ -21,20 +21,9 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	enableCaching := shouldEnablePromptCaching(cfg.Model)
-	messagesWithCache, breakpoints := addCacheBreakpoints(req.Messages, enableCaching, cfg.CacheInterval)
+	openaiReq := buildOpenAIRequest(cfg.Model, cfg.SystemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, cfg.Tools, req.Messages)
 
-	openaiReq := buildOpenAIRequest(cfg.Model, cfg.Provider, cfg.SystemPrompt, cfg.Tools, messagesWithCache, cfg.IncludeReasoning, enableCaching)
-
-	breakdown := calculateTokenBreakdown(openaiReq, cfg.SystemPrompt)
-	totalEstimated := sumTokens(breakdown)
-
-	if exceedsTokenWindow(totalEstimated, cfg.MaxTokenWindow) {
-		http.Error(w, "Out of context, please reload", http.StatusInternalServerError)
-		return
-	}
-
-	logOutgoingRequest(openaiReq, breakdown, cfg.Verbose)
+	logOutgoingRequest(openaiReq, cfg.Verbose)
 
 	resp, err := proxyRequest(r.Context(), openaiReq, cfg)
 	if err != nil {
@@ -48,7 +37,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	streamResponse(w, resp, breakdown, breakpoints, enableCaching, len(openaiReq.Tools) > 0, cfg.Verbose)
+	streamResponse(w, resp, cfg.Verbose)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {
@@ -60,10 +49,6 @@ func decodeRequest(r *http.Request) (ChatRequest, error) {
 		return req, http.ErrBodyNotAllowed
 	}
 	return req, nil
-}
-
-func exceedsTokenWindow(total, max int) bool {
-	return max > 0 && total > max
 }
 
 func proxyRequest(ctx context.Context, openaiReq OpenAIRequest, cfg Config) (*http.Response, error) {
@@ -93,7 +78,7 @@ func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
 	http.Error(w, string(body), resp.StatusCode)
 }
 
-func streamResponse(w http.ResponseWriter, resp *http.Response, breakdown TokenBreakdown, breakpoints []CacheBreakpointInfo, enableCaching, hasTools, verbose bool) {
+func streamResponse(w http.ResponseWriter, resp *http.Response, verbose bool) {
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
@@ -103,5 +88,5 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, breakdown TokenB
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, breakdown, breakpoints, enableCaching, hasTools, verbose)
+	streamWithUsageLogging(resp.Body, w, flusher, verbose)
 }

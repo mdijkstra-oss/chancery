@@ -27,16 +27,14 @@ func main() {
 	)
 
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
-		APIKey:           cfg.OpenRouterKey,
-		BaseURL:          cfg.OpenRouterURL,
-		Model:            cfg.Model,
-		Provider:         cfg.Provider,
-		SystemPrompt:     systemPrompt,
-		Tools:            loadedTools,
-		Verbose:          cfg.Verbose,
-		IncludeReasoning: cfg.IncludeReasoning,
-		CacheInterval:    cfg.CacheInterval,
-		MaxTokenWindow:   cfg.MaxTokenWindow,
+		APIKey:          cfg.APIKey,
+		BaseURL:         cfg.BaseURL,
+		Model:           cfg.Model,
+		SystemPrompt:    systemPrompt,
+		Tools:           loadedTools,
+		Verbose:         cfg.Verbose,
+		GPTVerbosity:    cfg.GPTVerbosity,
+		ReasoningEffort: cfg.ReasoningEffort,
 	})
 
 	r := chi.NewRouter()

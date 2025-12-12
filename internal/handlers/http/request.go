@@ -13,18 +13,20 @@ func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []jso
 	return append([]json.RawMessage{sysMsgJSON}, messages...)
 }
 
-func buildOpenAIRequest(model, provider, systemPrompt string, tools []openai.Tool, messages []json.RawMessage, includeReasoning, enableCaching bool) OpenAIRequest {
+func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort string, tools []openai.Tool, messages []json.RawMessage) OpenAIRequest {
 	req := OpenAIRequest{
-		Model:    model,
-		Messages: prependSystemMessage(systemPrompt, messages),
-		Tools:    wrapToolsWithCache(tools, enableCaching),
-		Stream:   true,
-		Usage:    &UsageRequest{Include: true},
+		Model:         model,
+		Messages:      prependSystemMessage(systemPrompt, messages),
+		Tools:         tools,
+		Stream:        true,
+		StreamOptions: &StreamOptions{IncludeUsage: true},
 	}
-	if provider != "" {
-		req.Provider = &ProviderPreference{Only: []string{provider}}
+	if gptVerbosity != "" {
+		req.Verbosity = &gptVerbosity
 	}
-	req.IncludeReasoning = &includeReasoning
+	if reasoningEffort != "" {
+		req.ReasoningEffort = &reasoningEffort
+	}
 	return req
 }
 

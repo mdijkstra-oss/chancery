@@ -27,7 +27,7 @@ func Load() Config {
 	return Config{
 		Port:                 getEnv("PORT", "8081"),
 		APIKey:               getEnv("API_KEY", ""),
-		Model:                getEnv("MODEL", "gpt-5.1"),
+		Model:                getEnv("MODEL", "gpt-5.2"),
 		BaseURL:              getEnv("BASE_URL", "https://api.openai.com/v1"),
 		CorsOrigins:          []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:             parseLogLevel(getEnv("LOG_LEVEL", "info")),

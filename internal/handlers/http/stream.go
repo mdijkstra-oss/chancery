@@ -24,7 +24,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, verbose bool) {
+func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, pricing Pricing, verbose bool) {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var collected strings.Builder
@@ -41,7 +41,7 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 		}
 
 		if usage := extractUsage(line); usage != nil {
-			logUsage(usage)
+			logUsage(usage, pricing)
 		}
 	}
 

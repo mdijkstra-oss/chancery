@@ -35,6 +35,11 @@ func main() {
 		Verbose:         cfg.Verbose,
 		GPTVerbosity:    cfg.GPTVerbosity,
 		ReasoningEffort: cfg.ReasoningEffort,
+		Pricing: httpHandlers.Pricing{
+			InputCentsPerMillion:       cfg.InputTokenCost,
+			OutputCentsPerMillion:      cfg.OutputTokenCost,
+			CachedInputCentsPerMillion: cfg.CachedInputTokenCost,
+		},
 	})
 
 	r := chi.NewRouter()

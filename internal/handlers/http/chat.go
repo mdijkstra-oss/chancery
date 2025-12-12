@@ -37,7 +37,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	streamResponse(w, resp, cfg.Verbose)
+	streamResponse(w, resp, cfg)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {
@@ -78,7 +78,7 @@ func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
 	http.Error(w, string(body), resp.StatusCode)
 }
 
-func streamResponse(w http.ResponseWriter, resp *http.Response, verbose bool) {
+func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config) {
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
@@ -88,5 +88,5 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, verbose bool) {
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, verbose)
+	streamWithUsageLogging(resp.Body, w, flusher, cfg.Pricing, cfg.Verbose)
 }

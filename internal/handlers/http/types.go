@@ -19,6 +19,7 @@ type Config struct {
 	Verbose        bool
 	GPTVerbosity   string
 	ReasoningEffort string
+	Pricing        Pricing
 }
 
 type SystemMessage struct {
@@ -27,13 +28,15 @@ type SystemMessage struct {
 }
 
 type OpenAIRequest struct {
-	Model           string            `json:"model"`
-	Messages        []json.RawMessage `json:"messages"`
-	Tools           []openai.Tool     `json:"tools,omitempty"`
-	Stream          bool              `json:"stream"`
-	StreamOptions   *StreamOptions    `json:"stream_options,omitempty"`
-	Verbosity       *string           `json:"verbosity,omitempty"`
-	ReasoningEffort *string           `json:"reasoning_effort,omitempty"`
+	Model                string            `json:"model"`
+	Messages             []json.RawMessage `json:"messages"`
+	Tools                []openai.Tool     `json:"tools,omitempty"`
+	Stream               bool              `json:"stream"`
+	StreamOptions        *StreamOptions    `json:"stream_options,omitempty"`
+	Verbosity            *string           `json:"verbosity,omitempty"`
+	ReasoningEffort      *string           `json:"reasoning_effort,omitempty"`
+	PromptCacheRetention *string           `json:"prompt_cache_retention,omitempty"`
+	PromptCacheKey       *string           `json:"prompt_cache_key,omitempty"`
 }
 
 type StreamOptions struct {

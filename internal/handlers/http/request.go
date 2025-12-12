@@ -14,12 +14,14 @@ func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []jso
 }
 
 func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort string, tools []openai.Tool, messages []json.RawMessage) OpenAIRequest {
+	cacheRetention := "24h"
 	req := OpenAIRequest{
-		Model:         model,
-		Messages:      prependSystemMessage(systemPrompt, messages),
-		Tools:         tools,
-		Stream:        true,
-		StreamOptions: &StreamOptions{IncludeUsage: true},
+		Model:                model,
+		Messages:             prependSystemMessage(systemPrompt, messages),
+		Tools:                tools,
+		Stream:               true,
+		StreamOptions:        &StreamOptions{IncludeUsage: true},
+		PromptCacheRetention: &cacheRetention,
 	}
 	if gptVerbosity != "" {
 		req.Verbosity = &gptVerbosity
@@ -29,6 +31,8 @@ func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort strin
 	}
 	return req
 }
+
+// TODO: PromptCacheKey important when adding multi-user support
 
 func encodeJSON(v any, pw *io.PipeWriter) {
 	pw.CloseWithError(json.NewEncoder(pw).Encode(v))

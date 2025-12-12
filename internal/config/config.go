@@ -7,32 +7,38 @@ import (
 )
 
 type Config struct {
-	Port             string
-	APIKey           string
-	Model            string
-	BaseURL          string
-	CorsOrigins      []string
-	LogLevel         slog.Level
-	CommandsFile     string
-	SystemPromptPath string
-	Verbose          bool
-	GPTVerbosity     string
-	ReasoningEffort  string
+	Port                 string
+	APIKey               string
+	Model                string
+	BaseURL              string
+	CorsOrigins          []string
+	LogLevel             slog.Level
+	CommandsFile         string
+	SystemPromptPath     string
+	Verbose              bool
+	GPTVerbosity         string
+	ReasoningEffort      string
+	InputTokenCost       float64
+	OutputTokenCost      float64
+	CachedInputTokenCost float64
 }
 
 func Load() Config {
 	return Config{
-		Port:             getEnv("PORT", "8081"),
-		APIKey:           getEnv("API_KEY", ""),
-		Model:            getEnv("MODEL", "gpt-5.1"),
-		BaseURL:          getEnv("BASE_URL", "https://api.openai.com/v1"),
-		CorsOrigins:      []string{getEnv("CORS_ORIGINS", "*")},
-		LogLevel:         parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		CommandsFile:     getEnv("COMMANDS_FILE", "/home/hermes/hermes-mcp/tools.json"),
-		SystemPromptPath: getEnv("SYSTEM_PROMPT_PATH", "/home/hermes/hermes-mcp/prompts/"),
-		Verbose:          os.Getenv("VERBOSE") != "",
-		GPTVerbosity:     os.Getenv("GPT_VERBOSITY"),
-		ReasoningEffort:  os.Getenv("REASONING_EFFORT"),
+		Port:                 getEnv("PORT", "8081"),
+		APIKey:               getEnv("API_KEY", ""),
+		Model:                getEnv("MODEL", "gpt-5.1"),
+		BaseURL:              getEnv("BASE_URL", "https://api.openai.com/v1"),
+		CorsOrigins:          []string{getEnv("CORS_ORIGINS", "*")},
+		LogLevel:             parseLogLevel(getEnv("LOG_LEVEL", "info")),
+		CommandsFile:         getEnv("COMMANDS_FILE", "/home/hermes/hermes-mcp/tools.json"),
+		SystemPromptPath:     getEnv("SYSTEM_PROMPT_PATH", "/home/hermes/hermes-mcp/prompts/"),
+		Verbose:              os.Getenv("VERBOSE") != "",
+		GPTVerbosity:         os.Getenv("GPT_VERBOSITY"),
+		ReasoningEffort:      os.Getenv("REASONING_EFFORT"),
+		InputTokenCost:       parseFloat(getEnv("INPUT_TOKEN_COST", "125")),
+		OutputTokenCost:      parseFloat(getEnv("OUTPUT_TOKEN_COST", "1000")),
+		CachedInputTokenCost: parseFloat(getEnv("CACHED_INPUT_TOKEN_COST", "12.5")),
 	}
 }
 
@@ -70,6 +76,14 @@ func parseInt(s string) int {
 	v, err := strconv.Atoi(s)
 	if err != nil {
 		panic("invalid integer: " + s)
+	}
+	return v
+}
+
+func parseFloat(s string) float64 {
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic("invalid float: " + s)
 	}
 	return v
 }

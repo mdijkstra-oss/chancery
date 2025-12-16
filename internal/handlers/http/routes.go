@@ -18,5 +18,5 @@ func SetupRoutes(r *chi.Mux, chatHandler http.HandlerFunc, corsOrigins []string)
 		AllowCredentials: true,
 	}))
 
-	r.Post("/chat", chatHandler)
+	r.Post("/chat/{subfolder}", chatHandler)
 }

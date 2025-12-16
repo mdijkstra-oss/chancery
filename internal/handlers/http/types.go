@@ -11,15 +11,15 @@ type ChatRequest struct {
 }
 
 type Config struct {
-	APIKey         string
-	BaseURL        string
-	Model          string
-	SystemPrompt   string
-	Tools          []openai.Tool
-	Verbose        bool
-	GPTVerbosity   string
+	APIKey          string
+	BaseURL         string
+	Model           string
+	PromptsBaseDir  string
+	Tools           []openai.Tool
+	Verbose         bool
+	GPTVerbosity    string
 	ReasoningEffort string
-	Pricing        Pricing
+	Pricing         Pricing
 }
 
 type SystemMessage struct {

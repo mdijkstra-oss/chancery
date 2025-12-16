@@ -1,6 +1,7 @@
 package prompts
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -46,6 +47,10 @@ func loadDir(dir string) (string, error) {
 	}
 
 	names := filterFiles(entries)
+	if len(names) == 0 {
+		return "", errors.New("no system prompt found for path")
+	}
+
 	slices.Sort(names)
 
 	parts := make([]string, 0, len(names))

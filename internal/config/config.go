@@ -14,7 +14,7 @@ type Config struct {
 	CorsOrigins          []string
 	LogLevel             slog.Level
 	CommandsFile         string
-	SystemPromptPath     string
+	PromptsBaseDir       string
 	Verbose              bool
 	GPTVerbosity         string
 	ReasoningEffort      string
@@ -32,7 +32,7 @@ func Load() Config {
 		CorsOrigins:          []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:             parseLogLevel(getEnv("LOG_LEVEL", "info")),
 		CommandsFile:         getEnv("COMMANDS_FILE", "/home/hermes/hermes-mcp/tools.json"),
-		SystemPromptPath:     getEnv("SYSTEM_PROMPT_PATH", "/home/hermes/hermes-mcp/prompts/"),
+		PromptsBaseDir:       getEnv("PROMPTS_BASE_DIR", "/home/hermes/hermes-mcp/prompts/"),
 		Verbose:              os.Getenv("VERBOSE") != "",
 		GPTVerbosity:         os.Getenv("GPT_VERBOSITY"),
 		ReasoningEffort:      os.Getenv("REASONING_EFFORT"),

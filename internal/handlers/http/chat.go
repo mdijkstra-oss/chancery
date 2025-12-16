@@ -6,6 +6,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path/filepath"
+
+	"github.com/go-chi/chi/v5"
+	"hermes-logos/internal/prompts"
 )
 
 func NewChatHandler(cfg Config) http.HandlerFunc {
@@ -15,13 +19,22 @@ func NewChatHandler(cfg Config) http.HandlerFunc {
 }
 
 func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
+	subfolder := chi.URLParam(r, "subfolder")
+	promptPath := filepath.Join(cfg.PromptsBaseDir, subfolder)
+
+	systemPrompt, err := prompts.Load(promptPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	req, err := decodeRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	openaiReq := buildOpenAIRequest(cfg.Model, cfg.SystemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, cfg.Tools, req.Messages)
+	openaiReq := buildOpenAIRequest(cfg.Model, systemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, cfg.Tools, req.Messages)
 
 	logOutgoingRequest(openaiReq, cfg.Verbose)
 

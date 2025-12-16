@@ -10,7 +10,6 @@ import (
 	"hermes-logos/internal/bootstrap"
 	"hermes-logos/internal/config"
 	httpHandlers "hermes-logos/internal/handlers/http"
-	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/tools"
 )
 
@@ -18,19 +17,15 @@ func main() {
 	cfg := config.Load()
 	bootstrap.SetupLogger(cfg.LogLevel)
 
-	systemPrompt := prompts.MustLoad(cfg.SystemPromptPath)
 	loadedTools := tools.MustLoad(cfg.CommandsFile)
 
-	slog.Info("loaded",
-		"system_prompt_len", len(systemPrompt),
-		"tools_count", len(loadedTools),
-	)
+	slog.Info("loaded", "tools_count", len(loadedTools))
 
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
 		APIKey:          cfg.APIKey,
 		BaseURL:         cfg.BaseURL,
 		Model:           cfg.Model,
-		SystemPrompt:    systemPrompt,
+		PromptsBaseDir:  cfg.PromptsBaseDir,
 		Tools:           loadedTools,
 		Verbose:         cfg.Verbose,
 		GPTVerbosity:    cfg.GPTVerbosity,

@@ -78,3 +78,27 @@ func filterFiles(entries []os.DirEntry) []string {
 	}
 	return names
 }
+
+func ListDirectories(baseDir string) ([]string, error) {
+	absPath, err := filepath.Abs(baseDir)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := os.ReadDir(absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return filterDirectories(entries), nil
+}
+
+func filterDirectories(entries []os.DirEntry) []string {
+	dirs := make([]string, 0)
+	for _, e := range entries {
+		if e.IsDir() {
+			dirs = append(dirs, e.Name())
+		}
+	}
+	return dirs
+}

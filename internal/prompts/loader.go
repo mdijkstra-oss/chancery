@@ -24,6 +24,18 @@ func Load(path string) (string, error) {
 	return loadFile(path)
 }
 
+func LoadFolders(baseDir string, folders []string) (string, error) {
+	parts := make([]string, 0, len(folders))
+	for _, folder := range folders {
+		content, err := loadDir(filepath.Join(baseDir, folder))
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, content)
+	}
+	return strings.Join(parts, "\n\n---\n\n"), nil
+}
+
 func MustLoad(path string) string {
 	prompt, err := Load(path)
 	if err != nil {

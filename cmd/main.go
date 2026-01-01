@@ -5,13 +5,11 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"hermes-logos/internal/bootstrap"
 	"hermes-logos/internal/config"
 	httpHandlers "hermes-logos/internal/handlers/http"
-	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/tools"
 )
 
@@ -19,7 +17,7 @@ func main() {
 	cfg := config.Load()
 	bootstrap.SetupLogger(cfg.LogLevel)
 
-	logPromptConfig(cfg.PromptsBaseDir)
+	logEndpoints()
 
 	loadedTools := tools.MustLoad(cfg.CommandsFile)
 
@@ -49,18 +47,10 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, r))
 }
 
-func logPromptConfig(baseDir string) {
-	absPath, err := filepath.Abs(baseDir)
-	if err != nil {
-		slog.Warn("failed to resolve prompt path", "error", err, "path", baseDir)
-		return
+func logEndpoints() {
+	endpoints := make([]string, 0, len(config.Endpoints))
+	for name := range config.Endpoints {
+		endpoints = append(endpoints, name)
 	}
-
-	dirs, err := prompts.ListDirectories(baseDir)
-	if err != nil {
-		slog.Warn("failed to list prompt directories", "error", err, "path", absPath)
-		return
-	}
-
-	slog.Info("prompts", "path", absPath, "available_dirs", dirs)
+	slog.Info("endpoints", "available", endpoints)
 }

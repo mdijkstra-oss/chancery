@@ -6,9 +6,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
+	"hermes-logos/internal/config"
 	"hermes-logos/internal/prompts"
 )
 
@@ -19,10 +19,15 @@ func NewChatHandler(cfg Config) http.HandlerFunc {
 }
 
 func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
-	subfolder := chi.URLParam(r, "subfolder")
-	promptPath := filepath.Join(cfg.PromptsBaseDir, subfolder)
+	endpoint := chi.URLParam(r, "endpoint")
 
-	systemPrompt, err := prompts.Load(promptPath)
+	endpointCfg, ok := config.GetEndpoint(endpoint)
+	if !ok {
+		http.Error(w, "unknown endpoint: "+endpoint, http.StatusNotFound)
+		return
+	}
+
+	systemPrompt, err := prompts.LoadFolders(cfg.PromptsBaseDir, endpointCfg.Folders)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -34,7 +39,12 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	openaiReq := buildOpenAIRequest(cfg.Model, systemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, cfg.Tools, req.Messages)
+	tools := cfg.Tools
+	if !endpointCfg.IncludeTools {
+		tools = nil
+	}
+
+	openaiReq := buildOpenAIRequest(cfg.Model, systemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, tools, req.Messages)
 
 	logOutgoingRequest(openaiReq, cfg.Verbose)
 

@@ -23,7 +23,7 @@ gemini:
 	MODEL=google/gemini-2.5-flash $(RUN_CMD)
 
 gpt-mini:
-	MODEL=gpt-4o-mini BASE_URL=https://api.openai.com/v1 $(RUN_CMD)
+	MODEL=gpt-5-mini BASE_URL=https://api.openai.com/v1 GPT_VERBOSITY=medium REASONING_EFFORT= $(RUN_CMD)
 
 gpt:
 	MODEL=gpt-5.1 BASE_URL=https://api.openai.com/v1 INCLUDE_REASONING= $(RUN_CMD)

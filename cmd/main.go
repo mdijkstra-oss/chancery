@@ -10,7 +10,6 @@ import (
 	"hermes-logos/internal/bootstrap"
 	"hermes-logos/internal/config"
 	httpHandlers "hermes-logos/internal/handlers/http"
-	"hermes-logos/internal/tools"
 )
 
 func main() {
@@ -19,16 +18,10 @@ func main() {
 
 	logEndpoints()
 
-	loadedTools := tools.MustLoad(cfg.CommandsFile)
-
-	slog.Info("loaded", "tools_count", len(loadedTools))
-
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
 		APIKey:          cfg.APIKey,
 		BaseURL:         cfg.BaseURL,
 		Model:           cfg.Model,
-		PromptsBaseDir:  cfg.PromptsBaseDir,
-		Tools:           loadedTools,
 		Verbose:         cfg.Verbose,
 		GPTVerbosity:    cfg.GPTVerbosity,
 		ReasoningEffort: cfg.ReasoningEffort,

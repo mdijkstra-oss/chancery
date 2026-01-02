@@ -1,0 +1,19 @@
+[
+  {
+      "type": "function",
+      "function": {
+        "name": "execute_sql",
+        "description": "Execute a read-only SQL query against the local DuckDB database.\n\nSchema:\n- projects: id (TEXT PK, proj-[uuid]), name (TEXT), description (TEXT), pinned (BOOLEAN), updated_at (TIMESTAMP)\n- documents: id (TEXT PK, doc-[uuid]), project_id (FK projects.id), name (TEXT), description (TEXT), title (TEXT), time (TIMESTAMP), updated_at (TIMESTAMP), original (TEXT), pinned (BOOLEAN)\n- blocks: id (TEXT PK, blk-[uuid]), document_id (FK documents.id), parent_id (FK blocks.id, self-ref for nesting), position (INTEGER), type (TEXT: paragraph|heading|bulletListItem|numberedListItem|checkListItem|image|codeBlock|table), props (JSON), content (JSON)\n- annotations: id (TEXT PK, ann-[uuid]), document_id (FK documents.id), text (TEXT), actor (TEXT), color (TEXT: amber|blue|green|etc), reason (TEXT), code_id (TEXT, code-[uuid]), confidence (TEXT: high|medium|low)\n\nUse json_extract or ::json for JSON columns.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "sql": {
+              "type": "string",
+              "description": "A valid DuckDB SQL SELECT query. Only read operations are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)."
+            }
+          },
+          "required": ["sql"]
+        }
+      }
+    }
+]

@@ -8,8 +8,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sashabaranov/go-openai"
 	"hermes-logos/internal/config"
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/tools"
 )
 
 func NewChatHandler(cfg Config) http.HandlerFunc {
@@ -27,7 +29,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	systemPrompt, err := prompts.LoadFolders(cfg.PromptsBaseDir, endpointCfg.Folders)
+	systemPrompt, err := prompts.LoadFolders(config.PromptsDir, endpointCfg.Folders)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -39,12 +41,12 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	tools := cfg.Tools
-	if !endpointCfg.IncludeTools {
-		tools = nil
+	var loadedTools []openai.Tool
+	if endpointCfg.IncludeTools {
+		loadedTools, _ = tools.LoadFolders(config.PromptsDir, endpointCfg.Folders)
 	}
 
-	openaiReq := buildOpenAIRequest(cfg.Model, systemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, tools, req.Messages)
+	openaiReq := buildOpenAIRequest(cfg.Model, systemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, loadedTools, req.Messages)
 
 	logOutgoingRequest(openaiReq, cfg.Verbose)
 

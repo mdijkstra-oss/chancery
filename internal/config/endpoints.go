@@ -7,15 +7,15 @@ type EndpointConfig struct {
 
 var Endpoints = map[string]EndpointConfig{
 	"converse": {
-		Folders:      []string{"base", "base-boundaries-intend"},
+		Folders:      []string{"nabu/base", "nabu/base-boundaries-intend"},
 		IncludeTools: true,
 	},
 	"plan": {
-		Folders:      []string{"base", "base-boundaries-intend", "plan"},
+		Folders:      []string{"nabu/base", "nabu/base-boundaries-intend", "nabu/plan"},
 		IncludeTools: true,
 	},
 	"execute": {
-		Folders:      []string{"base", "base-boundaries-intend", "execute"},
+		Folders:      []string{"nabu/base", "nabu/base-boundaries-intend", "nabu/execute"},
 		IncludeTools: true,
 	},
 }

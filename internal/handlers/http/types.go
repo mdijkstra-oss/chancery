@@ -14,8 +14,6 @@ type Config struct {
 	APIKey          string
 	BaseURL         string
 	Model           string
-	PromptsBaseDir  string
-	Tools           []openai.Tool
 	Verbose         bool
 	GPTVerbosity    string
 	ReasoningEffort string

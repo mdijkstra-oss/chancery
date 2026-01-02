@@ -13,8 +13,6 @@ type Config struct {
 	BaseURL              string
 	CorsOrigins          []string
 	LogLevel             slog.Level
-	CommandsFile         string
-	PromptsBaseDir       string
 	Verbose              bool
 	GPTVerbosity         string
 	ReasoningEffort      string
@@ -22,6 +20,8 @@ type Config struct {
 	OutputTokenCost      float64
 	CachedInputTokenCost float64
 }
+
+const PromptsDir = "prompts"
 
 func Load() Config {
 	return Config{
@@ -31,8 +31,6 @@ func Load() Config {
 		BaseURL:              getEnv("BASE_URL", "https://api.openai.com/v1"),
 		CorsOrigins:          []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:             parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		CommandsFile:         getEnv("COMMANDS_FILE", "/home/hermes/hermes-mcp/tools.json"),
-		PromptsBaseDir:       getEnv("PROMPTS_BASE_DIR", "/home/hermes/hermes-mcp/prompts/"),
 		Verbose:              os.Getenv("VERBOSE") != "",
 		GPTVerbosity:         os.Getenv("GPT_VERBOSITY"),
 		ReasoningEffort:      os.Getenv("REASONING_EFFORT"),

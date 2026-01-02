@@ -1,0 +1,714 @@
+[
+  {
+      "type": "function",
+      "function": {
+        "name": "create_project",
+        "description": "Creates a new research project for organizing documents and materials.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "description": "Unique identifier for the new project (format: proj-[uuid])"
+            },
+            "name": {
+              "type": "string",
+              "description": "Project title (max 200 chars)"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional project description (max 2000 chars)"
+            }
+          },
+          "required": ["project_id", "name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "update_project",
+        "description": "Updates project metadata (name and description).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "description": "Project to update"
+            },
+            "name": {
+              "type": "string",
+              "description": "New project title"
+            },
+            "description": {
+              "type": "string",
+              "description": "New project description"
+            }
+          },
+          "required": ["project_id", "name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "pin_project",
+        "description": "Pins a project for quick access in the sidebar.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "description": "Project to pin"
+            }
+          },
+          "required": ["project_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "unpin_project",
+        "description": "Unpins a previously pinned project.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "description": "Project to unpin"
+            }
+          },
+          "required": ["project_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "delete_project",
+        "description": "Deletes a project and all its documents permanently.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "description": "Project to delete"
+            }
+          },
+          "required": ["project_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "create_document",
+        "description": "Creates a new document in a project for notes, literature reviews, or research materials.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Unique identifier for the new document (format: doc-[uuid])"
+            },
+            "project_id": {
+              "type": "string",
+              "description": "Project to create the document in"
+            },
+            "name": {
+              "type": "string",
+              "description": "Document title (max 200 chars)"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional document description (max 2000 chars)"
+            }
+          },
+          "required": ["document_id", "project_id", "name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "update_document",
+        "description": "Updates document metadata (name and description).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Document to update"
+            },
+            "name": {
+              "type": "string",
+              "description": "New document title"
+            },
+            "description": {
+              "type": "string",
+              "description": "New document description"
+            }
+          },
+          "required": ["document_id", "name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "pin_document",
+        "description": "Pins a document for quick access.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Document to pin"
+            }
+          },
+          "required": ["document_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "unpin_document",
+        "description": "Unpins a previously pinned document.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Document to unpin"
+            }
+          },
+          "required": ["document_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "delete_document",
+        "description": "Deletes a document permanently.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Document to delete"
+            }
+          },
+          "required": ["document_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "insert_blocks",
+        "description": "Inserts content blocks at a position in the document.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "position": {
+              "type": "string",
+              "description": "Where to insert: 'head' (beginning), 'tail' (end), or a block ID to insert after"
+            },
+            "blocks": {
+              "type": "array",
+              "description": "Blocks to insert",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique block identifier (format: blk-[uuid])"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Block type: paragraph, heading, bulletListItem, numberedListItem, image, etc."
+                  },
+                  "props": {
+                    "type": "object",
+                    "description": "Block-specific properties (e.g., level for headings)"
+                  },
+                  "content": {
+                    "type": "array",
+                    "description": "Inline content array with text and formatting",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": ["text", "link"],
+                          "description": "Content type"
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "The text content"
+                        },
+                        "href": {
+                          "type": "string",
+                          "description": "URL for link type"
+                        },
+                        "styles": {
+                          "type": "object",
+                          "description": "Text formatting",
+                          "properties": {
+                            "bold": {"type": "boolean"},
+                            "italic": {"type": "boolean"},
+                            "underline": {"type": "boolean"},
+                            "strikethrough": {"type": "boolean"},
+                            "code": {"type": "boolean"}
+                          }
+                        }
+                      },
+                      "required": ["type", "text"]
+                    }
+                  }
+                },
+                "required": ["id", "type"]
+              }
+            }
+          },
+          "required": ["document_id", "position", "blocks"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "delete_blocks",
+        "description": "Deletes blocks from a document.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "block_ids": {
+              "type": "array",
+              "description": "IDs of blocks to delete",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["document_id", "block_ids"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "replace_blocks",
+        "description": "Replaces existing blocks with new blocks.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "block_ids": {
+              "type": "array",
+              "description": "IDs of blocks to replace",
+              "items": {
+                "type": "string"
+              }
+            },
+            "blocks": {
+              "type": "array",
+              "description": "New blocks to insert in their place",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique block identifier (format: blk-[uuid])"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Block type"
+                  },
+                  "props": {
+                    "type": "object",
+                    "description": "Block-specific properties"
+                  },
+                  "content": {
+                    "type": "array",
+                    "description": "Inline content array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": ["text", "link"],
+                          "description": "Content type"
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "The text content"
+                        },
+                        "href": {
+                          "type": "string",
+                          "description": "URL for link type"
+                        },
+                        "styles": {
+                          "type": "object",
+                          "description": "Text formatting",
+                          "properties": {
+                            "bold": {"type": "boolean"},
+                            "italic": {"type": "boolean"},
+                            "underline": {"type": "boolean"},
+                            "strikethrough": {"type": "boolean"},
+                            "code": {"type": "boolean"}
+                          }
+                        }
+                      },
+                      "required": ["type", "text"]
+                    }
+                  }
+                },
+                "required": ["id", "type"]
+              }
+            }
+          },
+          "required": ["document_id", "block_ids", "blocks"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "move_blocks",
+        "description": "Moves blocks to a new position within the document.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "block_ids": {
+              "type": "array",
+              "description": "IDs of blocks to move",
+              "items": {
+                "type": "string"
+              }
+            },
+            "position": {
+              "type": "string",
+              "description": "Where to move: 'head', 'tail', or block ID to move after"
+            }
+          },
+          "required": ["document_id", "block_ids", "position"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "replace_content",
+        "description": "Replaces entire document content with new blocks.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "content": {
+              "type": "array",
+              "description": "New content blocks",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique block identifier (format: blk-[uuid])"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Block type"
+                  },
+                  "props": {
+                    "type": "object",
+                    "description": "Block-specific properties"
+                  },
+                  "content": {
+                    "type": "array",
+                    "description": "Inline content array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": ["text", "link"],
+                          "description": "Content type"
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "The text content"
+                        },
+                        "href": {
+                          "type": "string",
+                          "description": "URL for link type"
+                        },
+                        "styles": {
+                          "type": "object",
+                          "description": "Text formatting",
+                          "properties": {
+                            "bold": {"type": "boolean"},
+                            "italic": {"type": "boolean"},
+                            "underline": {"type": "boolean"},
+                            "strikethrough": {"type": "boolean"},
+                            "code": {"type": "boolean"}
+                          }
+                        }
+                      },
+                      "required": ["type", "text"]
+                    }
+                  }
+                },
+                "required": ["id", "type"]
+              }
+            }
+          },
+          "required": ["document_id", "content"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "update_block_props",
+        "description": "Updates properties of existing blocks (e.g., heading level, image dimensions).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "block_ids": {
+              "type": "array",
+              "description": "IDs of blocks to update",
+              "items": {
+                "type": "string"
+              }
+            },
+            "props": {
+              "type": "object",
+              "description": "Properties to merge into existing block props"
+            }
+          },
+          "required": ["document_id", "block_ids", "props"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "add_document_tags",
+        "description": "Adds tags to a document for categorization and filtering.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "tags": {
+              "type": "array",
+              "description": "Tags to add",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["document_id", "tags"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "remove_document_tags",
+        "description": "Removes tags from a document.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "tags": {
+              "type": "array",
+              "description": "Tags to remove",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["document_id", "tags"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "add_annotations",
+        "description": "Adds annotations to a document for qualitative coding. Annotations link highlighted text to codes for thematic analysis.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "annotations": {
+              "type": "array",
+              "description": "Annotations to add",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique annotation identifier (format: ann-[uuid])"
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "Exact text being annotated (used for position resolution)"
+                  },
+                  "actor": {
+                    "type": "string",
+                    "description": "Who created the annotation (researcher ID)"
+                  },
+                  "color": {
+                    "type": "string",
+                    "description": "Radix color name for highlighting (e.g., amber, blue, green)"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Optional explanation for the annotation"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "Optional coding payload",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["coding"],
+                        "description": "Payload type (currently only 'coding')"
+                      },
+                      "code_id": {
+                        "type": "string",
+                        "description": "Reference to the code (format: code-[uuid])"
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"],
+                        "description": "Confidence level of the coding decision"
+                      }
+                    },
+                    "required": ["type", "code_id", "confidence"]
+                  }
+                },
+                "required": ["id", "text", "actor", "color"]
+              }
+            }
+          },
+          "required": ["document_id", "annotations"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "remove_annotations",
+        "description": "Removes annotations from a document.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "annotation_ids": {
+              "type": "array",
+              "description": "IDs of annotations to remove",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["document_id", "annotation_ids"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "update_annotation_props",
+        "description": "Updates properties of existing annotations. Cannot change text (would invalidate position).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "description": "Target document"
+            },
+            "annotation_ids": {
+              "type": "array",
+              "description": "IDs of annotations to update",
+              "items": {
+                "type": "string"
+              }
+            },
+            "props": {
+              "type": "object",
+              "description": "Properties to merge (color, reason, payload)",
+              "properties": {
+                "color": {
+                  "type": "string",
+                  "description": "New highlight color"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "New annotation reason"
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "New coding payload",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["coding"]
+                    },
+                    "code_id": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": ["high", "medium", "low"]
+                    }
+                  },
+                  "required": ["type", "code_id", "confidence"]
+                }
+              }
+            }
+          },
+          "required": ["document_id", "annotation_ids", "props"]
+        }
+      }
+    }
+]

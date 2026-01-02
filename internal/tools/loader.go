@@ -3,57 +3,59 @@ package tools
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/sashabaranov/go-openai"
 )
 
-type MCPTool struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	InputSchema json.RawMessage `json:"inputSchema"`
-}
-
-func Load(path string) ([]openai.Tool, error) {
-	if path == "" {
-		return nil, nil
+func loadDir(dir string) ([]openai.Tool, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
 	}
 
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && filepath.Ext(e.Name()) == ".json" {
+			files = append(files, filepath.Join(dir, e.Name()))
+		}
+	}
+	sort.Strings(files)
+
+	var result []openai.Tool
+	for _, f := range files {
+		tools, err := loadFile(f)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, tools...)
+	}
+	return result, nil
+}
+
+func loadFile(path string) ([]openai.Tool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var mcpTools []MCPTool
-	if err := json.Unmarshal(data, &mcpTools); err != nil {
+	var tools []openai.Tool
+	if err := json.Unmarshal(data, &tools); err != nil {
 		return nil, err
 	}
 
-	return toOpenAITools(mcpTools), nil
+	return tools, nil
 }
 
-func MustLoad(path string) []openai.Tool {
-	tools, err := Load(path)
-	if err != nil {
-		panic("failed to load tools: " + err.Error())
+func LoadFolders(baseDir string, folders []string) ([]openai.Tool, error) {
+	var result []openai.Tool
+	for _, folder := range folders {
+		tools, err := loadDir(filepath.Join(baseDir, folder))
+		if err != nil {
+			continue
+		}
+		result = append(result, tools...)
 	}
-	return tools
-}
-
-func toOpenAITools(mcpTools []MCPTool) []openai.Tool {
-	result := make([]openai.Tool, len(mcpTools))
-	for i, t := range mcpTools {
-		result[i] = toOpenAITool(t)
-	}
-	return result
-}
-
-func toOpenAITool(t MCPTool) openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        t.Name,
-			Description: t.Description,
-			Parameters:  t.InputSchema,
-		},
-	}
+	return result, nil
 }

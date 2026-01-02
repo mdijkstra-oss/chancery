@@ -1,0 +1,62 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "create_plan",
+      "description": "Creates a step-by-step plan for completing a complex task. Use this when a task requires multiple distinct steps to accomplish. The plan will be tracked and you will be guided through each step.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "Clear description of the overall task to accomplish"
+          },
+          "steps": {
+            "type": "array",
+            "description": "Ordered list of steps to complete the task. Each step should be a concrete, actionable item.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 10
+          }
+        },
+        "required": ["task", "steps"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "complete_step",
+      "description": "Marks the current plan step as completed. Call this after you have finished executing the current step. Include a brief summary of what was accomplished.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "Summary of what was accomplished. Include key findings, IDs, or context needed for subsequent steps."
+          }
+        },
+        "required": ["summary"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "abort",
+      "description": "Aborts the current plan and returns to chat mode. Use this when you need clarification, are blocked, or need the user to make a decision before you can proceed. The plan is discarded and you can create a new one after the user responds.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Message to the user explaining why execution stopped and what you need"
+          }
+        },
+        "required": ["message"]
+      }
+    }
+  }
+]

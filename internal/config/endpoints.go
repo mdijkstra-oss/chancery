@@ -10,10 +10,6 @@ var Endpoints = map[string]EndpointConfig{
 		Folders:      []string{"nabu/base", "nabu/base-boundaries-intend"},
 		IncludeTools: true,
 	},
-	"plan": {
-		Folders:      []string{"nabu/base", "nabu/base-boundaries-intend", "nabu/plan"},
-		IncludeTools: true,
-	},
 	"execute": {
 		Folders:      []string{"nabu/base", "nabu/base-boundaries-intend", "nabu/execute"},
 		IncludeTools: true,

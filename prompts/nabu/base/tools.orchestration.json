@@ -2,8 +2,51 @@
   {
     "type": "function",
     "function": {
+      "name": "start_exploration",
+      "description": "Starts an exploration when you need to investigate before you can answer or plan. Use when the path forward is unclear and you need to discover what's relevant through investigation.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The question or goal driving the exploration"
+          }
+        },
+        "required": ["question"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "exploration_step",
+      "description": "Records what you learned from investigation and decides the next action. Call after each investigation step during exploration.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "learned": {
+            "type": "string",
+            "description": "What this investigation step revealed"
+          },
+          "decision": {
+            "type": "string",
+            "enum": ["continue", "answer", "plan"],
+            "description": "Next action: continue exploring, answer the question, or create a plan"
+          },
+          "next": {
+            "type": "string",
+            "description": "If continuing, what to investigate next"
+          }
+        },
+        "required": ["learned", "decision"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "create_plan",
-      "description": "Creates a step-by-step plan for completing a complex task. Use this when a task requires multiple distinct steps to accomplish. The plan will be tracked and you will be guided through each step.",
+      "description": "Creates a step-by-step plan for completing a task. Use when you know what needs to be done and can define concrete steps upfront. Often follows exploration when the path becomes clear.",
       "parameters": {
         "type": "object",
         "properties": {

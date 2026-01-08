@@ -1,19 +1,70 @@
 [
   {
-      "type": "function",
-      "function": {
-        "name": "execute_sql",
-        "description": "Execute a read-only SQL query against the local DuckDB database.\n\nSchema:\n- projects: id (TEXT PK, proj-[uuid]), name (TEXT), description (TEXT), pinned (BOOLEAN), updated_at (TIMESTAMP)\n- documents: id (TEXT PK, doc-[uuid]), project_id (FK projects.id), name (TEXT), description (TEXT), title (TEXT), time (TIMESTAMP), updated_at (TIMESTAMP), original (TEXT), pinned (BOOLEAN)\n- blocks: id (TEXT PK, blk-[uuid]), document_id (FK documents.id), parent_id (FK blocks.id, self-ref for nesting), position (INTEGER), type (TEXT: paragraph|heading|bulletListItem|numberedListItem|checkListItem|image|codeBlock|table), props (JSON), content (JSON)\n- annotations: id (TEXT PK, ann-[uuid]), document_id (FK documents.id), text (TEXT), actor (TEXT), color (TEXT: amber|blue|green|etc), reason (TEXT), code_id (TEXT, code-[uuid]), confidence (TEXT: high|medium|low)\n\nUse json_extract or ::json for JSON columns.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "sql": {
-              "type": "string",
-              "description": "A valid DuckDB SQL SELECT query. Only read operations are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)."
-            }
-          },
-          "required": ["sql"]
+    "type": "function",
+    "function": {
+      "name": "execute_sql",
+      "description": "Execute a read-only SQL query against the local DuckDB database. See the 'schema' field for table definitions. Use json_extract or ::json for JSON columns.",
+      "schema": {
+        "projects": {
+          "columns": {
+            "id": {"type": "TEXT", "pk": true, "format": "proj-[uuid]"},
+            "name": {"type": "TEXT", "nullable": false},
+            "description": {"type": "TEXT"},
+            "pinned": {"type": "BOOLEAN"},
+            "updated_at": {"type": "TIMESTAMP"},
+            "healthy": {"type": "BOOLEAN"},
+            "version": {"type": "INTEGER"}
+          }
+        },
+        "documents": {
+          "columns": {
+            "id": {"type": "TEXT", "pk": true, "format": "doc-[uuid]"},
+            "project_id": {"type": "TEXT", "nullable": false, "fk": "projects.id"},
+            "name": {"type": "TEXT", "nullable": false},
+            "description": {"type": "TEXT"},
+            "title": {"type": "TEXT"},
+            "time": {"type": "TIMESTAMP"},
+            "updated_at": {"type": "TIMESTAMP"},
+            "original": {"type": "TEXT"},
+            "pinned": {"type": "BOOLEAN"},
+            "healthy": {"type": "BOOLEAN"},
+            "version": {"type": "INTEGER"}
+          }
+        },
+        "blocks": {
+          "columns": {
+            "id": {"type": "TEXT", "pk": true, "format": "blk-[uuid]"},
+            "document_id": {"type": "TEXT", "nullable": false, "fk": "documents.id"},
+            "parent_id": {"type": "TEXT", "fk": "blocks.id"},
+            "position": {"type": "INTEGER", "nullable": false},
+            "type": {"type": "TEXT", "nullable": false, "enum": ["paragraph", "heading", "quote", "bulletListItem", "numberedListItem", "checkListItem", "toggleListItem", "codeBlock", "image", "video", "audio", "file", "table"]},
+            "props": {"type": "JSON"},
+            "content": {"type": "JSON"}
+          }
+        },
+        "annotations": {
+          "columns": {
+            "id": {"type": "TEXT", "pk": true, "format": "ann-[uuid]"},
+            "document_id": {"type": "TEXT", "nullable": false, "fk": "documents.id"},
+            "text": {"type": "TEXT", "nullable": false},
+            "actor": {"type": "TEXT", "nullable": false},
+            "color": {"type": "TEXT", "nullable": false},
+            "reason": {"type": "TEXT"},
+            "code_id": {"type": "TEXT", "format": "code-[uuid]"},
+            "confidence": {"type": "TEXT", "enum": ["high", "medium", "low"]}
+          }
         }
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string",
+            "description": "A valid DuckDB SQL SELECT query. Only read operations allowed."
+          }
+        },
+        "required": ["sql"]
       }
     }
+  }
 ]

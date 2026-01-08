@@ -10,9 +10,13 @@
           "question": {
             "type": "string",
             "description": "The question or goal driving the exploration"
+          },
+          "direction": {
+            "type": "string",
+            "description": "What you will investigate first"
           }
         },
-        "required": ["question"]
+        "required": ["question", "direction"]
       }
     }
   },

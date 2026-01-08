@@ -16,6 +16,10 @@ func main() {
 	cfg := config.Load()
 	bootstrap.SetupLogger(cfg.LogLevel)
 
+	if err := config.ValidateEndpoints(); err != nil {
+		log.Fatal(err)
+	}
+
 	logEndpoints()
 
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{

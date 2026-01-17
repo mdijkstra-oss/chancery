@@ -26,6 +26,7 @@ type OpenAIRequest struct {
 	Model                string            `json:"model"`
 	Tools                []openai.Tool     `json:"tools,omitempty"`
 	ToolChoice           *string           `json:"tool_choice,omitempty"`
+	Temperature          *float64          `json:"temperature,omitempty"`
 	Messages             []json.RawMessage `json:"messages"`
 	Stream               bool              `json:"stream"`
 	StreamOptions        *StreamOptions    `json:"stream_options,omitempty"`

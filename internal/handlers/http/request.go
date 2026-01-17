@@ -14,11 +14,12 @@ func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []jso
 }
 
 // TODO: prompt cache retention (only certain models)
-func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort string, tools []openai.Tool, toolChoice string, messages []json.RawMessage) OpenAIRequest {
+func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort string, tools []openai.Tool, toolChoice string, temperature *float64, messages []json.RawMessage) OpenAIRequest {
 	req := OpenAIRequest{
 		Model:         model,
 		Messages:      prependSystemMessage(systemPrompt, messages),
 		Tools:         tools,
+		Temperature:   temperature,
 		Stream:        true,
 		StreamOptions: &StreamOptions{IncludeUsage: true},
 	}

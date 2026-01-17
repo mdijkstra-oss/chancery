@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sashabaranov/go-openai"
@@ -53,7 +54,8 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 	}
 
 	toolChoice := r.URL.Query().Get("tool_choice")
-	openaiReq := buildOpenAIRequest(promptCfg.Model, systemPrompt, promptCfg.Verbosity, promptCfg.ReasoningEffort, loadedTools, toolChoice, req.Messages)
+	temperature := parseTemperature(r.URL.Query().Get("temperature"))
+	openaiReq := buildOpenAIRequest(promptCfg.Model, systemPrompt, promptCfg.Verbosity, promptCfg.ReasoningEffort, loadedTools, toolChoice, temperature, req.Messages)
 
 	logOutgoingRequest(openaiReq, cfg.Verbose)
 
@@ -121,4 +123,15 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config) {
 	}
 
 	streamWithUsageLogging(resp.Body, w, flusher, cfg.Pricing, cfg.Verbose)
+}
+
+func parseTemperature(s string) *float64 {
+	if s == "" {
+		return nil
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return nil
+	}
+	return &v
 }

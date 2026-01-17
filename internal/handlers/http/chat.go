@@ -29,7 +29,13 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	systemPrompt, err := prompts.LoadFolders(config.PromptsDir, endpointCfg.Folders)
+	promptCfg, err := prompts.LoadConfig(config.PromptsDir, endpointCfg.Folder)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	systemPrompt, err := prompts.LoadFolder(config.PromptsDir, endpointCfg.Folder)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -43,10 +49,11 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 
 	var loadedTools []openai.Tool
 	if endpointCfg.IncludeTools {
-		loadedTools, _ = tools.LoadFolders(config.PromptsDir, endpointCfg.Folders)
+		loadedTools, _ = tools.LoadFolder(config.PromptsDir, endpointCfg.Folder)
 	}
 
-	openaiReq := buildOpenAIRequest(cfg.Model, systemPrompt, cfg.GPTVerbosity, cfg.ReasoningEffort, loadedTools, req.Messages)
+	toolChoice := r.URL.Query().Get("tool_choice")
+	openaiReq := buildOpenAIRequest(promptCfg.Model, systemPrompt, promptCfg.Verbosity, promptCfg.ReasoningEffort, loadedTools, toolChoice, req.Messages)
 
 	logOutgoingRequest(openaiReq, cfg.Verbose)
 

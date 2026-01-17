@@ -1,12 +1,19 @@
 package prompts
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 )
+
+type PromptConfig struct {
+	Model           string `json:"model"`
+	ReasoningEffort string `json:"reasoning_effort"`
+	Verbosity       string `json:"verbosity"`
+}
 
 func Load(path string) (string, error) {
 	if path == "" {
@@ -24,16 +31,21 @@ func Load(path string) (string, error) {
 	return loadFile(path)
 }
 
-func LoadFolders(baseDir string, folders []string) (string, error) {
-	parts := make([]string, 0, len(folders))
-	for _, folder := range folders {
-		content, err := loadDir(filepath.Join(baseDir, folder))
-		if err != nil {
-			return "", err
-		}
-		parts = append(parts, content)
+func LoadFolder(baseDir, folder string) (string, error) {
+	return loadDir(filepath.Join(baseDir, folder))
+}
+
+func LoadConfig(baseDir, folder string) (PromptConfig, error) {
+	path := filepath.Join(baseDir, folder, "config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return PromptConfig{}, err
 	}
-	return strings.Join(parts, "\n\n---\n\n"), nil
+	var cfg PromptConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return PromptConfig{}, err
+	}
+	return cfg, nil
 }
 
 func MustLoad(path string) string {

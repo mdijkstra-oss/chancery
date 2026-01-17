@@ -4,14 +4,14 @@ export
 RUN_CMD := go run cmd/main.go
 
 start:
-	$(RUN_CMD)
+	@$(RUN_CMD)
 
 start-prod:
 	@set -a && . ./.prod.env && set +a && $(RUN_CMD)
 
 .PHONY: dev
 dev:
-	watchexec -e go -r make start
+	@watchexec -q -e go -r make start
 
 deepseek:
 	MODEL=deepseek/deepseek-v3.2 PROVIDER=avian/fp8 $(RUN_CMD)

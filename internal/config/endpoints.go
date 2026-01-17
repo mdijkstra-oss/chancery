@@ -7,17 +7,15 @@ import (
 )
 
 type EndpointConfig struct {
-	Folders      []string
+	Folder       string
 	IncludeTools bool
 }
 
 func ValidateEndpoints() error {
 	for name, cfg := range Endpoints {
-		for _, folder := range cfg.Folders {
-			path := filepath.Join(PromptsDir, folder)
-			if _, err := os.Stat(path); os.IsNotExist(err) {
-				return fmt.Errorf("endpoint %q: folder %q does not exist", name, path)
-			}
+		path := filepath.Join(PromptsDir, cfg.Folder)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return fmt.Errorf("endpoint %q: folder %q does not exist", name, path)
 		}
 	}
 	return nil
@@ -25,7 +23,11 @@ func ValidateEndpoints() error {
 
 var Endpoints = map[string]EndpointConfig{
 	"converse": {
-		Folders:      []string{"nabu/base"},
+		Folder:       "nabu/converse",
+		IncludeTools: true,
+	},
+	"tag": {
+		Folder:       "nabu/tag",
 		IncludeTools: true,
 	},
 }

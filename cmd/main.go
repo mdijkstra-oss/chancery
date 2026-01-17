@@ -23,12 +23,9 @@ func main() {
 	logEndpoints()
 
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
-		APIKey:          cfg.APIKey,
-		BaseURL:         cfg.BaseURL,
-		Model:           cfg.Model,
-		Verbose:         cfg.Verbose,
-		GPTVerbosity:    cfg.GPTVerbosity,
-		ReasoningEffort: cfg.ReasoningEffort,
+		APIKey:  cfg.APIKey,
+		BaseURL: cfg.BaseURL,
+		Verbose: cfg.Verbose,
 		Pricing: httpHandlers.Pricing{
 			InputCentsPerMillion:       cfg.InputTokenCost,
 			OutputCentsPerMillion:      cfg.OutputTokenCost,
@@ -40,7 +37,7 @@ func main() {
 	httpHandlers.SetupRoutes(r, chatHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
-	slog.Info("server starting", "port", cfg.Port, "model", cfg.Model)
+	slog.Info("server starting", "port", cfg.Port)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
 

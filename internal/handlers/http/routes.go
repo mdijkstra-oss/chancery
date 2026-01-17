@@ -9,7 +9,6 @@ import (
 )
 
 func SetupRoutes(r *chi.Mux, chatHandler http.HandlerFunc, corsOrigins []string) {
-	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   corsOrigins,

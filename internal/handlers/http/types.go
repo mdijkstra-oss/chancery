@@ -11,13 +11,10 @@ type ChatRequest struct {
 }
 
 type Config struct {
-	APIKey          string
-	BaseURL         string
-	Model           string
-	Verbose         bool
-	GPTVerbosity    string
-	ReasoningEffort string
-	Pricing         Pricing
+	APIKey  string
+	BaseURL string
+	Verbose bool
+	Pricing Pricing
 }
 
 type SystemMessage struct {
@@ -27,8 +24,9 @@ type SystemMessage struct {
 
 type OpenAIRequest struct {
 	Model                string            `json:"model"`
-	Messages             []json.RawMessage `json:"messages"`
 	Tools                []openai.Tool     `json:"tools,omitempty"`
+	ToolChoice           *string           `json:"tool_choice,omitempty"`
+	Messages             []json.RawMessage `json:"messages"`
 	Stream               bool              `json:"stream"`
 	StreamOptions        *StreamOptions    `json:"stream_options,omitempty"`
 	Verbosity            *string           `json:"verbosity,omitempty"`

@@ -18,15 +18,14 @@
     "type": "function",
     "function": {
       "name": "update_project",
-      "description": "Updates project metadata (name and description).",
+      "description": "Updates current project metadata (name and description).",
       "parameters": {
         "type": "object",
         "properties": {
-          "project_id": {"type": "string", "description": "Project to update"},
           "name": {"type": "string", "description": "New project title"},
           "description": {"type": "string", "description": "New project description"}
         },
-        "required": ["project_id", "name"]
+        "required": ["name"]
       }
     }
   },
@@ -34,13 +33,11 @@
     "type": "function",
     "function": {
       "name": "pin_project",
-      "description": "Pins a project for quick access in the sidebar.",
+      "description": "Pins current project for quick access in the sidebar.",
       "parameters": {
         "type": "object",
-        "properties": {
-          "project_id": {"type": "string", "description": "Project to pin"}
-        },
-        "required": ["project_id"]
+        "properties": {},
+        "required": []
       }
     }
   },
@@ -48,13 +45,11 @@
     "type": "function",
     "function": {
       "name": "unpin_project",
-      "description": "Unpins a previously pinned project.",
+      "description": "Unpins current project.",
       "parameters": {
         "type": "object",
-        "properties": {
-          "project_id": {"type": "string", "description": "Project to unpin"}
-        },
-        "required": ["project_id"]
+        "properties": {},
+        "required": []
       }
     }
   },
@@ -62,13 +57,11 @@
     "type": "function",
     "function": {
       "name": "delete_project",
-      "description": "Deletes a project and all its documents permanently.",
+      "description": "Deletes current project and all its documents permanently.",
       "parameters": {
         "type": "object",
-        "properties": {
-          "project_id": {"type": "string", "description": "Project to delete"}
-        },
-        "required": ["project_id"]
+        "properties": {},
+        "required": []
       }
     }
   },
@@ -76,15 +69,14 @@
     "type": "function",
     "function": {
       "name": "create_document",
-      "description": "Creates a new document in a project for notes, literature reviews, or research materials.",
+      "description": "Creates a new document in current project for notes, literature reviews, or research materials.",
       "parameters": {
         "type": "object",
         "properties": {
-          "project_id": {"type": "string", "description": "Project to create the document in"},
           "name": {"type": "string", "description": "Document title (max 200 chars)"},
           "description": {"type": "string", "description": "Optional document description (max 2000 chars)"}
         },
-        "required": ["project_id", "name"]
+        "required": ["name"]
       }
     }
   },

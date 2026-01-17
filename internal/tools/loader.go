@@ -5,9 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/sashabaranov/go-openai"
 )
+
+func isToolFile(name string) bool {
+	return strings.HasPrefix(name, "tools.") && strings.HasSuffix(name, ".json")
+}
 
 func loadDir(dir string) ([]openai.Tool, error) {
 	entries, err := os.ReadDir(dir)
@@ -17,7 +22,7 @@ func loadDir(dir string) ([]openai.Tool, error) {
 
 	var files []string
 	for _, e := range entries {
-		if !e.IsDir() && filepath.Ext(e.Name()) == ".json" {
+		if !e.IsDir() && isToolFile(e.Name()) {
 			files = append(files, filepath.Join(dir, e.Name()))
 		}
 	}
@@ -48,14 +53,6 @@ func loadFile(path string) ([]openai.Tool, error) {
 	return tools, nil
 }
 
-func LoadFolders(baseDir string, folders []string) ([]openai.Tool, error) {
-	var result []openai.Tool
-	for _, folder := range folders {
-		tools, err := loadDir(filepath.Join(baseDir, folder))
-		if err != nil {
-			continue
-		}
-		result = append(result, tools...)
-	}
-	return result, nil
+func LoadFolder(baseDir, folder string) ([]openai.Tool, error) {
+	return loadDir(filepath.Join(baseDir, folder))
 }

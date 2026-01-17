@@ -1,9 +1,6 @@
 package http
 
-import (
-	"encoding/json"
-	"log/slog"
-)
+import "log/slog"
 
 func logOutgoingRequest(req OpenAIRequest, verbose bool) {
 	slog.Info("outgoing_request",
@@ -14,7 +11,6 @@ func logOutgoingRequest(req OpenAIRequest, verbose bool) {
 	)
 
 	if verbose {
-		reqJSON, _ := json.Marshal(req)
-		slog.Info("raw_outgoing_request", "data", string(reqJSON))
+		slog.Info("raw_outgoing_request", "data", req)
 	}
 }

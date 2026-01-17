@@ -14,7 +14,7 @@ func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []jso
 }
 
 // TODO: prompt cache retention (only certain models)
-func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort string, tools []openai.Tool, messages []json.RawMessage) OpenAIRequest {
+func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort string, tools []openai.Tool, toolChoice string, messages []json.RawMessage) OpenAIRequest {
 	req := OpenAIRequest{
 		Model:         model,
 		Messages:      prependSystemMessage(systemPrompt, messages),
@@ -27,6 +27,9 @@ func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort strin
 	}
 	if reasoningEffort != "" {
 		req.ReasoningEffort = &reasoningEffort
+	}
+	if toolChoice != "" && len(tools) > 0 {
+		req.ToolChoice = &toolChoice
 	}
 	return req
 }

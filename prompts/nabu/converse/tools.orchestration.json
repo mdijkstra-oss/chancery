@@ -28,9 +28,13 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "internal": {
+            "type": "string",
+            "description": "Technical details for your own context: IDs found, query results, data needed for next steps. Not shown to user."
+          },
           "learned": {
             "type": "string",
-            "description": "What this investigation step revealed"
+            "description": "User-facing summary of what you discovered. Use names and links, never raw IDs."
           },
           "decision": {
             "type": "string",
@@ -76,13 +80,17 @@
     "type": "function",
     "function": {
       "name": "complete_step",
-      "description": "Marks the current plan step as completed. Call this after you have finished executing the current step. Include a brief summary of what was accomplished.",
+      "description": "Marks the current plan step as completed. Call this after you have finished executing the current step.",
       "parameters": {
         "type": "object",
         "properties": {
+          "internal": {
+            "type": "string",
+            "description": "Technical context for subsequent steps: IDs, counts, data references. Not shown to user."
+          },
           "summary": {
             "type": "string",
-            "description": "Summary of what was accomplished. Include key findings, IDs, or context needed for subsequent steps."
+            "description": "User-facing summary of what was accomplished. Use names and links, never raw IDs."
           }
         },
         "required": ["summary"]

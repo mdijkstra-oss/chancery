@@ -5,21 +5,9 @@
       "name": "execute_sql",
       "description": "Execute a read-only SQL query against the local DuckDB database. See the 'schema' field for table definitions. Use json_extract or ::json for JSON columns.",
       "schema": {
-        "projects": {
-          "columns": {
-            "id": {"type": "TEXT", "pk": true, "format": "proj-[uuid]"},
-            "name": {"type": "TEXT", "nullable": false},
-            "description": {"type": "TEXT"},
-            "pinned": {"type": "BOOLEAN"},
-            "updated_at": {"type": "TIMESTAMP"},
-            "healthy": {"type": "BOOLEAN"},
-            "version": {"type": "INTEGER"}
-          }
-        },
         "documents": {
           "columns": {
             "id": {"type": "TEXT", "pk": true, "format": "doc-[uuid]"},
-            "project_id": {"type": "TEXT", "nullable": false, "fk": "projects.id"},
             "name": {"type": "TEXT", "nullable": false},
             "description": {"type": "TEXT"},
             "title": {"type": "TEXT"},

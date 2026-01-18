@@ -80,6 +80,7 @@
       "parameters": {
         "type": "object",
         "$defs": {
+          "radixColor": {"type": "string", "enum": ["tomato", "red", "ruby", "crimson", "pink", "plum", "purple", "violet", "iris", "indigo", "blue", "sky", "cyan", "teal", "jade", "green", "grass", "lime", "mint", "yellow", "amber", "orange", "brown", "bronze", "gold", "sand", "olive", "sage", "mauve", "slate", "gray"]},
           "inlineContent": {
             "type": "array",
             "items": {
@@ -105,7 +106,7 @@
           "block": {
             "oneOf": [
               {"type": "object", "properties": {"type": {"const": "paragraph"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "heading"}, "props": {"type": "object", "properties": {"level": {"type": "integer", "minimum": 1, "maximum": 6}}, "required": ["level"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
+              {"type": "object", "properties": {"type": {"const": "heading"}, "props": {"type": "object", "properties": {"level": {"type": "integer", "minimum": 1, "maximum": 6}, "background_color": {"$ref": "#/$defs/radixColor", "description": "Radix color name for heading background"}}, "required": ["level"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
               {"type": "object", "properties": {"type": {"const": "quote"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
               {"type": "object", "properties": {"type": {"const": "bulletListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
               {"type": "object", "properties": {"type": {"const": "numberedListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
@@ -152,6 +153,7 @@
       "parameters": {
         "type": "object",
         "$defs": {
+          "radixColor": {"type": "string", "enum": ["tomato", "red", "ruby", "crimson", "pink", "plum", "purple", "violet", "iris", "indigo", "blue", "sky", "cyan", "teal", "jade", "green", "grass", "lime", "mint", "yellow", "amber", "orange", "brown", "bronze", "gold", "sand", "olive", "sage", "mauve", "slate", "gray"]},
           "inlineContent": {
             "type": "array",
             "items": {
@@ -177,7 +179,7 @@
           "block": {
             "oneOf": [
               {"type": "object", "properties": {"type": {"const": "paragraph"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "heading"}, "props": {"type": "object", "properties": {"level": {"type": "integer", "minimum": 1, "maximum": 6}}, "required": ["level"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
+              {"type": "object", "properties": {"type": {"const": "heading"}, "props": {"type": "object", "properties": {"level": {"type": "integer", "minimum": 1, "maximum": 6}, "background_color": {"$ref": "#/$defs/radixColor", "description": "Radix color name for heading background"}}, "required": ["level"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
               {"type": "object", "properties": {"type": {"const": "quote"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
               {"type": "object", "properties": {"type": {"const": "bulletListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
               {"type": "object", "properties": {"type": {"const": "numberedListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
@@ -225,6 +227,7 @@
       "parameters": {
         "type": "object",
         "$defs": {
+          "radixColor": {"type": "string", "enum": ["tomato", "red", "ruby", "crimson", "pink", "plum", "purple", "violet", "iris", "indigo", "blue", "sky", "cyan", "teal", "jade", "green", "grass", "lime", "mint", "yellow", "amber", "orange", "brown", "bronze", "gold", "sand", "olive", "sage", "mauve", "slate", "gray"]},
           "inlineContent": {
             "type": "array",
             "items": {
@@ -250,7 +253,7 @@
           "block": {
             "oneOf": [
               {"type": "object", "properties": {"type": {"const": "paragraph"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "heading"}, "props": {"type": "object", "properties": {"level": {"type": "integer", "minimum": 1, "maximum": 6}}, "required": ["level"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
+              {"type": "object", "properties": {"type": {"const": "heading"}, "props": {"type": "object", "properties": {"level": {"type": "integer", "minimum": 1, "maximum": 6}, "background_color": {"$ref": "#/$defs/radixColor", "description": "Radix color name for heading background"}}, "required": ["level"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
               {"type": "object", "properties": {"type": {"const": "quote"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
               {"type": "object", "properties": {"type": {"const": "bulletListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
               {"type": "object", "properties": {"type": {"const": "numberedListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
@@ -277,7 +280,7 @@
     "type": "function",
     "function": {
       "name": "update_block_props",
-      "description": "Updates properties of existing blocks (e.g., heading level, image dimensions).",
+      "description": "Updates properties of existing blocks (e.g., heading level, heading background_color, image dimensions).",
       "parameters": {
         "type": "object",
         "properties": {

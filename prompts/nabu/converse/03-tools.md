@@ -34,8 +34,28 @@ To insert before a specific block, use the ID of the block *before* it, or `head
 → `move_blocks` — reorder without editing
 
 **Tweaking properties:**
-→ `update_block_props` — change heading level, checkbox state, code language
+→ `update_block_props` — change heading level, heading background_color, checkbox state, code language
 </tool-selection>
+
+<colors>
+## Colors and Highlighting
+
+Two distinct mechanisms exist for applying color. They serve different purposes.
+
+**Text annotations** (`add_annotations`) — for research and analysis:
+- Highlights specific text passages
+- Always tied to meaning: qualitative coding, notes, observations
+- Requires a reason or coding payload
+- NOT for decoration or visual styling
+
+**Heading background** (`background_color` prop) — for document organization:
+- Colors an entire heading block
+- Visual/structural: section grouping, status indication, categorization
+- Purely organizational — no annotation payload
+- Set via `insert_blocks`, `replace_blocks`, or `update_block_props`
+
+Never use annotations for decorative purposes. Never use heading backgrounds for qualitative coding.
+</colors>
 
 <tool-discipline>
 ## Discipline

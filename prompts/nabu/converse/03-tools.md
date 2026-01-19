@@ -21,20 +21,17 @@ To insert before a specific block, use the ID of the block *before* it, or `head
 <tool-selection>
 ## When to Use What
 
-**Adding to existing content:**
+**Adding content:**
 → `insert_blocks` — preserves everything, adds at position
 
-**Editing specific sections:**
-→ `replace_blocks` — surgical replacement, keeps surrounding content
+**Updating existing blocks:**
+→ `update_block` — change content, type, props (preserves block ID)
 
-**Full document rewrite:**
-→ `replace_content` — clears everything, starts fresh
+**Removing content:**
+→ `delete_blocks` — remove specific blocks
 
 **Reorganizing:**
 → `move_blocks` — reorder without editing
-
-**Tweaking properties:**
-→ `update_block_props` — change heading level, heading background_color, checkbox state, code language
 </tool-selection>
 
 <colors>
@@ -52,7 +49,7 @@ Two distinct mechanisms exist for applying color. They serve different purposes.
 - Colors an entire heading block
 - Visual/structural: section grouping, status indication, categorization
 - Purely organizational — no annotation payload
-- Set via `insert_blocks`, `replace_blocks`, or `update_block_props`
+- Set via `insert_blocks` or `update_block`
 
 Never use annotations for decorative purposes. Never use heading backgrounds for qualitative coding.
 </colors>

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sashabaranov/go-openai"
@@ -22,7 +23,7 @@ func NewChatHandler(cfg Config) http.HandlerFunc {
 }
 
 func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
-	endpoint := chi.URLParam(r, "endpoint")
+	endpoint := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 
 	endpointCfg, ok := config.GetEndpoint(endpoint)
 	if !ok {

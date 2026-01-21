@@ -75,58 +75,16 @@
   {
     "type": "function",
     "function": {
-      "name": "insert_blocks",
-      "description": "Inserts content blocks at a position in the document.",
+      "name": "insert_content",
+      "description": "Inserts markdown content at a position in the document.",
       "parameters": {
         "type": "object",
-        "$defs": {
-          "radixColor": {"type": "string", "enum": ["tomato", "red", "ruby", "crimson", "pink", "plum", "purple", "violet", "iris", "indigo", "blue", "sky", "cyan", "teal", "jade", "green", "grass", "lime", "mint", "yellow", "amber", "orange", "brown", "bronze", "gold", "sand", "olive", "sage", "mauve", "slate", "gray"]},
-          "inlineContent": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "type": {"type": "string", "enum": ["text", "link"]},
-                "text": {"type": "string"},
-                "href": {"type": "string"},
-                "styles": {
-                  "type": "object",
-                  "properties": {
-                    "bold": {"type": "boolean"},
-                    "italic": {"type": "boolean"},
-                    "underline": {"type": "boolean"},
-                    "strikethrough": {"type": "boolean"},
-                    "code": {"type": "boolean"}
-                  }
-                }
-              },
-              "required": ["type", "text"]
-            }
-          },
-          "block": {
-            "oneOf": [
-              {"type": "object", "properties": {"type": {"const": "paragraph"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "heading"}, "props": {"type": "object", "properties": {"level": {"type": "integer", "minimum": 1, "maximum": 6}, "background_color": {"$ref": "#/$defs/radixColor", "description": "Radix color name for heading background"}}, "required": ["level"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
-              {"type": "object", "properties": {"type": {"const": "quote"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "bulletListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "numberedListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "checkListItem"}, "props": {"type": "object", "properties": {"checked": {"type": "boolean"}}, "required": ["checked"]}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "props", "content"]},
-              {"type": "object", "properties": {"type": {"const": "toggleListItem"}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "codeBlock"}, "props": {"type": "object", "properties": {"language": {"type": "string"}}}, "content": {"$ref": "#/$defs/inlineContent"}}, "required": ["type", "content"]},
-              {"type": "object", "properties": {"type": {"const": "image"}, "props": {"type": "object", "properties": {"url": {"type": "string"}, "caption": {"type": "string"}, "preview_width": {"type": "integer"}}, "required": ["url"]}}, "required": ["type", "props"]},
-              {"type": "object", "properties": {"type": {"const": "video"}, "props": {"type": "object", "properties": {"url": {"type": "string"}, "caption": {"type": "string"}}, "required": ["url"]}}, "required": ["type", "props"]},
-              {"type": "object", "properties": {"type": {"const": "audio"}, "props": {"type": "object", "properties": {"url": {"type": "string"}, "caption": {"type": "string"}}, "required": ["url"]}}, "required": ["type", "props"]},
-              {"type": "object", "properties": {"type": {"const": "file"}, "props": {"type": "object", "properties": {"url": {"type": "string"}, "name": {"type": "string"}}, "required": ["url"]}}, "required": ["type", "props"]},
-              {"type": "object", "properties": {"type": {"const": "table"}}, "required": ["type"]}
-            ]
-          }
-        },
         "properties": {
           "document_id": {"type": "string", "description": "Target document"},
           "position": {"type": "string", "description": "Where to insert: 'head' (beginning), 'tail' (end), or a block ID to insert after"},
-          "blocks": {"type": "array", "description": "Blocks to insert", "items": {"$ref": "#/$defs/block"}}
+          "content": {"type": "string", "description": "Markdown content to insert"}
         },
-        "required": ["document_id", "position", "blocks"]
+        "required": ["document_id", "position", "content"]
       }
     }
   },

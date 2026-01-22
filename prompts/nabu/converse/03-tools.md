@@ -83,6 +83,42 @@ Use `apply_patch` to create, update, or delete files. Each operation specifies:
 Never use annotations for decorative purposes.
 </colors>
 
+<sidecar-files>
+## Document Attributes
+
+Documents have two parts:
+- **Content file** (`.md`): The document text
+- **Sidecar file** (`.json`): Document attributes
+
+The sidecar file has the same name but with `.json` extension. For example:
+- `interview-1.md` — content
+- `interview-1.json` — attributes
+
+### Sidecar Schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
+    }
+  }
+}
+```
+
+Tags must be slugs: lowercase letters, numbers, hyphens. Examples: `codebook`, `theme-2`, `my-tag-123`.
+
+### Validation on Patch
+
+When you patch a `.json` sidecar file, the system validates against the schema:
+- **Valid**: Patch applied successfully
+- **Validation error**: Returns which fields are invalid, their current values, and what was expected
+
+If a patch breaks the schema (wrong type, missing required field), you'll see the validation error with the affected field's current value. Fix and retry.
+</sidecar-files>
+
 <tool-discipline>
 ## Discipline
 

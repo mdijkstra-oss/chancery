@@ -1,10 +1,6 @@
 package http
 
-import (
-	"encoding/json"
-
-	"github.com/sashabaranov/go-openai"
-)
+import "encoding/json"
 
 type ChatRequest struct {
 	Messages []json.RawMessage `json:"messages"`
@@ -17,31 +13,30 @@ type Config struct {
 	Pricing Pricing
 }
 
-type SystemMessage struct {
+type InputMessage struct {
+	Type    string `json:"type"`
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-type OpenAIRequest struct {
-	Model                string            `json:"model"`
-	Tools                []openai.Tool     `json:"tools,omitempty"`
-	ToolChoice           *string           `json:"tool_choice,omitempty"`
-	Temperature          *float64          `json:"temperature,omitempty"`
-	Messages             []json.RawMessage `json:"messages"`
-	Stream               bool              `json:"stream"`
-	StreamOptions        *StreamOptions    `json:"stream_options,omitempty"`
-	Verbosity            *string           `json:"verbosity,omitempty"`
-	ReasoningEffort      *string           `json:"reasoning_effort,omitempty"`
-	PromptCacheRetention *string           `json:"prompt_cache_retention,omitempty"`
-	PromptCacheKey       *string           `json:"prompt_cache_key,omitempty"`
+type ResponsesRequest struct {
+	Model       string            `json:"model"`
+	Input       []json.RawMessage `json:"input"`
+	Tools       []json.RawMessage `json:"tools,omitempty"`
+	ToolChoice  *string           `json:"tool_choice,omitempty"`
+	Temperature *float64          `json:"temperature,omitempty"`
+	Stream      bool              `json:"stream"`
+	Store       bool              `json:"store"`
+	Reasoning   *ReasoningConfig  `json:"reasoning,omitempty"`
+	Text        *TextConfig       `json:"text,omitempty"`
 }
 
-type StreamOptions struct {
-	IncludeUsage bool `json:"include_usage"`
+type ReasoningConfig struct {
+	Effort string `json:"effort"`
 }
 
-type StreamChunk struct {
-	Usage *UsageResponse `json:"usage,omitempty"`
+type TextConfig struct {
+	Verbosity string `json:"verbosity"`
 }
 
 type PromptTokensDetails struct {
@@ -49,15 +44,22 @@ type PromptTokensDetails struct {
 }
 
 type UsageResponse struct {
-	PromptTokens        int                  `json:"prompt_tokens"`
-	CompletionTokens    int                  `json:"completion_tokens"`
+	InputTokens         int                  `json:"input_tokens"`
+	OutputTokens        int                  `json:"output_tokens"`
 	TotalTokens         int                  `json:"total_tokens"`
-	PromptTokensDetails *PromptTokensDetails `json:"prompt_tokens_details,omitempty"`
+	InputTokensDetails  *PromptTokensDetails `json:"input_tokens_details,omitempty"`
 }
 
-type Message struct {
-	Role       string        `json:"role"`
-	Content    string        `json:"content,omitempty"`
-	ToolCalls  []interface{} `json:"tool_calls,omitempty"`
-	ToolCallID string        `json:"tool_call_id,omitempty"`
+type ResponseCompletedEvent struct {
+	Type     string         `json:"type"`
+	Response ResponseObject `json:"response"`
+}
+
+type ResponseObject struct {
+	Usage *UsageResponse `json:"usage,omitempty"`
+}
+
+type TextDeltaEvent struct {
+	Type  string `json:"type"`
+	Delta string `json:"delta"`
 }

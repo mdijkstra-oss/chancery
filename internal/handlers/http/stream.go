@@ -29,6 +29,7 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var content strings.Builder
+	var currentEvent string
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -37,14 +38,26 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 		flusher.Flush()
 		lineCount++
 
-		if verbose {
-			if delta := extractDeltaContent(line); delta != "" {
+		if eventType, ok := strings.CutPrefix(line, "event: "); ok {
+			currentEvent = eventType
+			continue
+		}
+
+		data, ok := strings.CutPrefix(line, "data: ")
+		if !ok {
+			continue
+		}
+
+		if verbose && currentEvent == "response.output_text.delta" {
+			if delta := extractTextDelta(data); delta != "" {
 				content.WriteString(delta)
 			}
 		}
 
-		if usage := extractUsage(line); usage != nil {
-			logUsage(usage, pricing)
+		if currentEvent == "response.completed" {
+			if usage := extractCompletedUsage(data); usage != nil {
+				logUsage(usage, pricing)
+			}
 		}
 	}
 
@@ -58,20 +71,18 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 	}
 }
 
-func extractDeltaContent(line string) string {
-	data, ok := strings.CutPrefix(line, "data: ")
-	if !ok || data == "[DONE]" {
-		return ""
-	}
-	var chunk struct {
-		Choices []struct {
-			Delta struct {
-				Content string `json:"content"`
-			} `json:"delta"`
-		} `json:"choices"`
-	}
-	if json.Unmarshal([]byte(data), &chunk) == nil && len(chunk.Choices) > 0 {
-		return chunk.Choices[0].Delta.Content
+func extractTextDelta(data string) string {
+	var event TextDeltaEvent
+	if json.Unmarshal([]byte(data), &event) == nil {
+		return event.Delta
 	}
 	return ""
+}
+
+func extractCompletedUsage(data string) *UsageResponse {
+	var event ResponseCompletedEvent
+	if json.Unmarshal([]byte(data), &event) == nil {
+		return event.Response.Usage
+	}
+	return nil
 }

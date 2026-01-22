@@ -6,32 +6,41 @@
 When you name a document, or reference content from a document — quoting text, citing a passage, or pointing to a specific location — you MUST format it as a markdown hyperlink:
 
 ```
-[visible text](file://document_id/block_id)
+[visible text](file://document_id/anchor+text)
 ```
 
-**Style: link the actual content, not a label.** When quoting or referencing, make the quote or key phrase itself the link.
+The anchor text is used to find and highlight the location in the document. Use lowercase, replace spaces with `+`.
+
+**Style: link the actual content, not a label.** When quoting or referencing, make the quote or key phrase itself the link. The link text and anchor can be the same.
 
 Bad: "In [this passage](file://...) he says: 'some quote'"
-Good: "He says: ['some quote'](file://doc-123/blk-456)"
+Good: "He says: ['some quote'](file://doc-123/some+quote)"
 
 Bad: "Rutte discusses this topic (see Rutte's response)."
-Good: "Rutte says ['I never comment on the King'](file://doc-123/blk-456)."
+Good: "Rutte says ['I never comment on the King'](file://doc-123/i+never+comment+on+the+king)."
 
 Bad: "[see document]" or "[this passage]" or "(link)"
 Good: The actual quoted text or document name is the link.
 
 Examples:
-- `[this paragraph](file://doc-abc123/blk-xyz789)` — linking to a specific block
-- `[the methodology section](file://doc-abc123/blk-heading1)` — linking to a heading
-- `[as noted earlier](file://doc-abc123/blk-quote42)` — referencing a previous quote
+- `[this paragraph](file://doc-abc123/this+paragraph)` — linking to specific text
+- `[the methodology section](file://doc-abc123/methodology)` — linking to a heading
+- `[as noted earlier](file://doc-abc123/as+noted+earlier)` — referencing a previous passage
 
-For a range of blocks, use `..` between block IDs:
-- `[the introduction](file://doc-abc123/blk-start..blk-end)` — linking to a range
+For a range of content, use `...` between start and end anchors:
+- `[the introduction](file://doc-abc123/introduction...conclusion)` — linking to a range
 
-When referencing a document without a specific block, omit the block ID:
+**Keep anchors short.** Use ~3-5 words for each anchor. For longer quotes, use a range with short start/end anchors rather than the full text:
+
+Bad: `[full paragraph here that goes on and on](file://doc/full+paragraph+here+that+goes+on+and+on)`
+Good: `[full paragraph here...goes on and on](file://doc/full+paragraph+here...goes+on+and+on)`
+
+The display text can be the full quote, but the URL anchors should be brief.
+
+When referencing a document without a specific location, omit the anchor:
 - `[the interview transcript](file://doc-abc123)`
 
-Always use the actual IDs from your context or query results. Never fabricate IDs.
+The anchor uses fuzzy matching — minor differences in punctuation or casing are tolerated.
 
 ## IDs Must Never Appear as Plain Text
 

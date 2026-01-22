@@ -89,8 +89,12 @@ func loadDir(dir string) (string, error) {
 	return strings.Join(parts, "\n\n"), nil
 }
 
+func isTemp(name string) bool {
+	return strings.Contains(name, ".temp")
+}
+
 func isMarkdownFile(e os.DirEntry) bool {
-	return !e.IsDir() && strings.HasSuffix(e.Name(), ".md")
+	return !e.IsDir() && strings.HasSuffix(e.Name(), ".md") && !isTemp(e.Name())
 }
 
 func filterFiles(entries []os.DirEntry) []string {

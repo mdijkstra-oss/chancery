@@ -1,59 +1,55 @@
 [
   {
     "type": "function",
-    "function": {
-      "name": "convert",
-      "description": "Convert document to structured format.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "kind": {"type": "string", "enum": ["codebook"], "description": "Conversion type"},
-          "data": {
-            "type": "object",
-            "properties": {
-              "categories": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "name": {"type": "string"},
-                    "codes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {"type": "string", "description": "Block ID of the code heading"},
-                          "name": {"type": "string"},
-                          "color": {"type": "string"},
-                          "detail": {"type": "string"}
-                        },
-                        "required": ["id", "name", "color", "detail"]
-                      }
+    "name": "convert",
+    "description": "Convert document to structured format.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "kind": {"type": "string", "enum": ["codebook"], "description": "Conversion type"},
+        "data": {
+          "type": "object",
+          "properties": {
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "codes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {"type": "string", "description": "Block ID of the code heading"},
+                        "name": {"type": "string"},
+                        "color": {"type": "string"},
+                        "detail": {"type": "string"}
+                      },
+                      "required": ["id", "name", "color", "detail"]
                     }
-                  },
-                  "required": ["name", "codes"]
-                }
+                  }
+                },
+                "required": ["name", "codes"]
               }
-            },
-            "required": ["categories"]
-          }
-        },
-        "required": ["kind", "data"]
-      }
+            }
+          },
+          "required": ["categories"]
+        }
+      },
+      "required": ["kind", "data"]
     }
   },
   {
     "type": "function",
-    "function": {
-      "name": "remove_conversion",
-      "description": "Remove conversion if document doesn't match expected type.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "kind": {"type": "string", "enum": ["codebook"], "description": "Conversion type to remove"}
-        },
-        "required": ["kind"]
-      }
+    "name": "remove_conversion",
+    "description": "Remove conversion if document doesn't match expected type.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "kind": {"type": "string", "enum": ["codebook"], "description": "Conversion type to remove"}
+      },
+      "required": ["kind"]
     }
   }
 ]

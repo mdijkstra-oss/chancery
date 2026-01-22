@@ -3,39 +3,36 @@ package http
 import (
 	"encoding/json"
 	"io"
-
-	"github.com/sashabaranov/go-openai"
 )
 
 func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []json.RawMessage {
-	sysMsg := SystemMessage{Role: "system", Content: systemPrompt}
+	sysMsg := InputMessage{Type: "message", Role: "system", Content: systemPrompt}
 	sysMsgJSON, _ := json.Marshal(sysMsg)
 	return append([]json.RawMessage{sysMsgJSON}, messages...)
 }
 
-// TODO: prompt cache retention (only certain models)
-func buildOpenAIRequest(model, systemPrompt, gptVerbosity, reasoningEffort string, tools []openai.Tool, toolChoice string, temperature *float64, messages []json.RawMessage) OpenAIRequest {
-	req := OpenAIRequest{
-		Model:         model,
-		Messages:      prependSystemMessage(systemPrompt, messages),
-		Tools:         tools,
-		Temperature:   temperature,
-		Stream:        true,
-		StreamOptions: &StreamOptions{IncludeUsage: true},
+func buildResponsesRequest(model, systemPrompt, reasoningEffort, verbosity string, tools []json.RawMessage, toolChoice string, temperature *float64, messages []json.RawMessage) ResponsesRequest {
+	req := ResponsesRequest{
+		Model:  model,
+		Input:  prependSystemMessage(systemPrompt, messages),
+		Tools:  tools,
+		Stream: true,
+		Store:  false,
 	}
-	if gptVerbosity != "" {
-		req.Verbosity = &gptVerbosity
+	if temperature != nil {
+		req.Temperature = temperature
 	}
 	if reasoningEffort != "" {
-		req.ReasoningEffort = &reasoningEffort
+		req.Reasoning = &ReasoningConfig{Effort: reasoningEffort}
+	}
+	if verbosity != "" {
+		req.Text = &TextConfig{Verbosity: verbosity}
 	}
 	if toolChoice != "" && len(tools) > 0 {
 		req.ToolChoice = &toolChoice
 	}
 	return req
 }
-
-// TODO: PromptCacheKey important when adding multi-user support
 
 func encodeJSON(v any, pw *io.PipeWriter) {
 	pw.CloseWithError(json.NewEncoder(pw).Encode(v))

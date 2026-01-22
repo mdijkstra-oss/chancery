@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sashabaranov/go-openai"
 	"hermes-logos/internal/config"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/tools"
@@ -49,18 +48,18 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	var loadedTools []openai.Tool
+	var loadedTools []json.RawMessage
 	if endpointCfg.IncludeTools {
 		loadedTools, _ = tools.LoadFolder(config.PromptsDir, endpointCfg.Folder)
 	}
 
 	toolChoice := r.URL.Query().Get("tool_choice")
 	temperature := parseTemperature(r.URL.Query().Get("temperature"))
-	openaiReq := buildOpenAIRequest(promptCfg.Model, systemPrompt, promptCfg.Verbosity, promptCfg.ReasoningEffort, loadedTools, toolChoice, temperature, req.Messages)
+	apiReq := buildResponsesRequest(promptCfg.Model, systemPrompt, promptCfg.ReasoningEffort, promptCfg.Verbosity, loadedTools, toolChoice, temperature, req.Messages)
 
-	logOutgoingRequest(openaiReq, cfg.Verbose)
+	logOutgoingRequest(apiReq, cfg.Verbose)
 
-	resp, err := proxyRequest(r.Context(), openaiReq, cfg)
+	resp, err := proxyRequest(r.Context(), apiReq, cfg)
 	if err != nil {
 		handleProxyError(w, err)
 		return
@@ -86,8 +85,8 @@ func decodeRequest(r *http.Request) (ChatRequest, error) {
 	return req, nil
 }
 
-func proxyRequest(ctx context.Context, openaiReq OpenAIRequest, cfg Config) (*http.Response, error) {
-	proxyReq, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseURL+"/chat/completions", jsonReader(openaiReq))
+func proxyRequest(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*http.Response, error) {
+	proxyReq, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseURL+"/responses", jsonReader(apiReq))
 	if err != nil {
 		return nil, err
 	}

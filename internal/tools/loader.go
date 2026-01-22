@@ -6,15 +6,17 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/sashabaranov/go-openai"
 )
 
-func isToolFile(name string) bool {
-	return strings.HasPrefix(name, "tools.") && strings.HasSuffix(name, ".json")
+func isTemp(name string) bool {
+	return strings.Contains(name, ".temp")
 }
 
-func loadDir(dir string) ([]openai.Tool, error) {
+func isToolFile(name string) bool {
+	return strings.HasPrefix(name, "tools.") && strings.HasSuffix(name, ".json") && !isTemp(name)
+}
+
+func loadDir(dir string) ([]json.RawMessage, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -28,7 +30,7 @@ func loadDir(dir string) ([]openai.Tool, error) {
 	}
 	sort.Strings(files)
 
-	var result []openai.Tool
+	var result []json.RawMessage
 	for _, f := range files {
 		tools, err := loadFile(f)
 		if err != nil {
@@ -39,13 +41,13 @@ func loadDir(dir string) ([]openai.Tool, error) {
 	return result, nil
 }
 
-func loadFile(path string) ([]openai.Tool, error) {
+func loadFile(path string) ([]json.RawMessage, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var tools []openai.Tool
+	var tools []json.RawMessage
 	if err := json.Unmarshal(data, &tools); err != nil {
 		return nil, err
 	}
@@ -53,6 +55,6 @@ func loadFile(path string) ([]openai.Tool, error) {
 	return tools, nil
 }
 
-func LoadFolder(baseDir, folder string) ([]openai.Tool, error) {
+func LoadFolder(baseDir, folder string) ([]json.RawMessage, error) {
 	return loadDir(filepath.Join(baseDir, folder))
 }

@@ -25,12 +25,12 @@ func calculateInputCost(promptTokens, cachedTokens int, pricing Pricing) float64
 
 func calculateUsageCost(pricing Pricing, usage UsageResponse) Cost {
 	cachedTokens := 0
-	if usage.PromptTokensDetails != nil {
-		cachedTokens = usage.PromptTokensDetails.CachedTokens
+	if usage.InputTokensDetails != nil {
+		cachedTokens = usage.InputTokensDetails.CachedTokens
 	}
 
-	inputCost := calculateInputCost(usage.PromptTokens, cachedTokens, pricing)
-	outputCost := calculateTokenCost(usage.CompletionTokens, pricing.OutputCentsPerMillion)
+	inputCost := calculateInputCost(usage.InputTokens, cachedTokens, pricing)
+	outputCost := calculateTokenCost(usage.OutputTokens, pricing.OutputCentsPerMillion)
 	totalCost := inputCost + outputCost
 
 	return Cost{

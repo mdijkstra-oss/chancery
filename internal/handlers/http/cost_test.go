@@ -75,10 +75,10 @@ func TestCalculateUsageCost(t *testing.T) {
 		{
 			name: "with cache",
 			usage: UsageResponse{
-				PromptTokens:     1471,
-				CompletionTokens: 8643,
-				TotalTokens:      10114,
-				PromptTokensDetails: &PromptTokensDetails{
+				InputTokens:  1471,
+				OutputTokens: 8643,
+				TotalTokens:  10114,
+				InputTokensDetails: &PromptTokensDetails{
 					CachedTokens: 1200,
 				},
 			},
@@ -91,9 +91,9 @@ func TestCalculateUsageCost(t *testing.T) {
 		{
 			name: "no cache",
 			usage: UsageResponse{
-				PromptTokens:     1471,
-				CompletionTokens: 8643,
-				TotalTokens:      10114,
+				InputTokens:  1471,
+				OutputTokens: 8643,
+				TotalTokens:  10114,
 			},
 			want: Cost{
 				InputCost:  0.183875,

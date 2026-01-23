@@ -71,18 +71,6 @@ Use `apply_patch` to create, update, or delete files. Each operation specifies:
 - If patch fails ("context not found"), re-read the file and retry with correct context
 </apply-patch>
 
-<colors>
-## Colors and Highlighting
-
-**Text annotations** (`add_annotations`) — for research and analysis:
-- Highlights specific text passages
-- Always tied to meaning: qualitative coding, notes, observations
-- Requires a reason or coding payload
-- NOT for decoration or visual styling
-
-Never use annotations for decorative purposes.
-</colors>
-
 <sidecar-files>
 ## Document Attributes
 
@@ -94,21 +82,19 @@ The sidecar file has the same name but with `.json` extension. For example:
 - `interview-1.md` — content
 - `interview-1.json` — attributes
 
-### Sidecar Schema
+### Sidecar Fields
 
-```json
-{
-  "type": "object",
-  "properties": {
-    "tags": {
-      "type": "array",
-      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
-    }
-  }
-}
-```
+**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`.
 
-Tags must be slugs: lowercase letters, numbers, hyphens. Examples: `codebook`, `theme-2`, `my-tag-123`.
+**Annotations**: Array of text highlights for qualitative coding.
+- `text`: Exact text to highlight (must match document content)
+- `reason`: Why this text is annotated (required)
+- `color`: Radix color name
+- `code`: Code name from codebook
+
+Available colors: `tomato`, `red`, `ruby`, `crimson`, `pink`, `plum`, `purple`, `violet`, `iris`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `jade`, `green`, `grass`, `lime`, `mint`, `yellow`, `amber`, `orange`, `brown`, `bronze`, `gold`, `sand`, `olive`, `sage`, `mauve`, `slate`, `gray`.
+
+Set either `color` or `code`, not both. Annotations are for research meaning only. Never for decoration.
 
 ### Validation on Patch
 

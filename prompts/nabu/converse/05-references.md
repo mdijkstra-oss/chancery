@@ -44,7 +44,7 @@ The anchor uses fuzzy matching — minor differences in punctuation or casing ar
 
 ## IDs Must Never Appear as Plain Text
 
-When you reference documents, blocks, or any resource with an ID, the ID must ONLY appear inside a link URL — never as visible text.
+When you reference documents or any resource with an ID, the ID must ONLY appear inside a link URL — never as visible text.
 
 **Bad:**
 - `document_c818d3d5 contains the interview` — raw ID in prose

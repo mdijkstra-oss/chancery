@@ -1,0 +1,65 @@
+[
+  {
+    "type": "function",
+    "name": "upsert_annotations",
+    "description": "Adds or updates annotations on a document. Text is fuzzy-matched against document content. If an annotation for that text already exists, it is replaced.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "description": "Target document ID"
+        },
+        "annotations": {
+          "type": "array",
+          "description": "Annotations to add or update",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Text passage to annotate (fuzzy matched against document)"
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why this text is being annotated"
+              },
+              "color": {
+                "type": "string",
+                "description": "Radix color name for highlighting"
+              },
+              "code": {
+                "type": "string",
+                "description": "Code name from codebook"
+              }
+            },
+            "required": ["text", "reason"]
+          }
+        }
+      },
+      "required": ["document_id", "annotations"]
+    }
+  },
+  {
+    "type": "function",
+    "name": "delete_annotations",
+    "description": "Removes annotations from a document by matching text. Text is fuzzy-matched against existing annotation texts.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "description": "Target document ID"
+        },
+        "texts": {
+          "type": "array",
+          "description": "Text passages to remove annotations for",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["document_id", "texts"]
+    }
+  }
+]

@@ -26,14 +26,6 @@ var Endpoints = map[string]EndpointConfig{
 		Folder:       "nabu/converse",
 		IncludeTools: true,
 	},
-	"tag": {
-		Folder:       "nabu/tag",
-		IncludeTools: true,
-	},
-	"convert/codebook": {
-		Folder:       "nabu/convert/codebook",
-		IncludeTools: true,
-	},
 }
 
 func GetEndpoint(name string) (EndpointConfig, bool) {

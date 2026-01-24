@@ -71,39 +71,80 @@ Use `apply_patch` to create, update, or delete files. Each operation specifies:
 - If patch fails ("context not found"), re-read the file and retry with correct context
 </apply-patch>
 
-<sidecar-files>
+<document-attributes>
 ## Document Attributes
 
-Documents have two parts:
-- **Content file** (`.md`): The document text
-- **Sidecar file** (`.json`): Document attributes
+Document attributes are stored in a `json-attributes` block embedded in the markdown file:
 
-The sidecar file has the same name but with `.json` extension. For example:
-- `interview-1.md` — content
-- `interview-1.json` — attributes
+```markdown
+# My Document
 
-### Sidecar Fields
+Content here...
 
-**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`.
+```json-attributes
+{
+  "tags": ["interview", "round-1"]
+}
+```
+```
 
-**Annotations**: Array of text highlights for qualitative coding.
-- `text`: Exact text to highlight (must match document content)
-- `reason`: Why this text is annotated (required)
-- `color`: Radix color name
-- `code`: Code name from codebook
+### Attribute Fields
 
-Available colors: `tomato`, `red`, `ruby`, `crimson`, `pink`, `plum`, `purple`, `violet`, `iris`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `jade`, `green`, `grass`, `lime`, `mint`, `yellow`, `amber`, `orange`, `brown`, `bronze`, `gold`, `sand`, `olive`, `sage`, `mauve`, `slate`, `gray`.
+**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`. Modify via `apply_patch` on the markdown file, targeting the json-attributes block.
 
-Set either `color` or `code`, not both. Annotations are for research meaning only. Never for decoration.
+**Annotations**: Array of text highlights for qualitative coding. **Use dedicated annotation tools** — do not patch annotations directly.
 
 ### Validation on Patch
 
-When you patch a `.json` sidecar file, the system validates against the schema:
-- **Valid**: Patch applied successfully
-- **Validation error**: Returns which fields are invalid, their current values, and what was expected
+When you patch a markdown file, the system validates any json-attributes block against the schema:
+- **Valid**: Patch applied
+- **Validation error**: Returns which fields are invalid and what was expected
 
-If a patch breaks the schema (wrong type, missing required field), you'll see the validation error with the affected field's current value. Fix and retry.
-</sidecar-files>
+If a patch breaks the schema (wrong type, missing required field), you'll see the validation error. Fix and retry.
+
+Note: Only one json-attributes block per file. Annotations are read-only via patch — use `upsert_annotations` and `delete_annotations` instead.
+</document-attributes>
+
+<annotations>
+## Annotation Tools
+
+Use dedicated tools for managing annotations. Do not patch the annotations field directly.
+
+### upsert_annotations
+
+Adds or updates annotations on a document. If an annotation for that text already exists, it is replaced.
+
+```json
+{
+  "document_id": "interview-1",
+  "annotations": [
+    {"text": "felt confused by the process", "reason": "pain point", "color": "red"},
+    {"text": "loved the onboarding", "reason": "positive feedback", "code": "user-satisfaction"}
+  ]
+}
+```
+
+- `text`: Passage to annotate (fuzzy matched — case/punctuation insensitive)
+- `reason`: Why this text is annotated (required)
+- `color` or `code`: Set one, not both
+
+Available colors: `tomato`, `red`, `ruby`, `crimson`, `pink`, `plum`, `purple`, `violet`, `iris`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `jade`, `green`, `grass`, `lime`, `mint`, `yellow`, `amber`, `orange`, `brown`, `bronze`, `gold`, `sand`, `olive`, `sage`, `mauve`, `slate`, `gray`.
+
+Response shows which annotations were applied and which were rejected (text not found, invalid color/code).
+
+### delete_annotations
+
+Removes annotations by text. Text is fuzzy-matched against existing annotation texts.
+
+```json
+{
+  "document_id": "interview-1",
+  "texts": ["felt confused by the process", "loved the onboarding"]
+}
+```
+
+Idempotent — if text not found, no error.
+</annotations>
 
 <tool-discipline>
 ## Discipline

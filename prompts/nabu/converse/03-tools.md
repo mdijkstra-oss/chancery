@@ -36,18 +36,37 @@ Use `apply_patch` to create, update, or delete files. Each operation specifies:
 - Lines starting with `+`: content to add
 - `@@` marks the start of a hunk
 
+**Append behavior:** A hunk with only `+` lines (no context) appends to end of file.
+
+**Creating new files:** You MUST:
+1. First call: `create_file` with just the title
+2. Subsequent calls: one `update_file` call per logical block (paragraph, list, code block, etc.)
+
+Never put entire file content in one patch. Send **multiple separate `apply_patch` tool calls**.
+
+When appending, do NOT anchor to previous content — just use `+` lines only. No context lines needed.
+
 ### Examples
 
-**Create a new file:**
+**Create a new file (minimal start):**
 ```json
 {
   "type": "create_file",
   "path": "notes.md",
-  "diff": "@@\n+# Notes\n+\n+Initial content here."
+  "diff": "@@\n+# Notes"
 }
 ```
 
-**Update existing content:**
+**Append to file (no anchor needed):**
+```json
+{
+  "type": "update_file",
+  "path": "notes.md",
+  "diff": "@@\n+\n+First section content here."
+}
+```
+
+**Update existing content (with context anchor):**
 ```json
 {
   "type": "update_file",
@@ -66,9 +85,21 @@ Use `apply_patch` to create, update, or delete files. Each operation specifies:
 
 ### Patch Discipline
 
-- Include enough context lines for unique matching
-- Small, focused patches over large rewrites
+**One patch per markdown block.** Always split into separate `apply_patch` calls:
+- One for the heading
+- One for each paragraph
+- One for each list
+- One for each table
+- One for each code block (including `json-callout`, `json-attributes`)
+
+This enables streaming display. Never combine multiple blocks in one patch.
+
+**Batch patches in one response.** Send multiple `apply_patch` calls in a single response — do not wait for confirmation between patches. Include all patches for the document in one response, then continue. Never send just one patch and stop.
+
+**Context matching:**
+- Include 1-2 context lines for unique matching (no prefix or space prefix)
 - If patch fails ("context not found"), re-read the file and retry with correct context
+- Context lines must match file content exactly (including indentation)
 </apply-patch>
 
 <document-attributes>

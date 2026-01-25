@@ -20,15 +20,16 @@ type InputMessage struct {
 }
 
 type ResponsesRequest struct {
-	Model       string            `json:"model"`
-	Input       []json.RawMessage `json:"input"`
-	Tools       []json.RawMessage `json:"tools,omitempty"`
-	ToolChoice  *string           `json:"tool_choice,omitempty"`
-	Temperature *float64          `json:"temperature,omitempty"`
-	Stream      bool              `json:"stream"`
-	Store       bool              `json:"store"`
-	Reasoning   *ReasoningConfig  `json:"reasoning,omitempty"`
-	Text        *TextConfig       `json:"text,omitempty"`
+	Model             string            `json:"model"`
+	Input             []json.RawMessage `json:"input"`
+	Tools             []json.RawMessage `json:"tools,omitempty"`
+	ToolChoice        *string           `json:"tool_choice,omitempty"`
+	Temperature       *float64          `json:"temperature,omitempty"`
+	Stream            bool              `json:"stream"`
+	Store             bool              `json:"store"`
+	Reasoning         *ReasoningConfig  `json:"reasoning,omitempty"`
+	Text              *TextConfig       `json:"text,omitempty"`
+	ParallelToolCalls bool              `json:"parallel_tool_calls"`
 }
 
 type ReasoningConfig struct {

@@ -13,11 +13,12 @@ func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []jso
 
 func buildResponsesRequest(model, systemPrompt, reasoningEffort, verbosity string, tools []json.RawMessage, toolChoice string, temperature *float64, messages []json.RawMessage) ResponsesRequest {
 	req := ResponsesRequest{
-		Model:  model,
-		Input:  prependSystemMessage(systemPrompt, messages),
-		Tools:  tools,
-		Stream: true,
-		Store:  false,
+		Model:             model,
+		Input:             prependSystemMessage(systemPrompt, messages),
+		Tools:             tools,
+		Stream:            true,
+		Store:             false,
+		ParallelToolCalls: true,
 	}
 	if temperature != nil {
 		req.Temperature = temperature

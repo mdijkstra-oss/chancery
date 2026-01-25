@@ -152,11 +152,13 @@ When creating a new block that requires an ID, use a placeholder:
   "title": "My Reference",
   "color": "blue",
   "collapsed": false,
-  "content": "Description here..."
+  "content": "Line one.\n\nLine two."
 }
 ```
 
 The system replaces `[uuid-callout]` with a prefixed ID like `callout_x7k2m9p1`.
+
+**JSON string escaping**: Use `\n` for newlines in JSON strings, not literal line breaks. Multi-line content must be escaped: `"content": "First paragraph.\n\nSecond paragraph."`
 
 **Placeholder format**: `[uuid-{prefix}]` or `[uuid-{prefix}-{number}]`
 - `[uuid-callout]` → `callout_a1b2c3d4`

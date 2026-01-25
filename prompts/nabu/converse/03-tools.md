@@ -105,6 +105,55 @@ If a patch breaks the schema (wrong type, missing required field), you'll see th
 Note: Only one json-attributes block per file. Annotations are read-only via patch — use `upsert_annotations` and `delete_annotations` instead.
 </document-attributes>
 
+<structured-blocks>
+## Structured Blocks
+
+Documents can contain structured JSON blocks with specific types. Each block type has a schema and validation rules.
+
+### Creating Blocks with IDs
+
+When creating a new block that requires an ID, use a placeholder:
+
+```json-callout
+{
+  "id": "[uuid-callout]",
+  "type": "codebook",
+  "title": "My Reference",
+  "color": "blue",
+  "collapsed": false,
+  "content": "Description here..."
+}
+```
+
+The system replaces `[uuid-callout]` with a prefixed ID like `callout_x7k2m9p1`.
+
+**Placeholder format**: `[uuid-{prefix}]` or `[uuid-{prefix}-{number}]`
+- `[uuid-callout]` → `callout_a1b2c3d4`
+- `[uuid-callout-1]`, `[uuid-callout-2]` → different IDs, same `callout_` prefix
+
+Use numbered suffixes when creating multiple blocks in one patch to ensure each gets a unique ID.
+
+### Immutable Fields
+
+Some fields are **immutable** — you can set them once when creating a block, but cannot change them afterward.
+
+- **id**: Always immutable. Set via placeholder on creation, never modify existing IDs.
+
+If you try to change an immutable field, the patch is rejected with: `"id: immutable - already set to 'callout_x7k2m9p1'"`
+
+### Referencing Existing Blocks
+
+When updating an existing block, use its actual ID — not a placeholder:
+
+```json
+{
+  "type": "update_file",
+  "path": "notes.md",
+  "diff": "@@\n ```json-callout\n {\n   \"id\": \"callout_x7k2m9p1\",\n-  \"collapsed\": false,\n+  \"collapsed\": true,\n   ...\n }\n ```"
+}
+```
+</structured-blocks>
+
 <annotations>
 ## Annotation Tools
 

@@ -210,6 +210,10 @@ Tool success/failure is sufficient feedback for individual steps — don't verif
 
 For multi-step tasks with composite outcomes, verify the objective was achieved at the end, not after each step.
 
+Never:
+- Describe HOW you executed (batch, parallel, single operation, etc.)
+- Re-read/re-list after successful writes to "confirm" — tool success is confirmation
+
 A plan is complete when all steps done, objective achieved early, or aborted via `abort`.
 
 On completion, summarize: what was done, what changed, anything unexpected.

@@ -74,16 +74,15 @@ Include:
 </code-definitions>
 
 <codebook-colors>
-## Color Conventions
+## Available Colors
 
-Colors group related codes visually. Suggested conventions:
+Colors group related codes visually. Choose any from these families:
 
-- **blue/indigo/violet** — Core analytical codes
-- **green/teal/jade** — Positive valence (satisfaction, success, praise)
-- **red/tomato/crimson** — Negative valence (frustration, failure, complaints)
-- **yellow/amber/orange** — Neutral observations, process codes
-- **purple/plum/pink** — Interpretive or emergent codes
-- **gray/slate/mauve** — Administrative, meta-codes
-
-Consistency matters more than the specific scheme.
+- **Reds**: tomato, red, ruby, crimson
+- **Pinks**: pink, plum, purple, violet
+- **Blues**: iris, indigo, blue, sky, cyan
+- **Greens**: teal, jade, green, grass, mint, lime
+- **Yellows**: yellow, amber, orange
+- **Browns**: brown, bronze, gold, sand
+- **Neutrals**: olive, sage, mauve, slate, gray
 </codebook-colors>

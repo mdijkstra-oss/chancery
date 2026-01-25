@@ -177,7 +177,14 @@ Adds or updates annotations on a document. If an annotation for that text alread
 - `reason`: Why this text is annotated (required)
 - `color` or `code`: Set one, not both
 
-Available colors: `tomato`, `red`, `ruby`, `crimson`, `pink`, `plum`, `purple`, `violet`, `iris`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `jade`, `green`, `grass`, `lime`, `mint`, `yellow`, `amber`, `orange`, `brown`, `bronze`, `gold`, `sand`, `olive`, `sage`, `mauve`, `slate`, `gray`.
+Available colors by family:
+- Reds: `tomato`, `red`, `ruby`, `crimson`
+- Pinks: `pink`, `plum`, `purple`, `violet`
+- Blues: `iris`, `indigo`, `blue`, `sky`, `cyan`
+- Greens: `teal`, `jade`, `green`, `grass`, `mint`, `lime`
+- Yellows: `yellow`, `amber`, `orange`
+- Browns: `brown`, `bronze`, `gold`, `sand`
+- Neutrals: `olive`, `sage`, `mauve`, `slate`, `gray`
 
 Response shows which annotations were applied and which were rejected (text not found, invalid color/code).
 

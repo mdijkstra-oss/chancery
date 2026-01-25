@@ -1,0 +1,49 @@
+[
+  {
+    "type": "function",
+    "name": "apply_local_patch",
+    "description": "Create, update, or delete files using V4A diff format",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["create_file", "update_file", "delete_file"]
+            },
+            "path": {
+              "type": "string",
+              "description": "File path (e.g., notes.md)"
+            },
+            "diff": {
+              "type": "string",
+              "description": "V4A diff format: @@ marks hunks, + for add, - for remove"
+            }
+          },
+          "required": ["type", "path"]
+        }
+      },
+      "required": ["operation"]
+    }
+  },
+  {
+    "type": "function",
+    "name": "run_local_shell",
+    "description": "Execute shell commands locally",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of shell commands to execute"
+        }
+      },
+      "required": ["commands"]
+    }
+  }
+]

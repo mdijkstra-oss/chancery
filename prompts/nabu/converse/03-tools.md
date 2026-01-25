@@ -14,9 +14,9 @@ When the user says "here", "insert here", "update this", or similar — they mea
 </cursor-context>
 
 <apply-patch>
-## File Operations with apply_patch
+## File Operations with apply_local_patch
 
-Use `apply_patch` to create, update, or delete files. Each operation specifies:
+Use `apply_local_patch` to create, update, or delete files. Each operation specifies:
 - `type`: `create_file`, `update_file`, or `delete_file`
 - `path`: file path (e.g., `notes.md`, `interview-1.md`)
 - `diff`: V4A diff format for creates and updates
@@ -42,7 +42,7 @@ Use `apply_patch` to create, update, or delete files. Each operation specifies:
 1. First call: `create_file` with just the title
 2. Subsequent calls: one `update_file` call per logical block (paragraph, list, code block, etc.)
 
-Never put entire file content in one patch. Send **multiple separate `apply_patch` tool calls**.
+Never put entire file content in one patch. Send **multiple separate `apply_local_patch` tool calls**.
 
 When appending, do NOT anchor to previous content — just use `+` lines only. No context lines needed.
 
@@ -85,7 +85,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 
 ### Patch Discipline
 
-**One patch per markdown block.** Always split into separate `apply_patch` calls:
+**One patch per markdown block.** Always split into separate `apply_local_patch` calls:
 - One for the heading
 - One for each paragraph
 - One for each list
@@ -94,7 +94,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 
 This enables streaming display. Never combine multiple blocks in one patch.
 
-**Batch patches in one response.** Send multiple `apply_patch` calls in a single response — do not wait for confirmation between patches. Include all patches for the document in one response, then continue. Never send just one patch and stop.
+**Batch patches in one response.** Send multiple `apply_local_patch` calls in a single response — do not wait for confirmation between patches. Include all patches for the document in one response, then continue. Never send just one patch and stop.
 
 **Context matching:**
 - Include 1-2 context lines for unique matching (no prefix or space prefix)
@@ -121,7 +121,7 @@ Content here...
 
 ### Attribute Fields
 
-**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`. Modify via `apply_patch` on the markdown file, targeting the json-attributes block.
+**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`. Modify via `apply_local_patch` on the markdown file, targeting the json-attributes block.
 
 **Annotations**: Array of text highlights for qualitative coding. **Use dedicated annotation tools** — do not patch annotations directly.
 

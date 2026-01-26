@@ -121,19 +121,41 @@ Content here...
 
 ### Attribute Fields
 
-**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`. Modify via `apply_local_patch` on the markdown file, targeting the json-attributes block.
+**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`.
 
-**Annotations**: Array of text highlights for qualitative coding. **Use dedicated annotation tools** — do not patch annotations directly.
+**Annotations**: Array of text highlights for qualitative coding. Each annotation has:
+- `text`: The exact passage to highlight (must exist in document prose)
+- `reason`: Why this text is annotated (required)
+- `color` or `code`: Visual style - either a color name or a codebook reference
+
+Available colors: `tomato`, `red`, `ruby`, `crimson`, `pink`, `plum`, `purple`, `violet`, `iris`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `jade`, `green`, `grass`, `mint`, `lime`, `yellow`, `amber`, `orange`, `brown`, `bronze`, `gold`, `sand`, `olive`, `sage`, `mauve`, `slate`, `gray`
 
 ### Validation on Patch
 
-When you patch a markdown file, the system validates any json-attributes block against the schema:
-- **Valid**: Patch applied
-- **Validation error**: Returns which fields are invalid and what was expected
+When you patch a markdown file, the system validates:
+- Schema validation (correct types, required fields)
+- **Annotation text validation**: The `text` must exist verbatim in the document prose (outside code blocks)
+- **Annotation code validation**: If `code` is set, it must reference an existing codebook entry
 
-If a patch breaks the schema (wrong type, missing required field), you'll see the validation error. Fix and retry.
+If validation fails, you receive:
+- The error message explaining what's wrong
+- The current block content (unchanged) so you can retry from the correct state
+- For invalid codes: a hint showing available codes `{ "Theme Name": "code_id" }`
 
-Note: Only one json-attributes block per file. Annotations are read-only via patch — use `upsert_annotations` and `delete_annotations` instead.
+Only one json-attributes block per file.
+
+### Annotation Examples
+
+**Add an annotation:**
+```json
+{
+  "type": "update_file",
+  "path": "interview-1.md",
+  "diff": "@@\n ```json-attributes\n {\n-  \"tags\": [\"interview\"]\n+  \"tags\": [\"interview\"],\n+  \"annotations\": [{\"text\": \"felt confused\", \"reason\": \"pain point\", \"color\": \"red\"}]\n }\n ```"
+}
+```
+
+**Remove an annotation:** Patch the annotations array to exclude it, or set to empty array `[]`.
 </document-attributes>
 
 <structured-blocks>
@@ -186,54 +208,6 @@ When updating an existing block, use its actual ID — not a placeholder:
 }
 ```
 </structured-blocks>
-
-<annotations>
-## Annotation Tools
-
-Use dedicated tools for managing annotations. Do not patch the annotations field directly.
-
-### upsert_annotations
-
-Adds or updates annotations on a document. If an annotation for that text already exists, it is replaced.
-
-```json
-{
-  "document_id": "interview-1",
-  "annotations": [
-    {"text": "felt confused by the process", "reason": "pain point", "color": "red"},
-    {"text": "loved the onboarding", "reason": "positive feedback", "code": "user-satisfaction"}
-  ]
-}
-```
-
-- `text`: Passage to annotate (fuzzy matched — case/punctuation insensitive)
-- `reason`: Why this text is annotated (required)
-- `color` or `code`: Set one, not both
-
-Available colors by family:
-- Reds: `tomato`, `red`, `ruby`, `crimson`
-- Pinks: `pink`, `plum`, `purple`, `violet`
-- Blues: `iris`, `indigo`, `blue`, `sky`, `cyan`
-- Greens: `teal`, `jade`, `green`, `grass`, `mint`, `lime`
-- Yellows: `yellow`, `amber`, `orange`
-- Browns: `brown`, `bronze`, `gold`, `sand`
-- Neutrals: `olive`, `sage`, `mauve`, `slate`, `gray`
-
-Response shows which annotations were applied and which were rejected (text not found, invalid color/code).
-
-### delete_annotations
-
-Removes annotations by text. Text is fuzzy-matched against existing annotation texts.
-
-```json
-{
-  "document_id": "interview-1",
-  "texts": ["felt confused by the process", "loved the onboarding"]
-}
-```
-
-Idempotent — if text not found, no error.
-</annotations>
 
 <tool-discipline>
 ## Discipline

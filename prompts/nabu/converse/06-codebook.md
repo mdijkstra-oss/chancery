@@ -57,10 +57,31 @@ Each code is a callout block with type `codebook`:
 ### Content
 The definition answers: *When does this code apply?*
 
-Include:
-- **Definition**: What this code captures (1-2 sentences)
-- **Indicators**: Specific signals that suggest this code applies
-- **Boundaries**: What this code does NOT include (distinguishes from similar codes)
+Structure the content using markdown headers and appropriate formats:
+
+```markdown
+### Definition
+Single paragraph. What this code captures (1-2 sentences). The conceptual essence.
+
+### Inclusion Criteria
+Bulleted list. Specific signals, markers, and patterns that indicate this code applies.
+- Linguistic markers, speech acts, observable features
+- Replicability rules where helpful
+
+### Exclusion Criteria
+Bulleted list. What this code does NOT include.
+- Boundary conditions distinguishing from similar codes
+- What to exclude even when superficially similar
+
+### Examples
+Bulleted list of brief illustrative phrases or quotes.
+- "Example phrase that fits"
+- "Another example"
+
+### Counter Examples
+Bulleted list of phrases that might seem to fit but should NOT be coded.
+- "Phrase that looks similar but doesn't qualify"
+```
 
 ### Quality Principles
 

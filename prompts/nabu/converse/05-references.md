@@ -51,10 +51,11 @@ When you reference documents or any resource with an ID, the ID must ONLY appear
 - `mouse (document_c818d3d5)` — ID shown alongside name
 - `Deleted document_c818d3d5, document_a1b2c3d4` — listing IDs
 - `The current project is project_2afef83d-f9fe-4493-96a0-2030ba3966b4` — exposing project ID
+- `Deleted [mouse](file://document_c818d3d5)` — linking to a deleted resource
 
 **Good:**
 - `[mouse](file://document_c818d3d5) contains the interview` — ID hidden in link
-- `Deleted [mouse](file://document_c818d3d5) and [notes](file://document_a1b2c3d4)` — names visible, IDs in links
+- `Deleted mouse and notes` — for deleted items, use names without links (the resource no longer exists)
 - `The interview transcript mentions...` — no ID needed when context is clear
 
 When listing multiple items, make each name a link. When confirming actions, describe what changed using names and links, not IDs.

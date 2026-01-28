@@ -1,10 +1,6 @@
 package http
 
-type Pricing struct {
-	InputCentsPerMillion       float64
-	OutputCentsPerMillion      float64
-	CachedInputCentsPerMillion float64
-}
+import "hermes-logos/internal/prompts"
 
 type Cost struct {
 	InputCost  float64
@@ -16,26 +12,25 @@ func calculateTokenCost(tokens int, centsPerMillion float64) float64 {
 	return (float64(tokens) / 1_000_000) * centsPerMillion
 }
 
-func calculateInputCost(promptTokens, cachedTokens int, pricing Pricing) float64 {
+func calculateInputCost(promptTokens, cachedTokens int, pricing prompts.Pricing) float64 {
 	uncachedTokens := promptTokens - cachedTokens
-	uncachedCost := calculateTokenCost(uncachedTokens, pricing.InputCentsPerMillion)
-	cachedCost := calculateTokenCost(cachedTokens, pricing.CachedInputCentsPerMillion)
+	uncachedCost := calculateTokenCost(uncachedTokens, pricing.Input)
+	cachedCost := calculateTokenCost(cachedTokens, pricing.CachedInput)
 	return uncachedCost + cachedCost
 }
 
-func calculateUsageCost(pricing Pricing, usage UsageResponse) Cost {
+func calculateUsageCost(usage UsageResponse, pricing prompts.Pricing) Cost {
 	cachedTokens := 0
 	if usage.InputTokensDetails != nil {
 		cachedTokens = usage.InputTokensDetails.CachedTokens
 	}
 
 	inputCost := calculateInputCost(usage.InputTokens, cachedTokens, pricing)
-	outputCost := calculateTokenCost(usage.OutputTokens, pricing.OutputCentsPerMillion)
-	totalCost := inputCost + outputCost
+	outputCost := calculateTokenCost(usage.OutputTokens, pricing.Output)
 
 	return Cost{
 		InputCost:  inputCost,
 		OutputCost: outputCost,
-		TotalCost:  totalCost,
+		TotalCost:  inputCost + outputCost,
 	}
 }

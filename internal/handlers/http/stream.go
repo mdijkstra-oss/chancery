@@ -9,6 +9,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"hermes-logos/internal/prompts"
 )
 
 func isUnexpectedStreamError(err error) bool {
@@ -25,7 +27,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, pricing Pricing, verbose bool) {
+func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, verbose bool, pricing prompts.Pricing) {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var content strings.Builder

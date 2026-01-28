@@ -10,7 +10,6 @@ type Config struct {
 	APIKey  string
 	BaseURL string
 	Verbose bool
-	Pricing Pricing
 }
 
 type InputMessage struct {

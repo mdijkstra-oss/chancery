@@ -3,34 +3,27 @@ package config
 import (
 	"log/slog"
 	"os"
-	"strconv"
 )
 
 type Config struct {
-	Port                 string
-	APIKey               string
-	BaseURL              string
-	CorsOrigins          []string
-	LogLevel             slog.Level
-	Verbose              bool
-	InputTokenCost       float64
-	OutputTokenCost      float64
-	CachedInputTokenCost float64
+	Port        string
+	APIKey      string
+	BaseURL     string
+	CorsOrigins []string
+	LogLevel    slog.Level
+	Verbose     bool
 }
 
 const PromptsDir = "prompts"
 
 func Load() Config {
 	return Config{
-		Port:                 getEnv("PORT", "8081"),
-		APIKey:               getEnv("API_KEY", ""),
-		BaseURL:              getEnv("BASE_URL", "https://api.openai.com/v1"),
-		CorsOrigins:          []string{getEnv("CORS_ORIGINS", "*")},
-		LogLevel:             parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		Verbose:              os.Getenv("VERBOSE") != "",
-		InputTokenCost:       parseFloat(getEnv("INPUT_TOKEN_COST", "125")),
-		OutputTokenCost:      parseFloat(getEnv("OUTPUT_TOKEN_COST", "1000")),
-		CachedInputTokenCost: parseFloat(getEnv("CACHED_INPUT_TOKEN_COST", "12.5")),
+		Port:        getEnv("PORT", "8081"),
+		APIKey:      getEnv("API_KEY", ""),
+		BaseURL:     getEnv("BASE_URL", "https://api.openai.com/v1"),
+		CorsOrigins: []string{getEnv("CORS_ORIGINS", "*")},
+		LogLevel:    parseLogLevel(getEnv("LOG_LEVEL", "info")),
+		Verbose:     os.Getenv("VERBOSE") != "",
 	}
 }
 
@@ -39,14 +32,6 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-func mustEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
-		panic("required env var missing: " + key)
-	}
-	return v
 }
 
 func parseLogLevel(s string) slog.Level {
@@ -62,20 +47,4 @@ func parseLogLevel(s string) slog.Level {
 	default:
 		panic("unknown log level: " + s)
 	}
-}
-
-func parseInt(s string) int {
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		panic("invalid integer: " + s)
-	}
-	return v
-}
-
-func parseFloat(s string) float64 {
-	v, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		panic("invalid float: " + s)
-	}
-	return v
 }

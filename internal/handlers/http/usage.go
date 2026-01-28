@@ -3,6 +3,8 @@ package http
 import (
 	"fmt"
 	"log/slog"
+
+	"hermes-logos/internal/prompts"
 )
 
 func formatCost(centsCost float64) string {
@@ -10,7 +12,7 @@ func formatCost(centsCost float64) string {
 	return fmt.Sprintf("%.4f", dollars)
 }
 
-func logUsage(usage *UsageResponse, pricing Pricing) {
+func logUsage(usage *UsageResponse, pricing prompts.Pricing) {
 	attrs := []any{
 		"input_tokens", usage.InputTokens,
 		"output_tokens", usage.OutputTokens,
@@ -20,7 +22,7 @@ func logUsage(usage *UsageResponse, pricing Pricing) {
 		attrs = append(attrs, "cached_tokens", usage.InputTokensDetails.CachedTokens)
 	}
 
-	cost := calculateUsageCost(pricing, *usage)
+	cost := calculateUsageCost(*usage, pricing)
 	attrs = append(attrs,
 		"input_cost", formatCost(cost.InputCost),
 		"output_cost", formatCost(cost.OutputCost),

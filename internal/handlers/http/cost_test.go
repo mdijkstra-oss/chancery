@@ -3,6 +3,8 @@ package http
 import (
 	"math"
 	"testing"
+
+	"hermes-logos/internal/prompts"
 )
 
 func floatEquals(a, b float64) bool {
@@ -34,9 +36,10 @@ func TestCalculateTokenCost(t *testing.T) {
 }
 
 func TestCalculateInputCost(t *testing.T) {
-	pricing := Pricing{
-		InputCentsPerMillion:       125,
-		CachedInputCentsPerMillion: 12.5,
+	pricing := prompts.Pricing{
+		Input:       175,
+		Output:      1400,
+		CachedInput: 17.5,
 	}
 
 	tests := []struct {
@@ -45,26 +48,26 @@ func TestCalculateInputCost(t *testing.T) {
 		cachedTokens int
 		want         float64
 	}{
-		{"no cache", 1000, 0, 0.125},
-		{"all cached", 1000, 1000, 0.0125},
-		{"partial cache", 1471, 1200, 0.048875},
+		{"no cache", 1000, 0, 0.175},
+		{"all cached", 1000, 1000, 0.0175},
+		{"partial cache", 1471, 1200, 0.068425},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := calculateInputCost(tt.promptTokens, tt.cachedTokens, pricing)
 			if !floatEquals(got, tt.want) {
-				t.Errorf("calculateInputCost(%d, %d, pricing) = %f, want %f", tt.promptTokens, tt.cachedTokens, got, tt.want)
+				t.Errorf("calculateInputCost(%d, %d) = %f, want %f", tt.promptTokens, tt.cachedTokens, got, tt.want)
 			}
 		})
 	}
 }
 
 func TestCalculateUsageCost(t *testing.T) {
-	pricing := Pricing{
-		InputCentsPerMillion:       125,
-		OutputCentsPerMillion:      1000,
-		CachedInputCentsPerMillion: 12.5,
+	pricing := prompts.Pricing{
+		Input:       175,
+		Output:      1400,
+		CachedInput: 17.5,
 	}
 
 	tests := []struct {
@@ -83,9 +86,9 @@ func TestCalculateUsageCost(t *testing.T) {
 				},
 			},
 			want: Cost{
-				InputCost:  0.048875,
-				OutputCost: 8.643,
-				TotalCost:  8.691875,
+				InputCost:  0.068425,
+				OutputCost: 12.1002,
+				TotalCost:  12.168625,
 			},
 		},
 		{
@@ -96,16 +99,16 @@ func TestCalculateUsageCost(t *testing.T) {
 				TotalTokens:  10114,
 			},
 			want: Cost{
-				InputCost:  0.183875,
-				OutputCost: 8.643,
-				TotalCost:  8.826875,
+				InputCost:  0.257425,
+				OutputCost: 12.1002,
+				TotalCost:  12.357625,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := calculateUsageCost(pricing, tt.usage)
+			got := calculateUsageCost(tt.usage, pricing)
 			if !floatEquals(got.InputCost, tt.want.InputCost) {
 				t.Errorf("InputCost = %f, want %f", got.InputCost, tt.want.InputCost)
 			}

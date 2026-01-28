@@ -26,11 +26,6 @@ func main() {
 		APIKey:  cfg.APIKey,
 		BaseURL: cfg.BaseURL,
 		Verbose: cfg.Verbose,
-		Pricing: httpHandlers.Pricing{
-			InputCentsPerMillion:       cfg.InputTokenCost,
-			OutputCentsPerMillion:      cfg.OutputTokenCost,
-			CachedInputCentsPerMillion: cfg.CachedInputTokenCost,
-		},
 	})
 
 	r := chi.NewRouter()

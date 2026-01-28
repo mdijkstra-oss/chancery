@@ -83,6 +83,8 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 }
 ```
 
+**Protected files:** You cannot delete `.hidden.[ext]` files (e.g., `memory.hidden.md`). These are system-managed.
+
 ### Patch Discipline
 
 **One patch per markdown block.** Always split into separate `apply_local_patch` calls:

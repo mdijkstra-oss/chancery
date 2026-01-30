@@ -4,6 +4,7 @@ import "encoding/json"
 
 type ChatRequest struct {
 	Messages []json.RawMessage `json:"messages"`
+	Tools    []json.RawMessage `json:"tools,omitempty"`
 }
 
 type Config struct {

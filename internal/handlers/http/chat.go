@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"hermes-logos/internal/config"
 	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/tools"
 )
 
 func NewChatHandler(cfg Config) http.HandlerFunc {
@@ -48,14 +47,9 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	var loadedTools []json.RawMessage
-	if endpointCfg.IncludeTools {
-		loadedTools, _ = tools.LoadFolder(config.PromptsDir, endpointCfg.Folder)
-	}
-
 	toolChoice := r.URL.Query().Get("tool_choice")
 	temperature := parseTemperature(r.URL.Query().Get("temperature"))
-	apiReq := buildResponsesRequest(promptCfg.Model, systemPrompt, promptCfg.ReasoningEffort, promptCfg.ReasoningSummary, promptCfg.Verbosity, loadedTools, toolChoice, temperature, req.Messages)
+	apiReq := buildResponsesRequest(promptCfg.Model, systemPrompt, promptCfg.ReasoningEffort, promptCfg.ReasoningSummary, promptCfg.Verbosity, req.Tools, toolChoice, temperature, req.Messages)
 
 	logOutgoingRequest(apiReq, cfg.Verbose)
 

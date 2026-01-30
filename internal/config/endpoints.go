@@ -7,8 +7,7 @@ import (
 )
 
 type EndpointConfig struct {
-	Folder       string
-	IncludeTools bool
+	Folder string
 }
 
 func ValidateEndpoints() error {
@@ -23,8 +22,7 @@ func ValidateEndpoints() error {
 
 var Endpoints = map[string]EndpointConfig{
 	"converse": {
-		Folder:       "nabu/converse",
-		IncludeTools: true,
+		Folder: "nabu/converse",
 	},
 }
 

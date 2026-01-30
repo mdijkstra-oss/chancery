@@ -40,6 +40,20 @@ The display text can be the full quote, but the URL anchors should be brief.
 When referencing a document without a specific location, omit the anchor:
 - `[the interview transcript](file://doc-abc123)`
 
+**Always link document names.** Even in lists or counts:
+
+Bad:
+```
+- 2020-09-04- Ministerraad 4 September.md: 10
+- 2021-02-05- Ministerraad 5 February.md: 2
+```
+
+Good:
+```
+- [2020-09-04- Ministerraad 4 September](file://2020-09-04- Ministerraad 4 September.md): 10
+- [2021-02-05- Ministerraad 5 February](file://2021-02-05- Ministerraad 5 February.md): 2
+```
+
 The anchor uses fuzzy matching — minor differences in punctuation or casing are tolerated.
 
 ## IDs Must Never Appear as Plain Text

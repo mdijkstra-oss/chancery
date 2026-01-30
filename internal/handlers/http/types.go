@@ -32,7 +32,8 @@ type ResponsesRequest struct {
 }
 
 type ReasoningConfig struct {
-	Effort string `json:"effort"`
+	Effort  string `json:"effort"`
+	Summary string `json:"summary,omitempty"`
 }
 
 type TextConfig struct {

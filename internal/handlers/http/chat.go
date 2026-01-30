@@ -55,7 +55,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 
 	toolChoice := r.URL.Query().Get("tool_choice")
 	temperature := parseTemperature(r.URL.Query().Get("temperature"))
-	apiReq := buildResponsesRequest(promptCfg.Model, systemPrompt, promptCfg.ReasoningEffort, promptCfg.Verbosity, loadedTools, toolChoice, temperature, req.Messages)
+	apiReq := buildResponsesRequest(promptCfg.Model, systemPrompt, promptCfg.ReasoningEffort, promptCfg.ReasoningSummary, promptCfg.Verbosity, loadedTools, toolChoice, temperature, req.Messages)
 
 	logOutgoingRequest(apiReq, cfg.Verbose)
 

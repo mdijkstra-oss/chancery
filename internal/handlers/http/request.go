@@ -11,7 +11,7 @@ func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []jso
 	return append([]json.RawMessage{sysMsgJSON}, messages...)
 }
 
-func buildResponsesRequest(model, systemPrompt, reasoningEffort, verbosity string, tools []json.RawMessage, toolChoice string, temperature *float64, messages []json.RawMessage) ResponsesRequest {
+func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummary, verbosity string, tools []json.RawMessage, toolChoice string, temperature *float64, messages []json.RawMessage) ResponsesRequest {
 	req := ResponsesRequest{
 		Model:             model,
 		Input:             prependSystemMessage(systemPrompt, messages),
@@ -23,8 +23,8 @@ func buildResponsesRequest(model, systemPrompt, reasoningEffort, verbosity strin
 	if temperature != nil {
 		req.Temperature = temperature
 	}
-	if reasoningEffort != "" {
-		req.Reasoning = &ReasoningConfig{Effort: reasoningEffort}
+	if reasoningEffort != "" || reasoningSummary != "" {
+		req.Reasoning = &ReasoningConfig{Effort: reasoningEffort, Summary: reasoningSummary}
 	}
 	if verbosity != "" {
 		req.Text = &TextConfig{Verbosity: verbosity}

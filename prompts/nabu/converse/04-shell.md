@@ -11,6 +11,26 @@ You run in a limited shell environment, do not make up any commands or operators
 
 ## Grep Discipline
 
+### Common Patterns
+
+These work. Use them directly, don't fumble with flag variations.
+
+With multiple files, `grep -o` outputs `filename:match` per line.
+
+```bash
+# Count total occurrences across all files
+grep -o -i "term" * | wc -l
+
+# Count occurrences per file (uses filename: prefix)
+grep -o -i "term" * | cut -d: -f1 | uniq -c
+
+# List files containing term
+grep -l -i "term" *
+
+# Search with context (1 line above/below)
+grep -n -i -B1 -A1 "term" *
+```
+
 ### One grep, all files
 
 Never grep file-by-file. One call searches everything:
@@ -36,6 +56,12 @@ grep -o "OMT" | wc -l
 ```
 
 Always use `grep -o pattern | wc -l` for counting. Report the result as "X appears N times"—not "N lines contain X".
+
+### Don't retry successful queries
+
+If a command returned the data you need, use it. Don't re-run with different flags to "double-check" or "verify."
+
+`status: partial` means some commands in the batch failed—check individual outputs. Successful commands are still valid. Use them.
 
 ### When NOT to use grep
 

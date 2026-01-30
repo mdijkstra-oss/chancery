@@ -16,10 +16,11 @@ type Pricing struct {
 }
 
 type PromptConfig struct {
-	Model           string  `json:"model"`
-	ReasoningEffort string  `json:"reasoning_effort"`
-	Verbosity       string  `json:"verbosity"`
-	Pricing         Pricing `json:"pricing"`
+	Model            string  `json:"model"`
+	ReasoningEffort  string  `json:"reasoning_effort"`
+	ReasoningSummary string  `json:"reasoning_summary"`
+	Verbosity        string  `json:"verbosity"`
+	Pricing          Pricing `json:"pricing"`
 }
 
 func Load(path string) (string, error) {

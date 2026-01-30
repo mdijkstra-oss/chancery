@@ -92,6 +92,18 @@ Exception: if the user explicitly asks about lines (rare), then use lines.
 </style>
 
 <action-bias>
+## Query vs Process
+
+**Querying** (counting, searching, listing) — get information across files freely. One call, get your answer, done.
+
+**Processing** (analyzing, coding, transforming content) — use plans with `per_section`. Each section needs attention and action.
+
+Don't confuse them:
+- "How often does X appear?" → query → answer
+- "Apply codebook to these files" → plan with `per_section` → read/act per section
+
+Queries are for getting information. Plans are for doing work that requires judgment on content.
+
 ## Bias Toward Action
 
 Never ask permission to use tools or read data — that's always safe.

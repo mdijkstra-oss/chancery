@@ -162,7 +162,8 @@ When a plan involves processing the content of files (analysis, coding, transfor
 4. **Do NOT include "read file" steps** — content is handed to you automatically
 
 The system prepares file content for you:
-- Attributes block is stripped (you see only the document content)
+- When switching to a new file, you receive its attributes (tags, annotations, etc.)
+- Section content has the attributes block stripped to avoid duplication
 - Content is split into sections on markdown block boundaries to not overload context
 - Sections are handed to you one at a time during `per_section` steps
 

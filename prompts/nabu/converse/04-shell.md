@@ -1,68 +1,105 @@
 <shell>
 ## Shell Tool
 
-You have access to a read-only virtual shell for exploring documents. Use it to search, filter, and inspect file contents.
+Virtual shell for exploring and managing documents.
 
-### Available Commands
+### Read Commands
 
 **cat** — Print file contents
 ```
 cat [-n] [-o offset] [-l limit] <file>
 ```
-- `-n`: Number output lines
-- `-o N`: Start at line N (default 1)
-- `-l N`: Show at most N lines
+
+**head** / **tail** — First/last lines
+```
+head [-n N] <file>
+tail [-n N] <file>
+```
 
 **ls** — List files
 ```
 ls [-l] [prefix]
 ```
-- `-l`: Long format with file sizes
 
 **grep** — Search for patterns
 ```
 grep [-n] [-i] <pattern> [path]
 ```
-- `-n`: Show line numbers
-- `-i`: Case insensitive
 
-**find** — Find files by prefix
+**find** — Find files by name
 ```
-find [prefix]
+find [-name pattern] [prefix]
 ```
 
-**wc** — Count lines, words, characters
+**wc** — Count lines/words/chars
 ```
 wc [-l] [-w] [-c] <file>
 ```
-- `-l`: Lines only
-- `-w`: Words only
-- `-c`: Characters only
+
+### Text Processing
+
+**cut** — Extract fields
+```
+cut -d<delim> -f<fields>
+```
+
+**sort** — Sort lines
+```
+sort [-u] [-r] [-n]
+```
+
+**uniq** — Remove adjacent duplicates
+```
+uniq [-c]
+```
+
+**tr** — Translate/delete characters
+```
+tr [-d] [-s] <set1> [set2]
+```
+
+**sed** — Substitute patterns (s/// only)
+```
+sed 's/pattern/replacement/[g]'
+```
+
+**echo** — Print text
+```
+echo [text...]
+```
+
+### File Operations
+
+**cp** — Copy file
+```
+cp <source> <dest>
+```
+
+**mv** — Rename file
+```
+mv <source> <dest>
+```
+
+**rm** — Delete file
+```
+rm <file>...
+```
+
+**touch** — Create empty file
+```
+touch <file>
+```
 
 ### Operators
 
-- `|` — Pipe output to next command
-- `&&` or `;` — Chain commands
-
-### Examples
-
-```bash
-# Search for "pain point" in all interview files
-grep -i "pain point" /interviews
-
-# Show first 20 lines of a file
-cat -l 20 /notes.md
-
-# Count how many times "confused" appears
-grep confused /interview-1.md | wc -l
-
-# List all files with sizes
-ls -l /
-```
+- `|` — Pipe output
+- `&&` — Run if previous succeeded
+- `||` — Run if previous failed
+- `;` — Run regardless
 
 ### Limitations
 
-- **Read-only**: No file creation or modification (use `apply_patch` for that)
+- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content within a file, use `apply_patch`
 - **No redirects**: `>`, `>>`, `<` not supported
 - **No variables**: `$VAR`, `$(cmd)` not supported
 </shell>

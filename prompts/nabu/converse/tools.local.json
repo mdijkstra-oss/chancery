@@ -2,7 +2,7 @@
   {
     "type": "function",
     "name": "apply_local_patch",
-    "description": "Create, update, or delete files using V4A diff format",
+    "description": "Create, update, delete, or rename files using V4A diff format",
     "parameters": {
       "type": "object",
       "properties": {
@@ -11,7 +11,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["create_file", "update_file", "delete_file"]
+              "enum": ["create_file", "update_file", "delete_file", "rename_file"]
             },
             "path": {
               "type": "string",
@@ -20,9 +20,13 @@
             "diff": {
               "type": "string",
               "description": "V4A diff format: @@ marks hunks, + for add, - for remove"
+            },
+            "newPath": {
+              "type": "string",
+              "description": "Destination path for rename_file"
             }
           },
-          "required": ["type", "path"]
+          "required": ["type"]
         }
       },
       "required": ["operation"]

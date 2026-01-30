@@ -131,8 +131,20 @@ Examples:
 - "Add a note at the end" (in file) → `apply_patch` update, done
 - "Delete this file" (file selected) → `apply_patch` delete, done
 - "Delete all files" → list files, then batch all deletes in one response, done
+- "Highlight mentions of X" → `grep -n -B1 -A1 "X"`, then batch annotation patches, done
 
 Flow: gather info if needed → execute all operations at once → report result. Confirm what changed in 1-2 sentences.
+
+### Literal vs Semantic Tasks
+
+Direct execution works for **literal** tasks—exact string matching, mechanical operations.
+
+Do NOT direct-execute **semantic** tasks that require interpretation:
+- "Apply codebook" → plan with `files` + `per_section`
+- "Find frustration" → plan with `files` + `per_section`
+- "Code for themes" → plan with `files` + `per_section`
+
+Why: Large files lose information in the context window middle. `per_section` processing keeps each chunk in focus. See **08-annotation-tasks.md**.
 
 ## Mode Entry
 

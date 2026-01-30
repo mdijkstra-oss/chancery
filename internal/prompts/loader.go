@@ -77,7 +77,7 @@ func loadDir(dir string) (string, error) {
 		return "", err
 	}
 
-	names := filterFiles(entries)
+	names := filterEntries(entries)
 	if len(names) == 0 {
 		return "", errors.New("no system prompt found for path")
 	}
@@ -86,7 +86,18 @@ func loadDir(dir string) (string, error) {
 
 	parts := make([]string, 0, len(names))
 	for _, name := range names {
-		content, err := loadFile(filepath.Join(dir, name))
+		path := filepath.Join(dir, name)
+		info, err := os.Stat(path)
+		if err != nil {
+			return "", err
+		}
+
+		var content string
+		if info.IsDir() {
+			content, err = loadDir(path)
+		} else {
+			content, err = loadFile(path)
+		}
 		if err != nil {
 			return "", err
 		}
@@ -104,10 +115,14 @@ func isMarkdownFile(e os.DirEntry) bool {
 	return !e.IsDir() && strings.HasSuffix(e.Name(), ".md") && !isTemp(e.Name())
 }
 
-func filterFiles(entries []os.DirEntry) []string {
+func isPromptDir(e os.DirEntry) bool {
+	return e.IsDir() && !strings.HasPrefix(e.Name(), ".")
+}
+
+func filterEntries(entries []os.DirEntry) []string {
 	names := make([]string, 0, len(entries))
 	for _, e := range entries {
-		if isMarkdownFile(e) {
+		if isMarkdownFile(e) || isPromptDir(e) {
 			names = append(names, e.Name())
 		}
 	}

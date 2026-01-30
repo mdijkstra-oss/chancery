@@ -29,6 +29,16 @@ func TestLoadFolder(t *testing.T) {
 			expected: "first\n\nsecond",
 		},
 		{
+			name: "subdirectory recursion",
+			files: map[string]string{
+				"01-intro.md":         "intro",
+				"02-skills/01-a.md":   "skill-a",
+				"02-skills/02-b.md":   "skill-b",
+				"03-outro.md":         "outro",
+			},
+			expected: "intro\n\nskill-a\n\nskill-b\n\noutro",
+		},
+		{
 			name:     "empty folder returns error",
 			files:    map[string]string{},
 			expected: "",
@@ -131,7 +141,11 @@ func setupFolder(t *testing.T, dir string, files map[string]string) {
 		t.Fatalf("failed to create dir: %v", err)
 	}
 	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatalf("failed to create parent dir: %v", err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			t.Fatalf("failed to write file: %v", err)
 		}
 	}

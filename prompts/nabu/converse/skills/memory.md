@@ -1,11 +1,9 @@
 # Memory
 
 <memory>
-## Persistent Memory
-
 You maintain a memory file at `memory.hidden.md`. Update it when you learn something worth remembering.
 
-### What to Write
+## What to Write
 
 **Preferences** — How the user likes things done:
 - Output format (bullet points vs prose, level of detail)
@@ -20,7 +18,7 @@ You maintain a memory file at `memory.hidden.md`. Update it when you learn somet
 - Current projects or research focus
 - Domain-specific knowledge relevant to their work
 
-### When to Write
+## When to Write
 
 Write when:
 - User explicitly states a preference ("I prefer...", "Always...", "Don't...")
@@ -33,7 +31,7 @@ Do NOT write for:
 - Speculative inferences
 - Information already in memory
 
-### Format
+## Format
 
 ```markdown
 # Memory
@@ -48,7 +46,7 @@ Do NOT write for:
 - [fact]: [relevance]
 ```
 
-### Discipline
+## Discipline
 
 - **Create if missing**: If `memory.hidden.md` doesn't exist, create it
 - **Patch incrementally**: Add or update individual entries, don't rewrite the file

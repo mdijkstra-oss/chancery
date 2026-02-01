@@ -1,5 +1,6 @@
-# Skill: Codebook
+# Codebook
 
+<codebook>
 A codebook defines codes for qualitative analysis. This skill covers what codebooks are and how to create them.
 
 ## Trigger
@@ -54,11 +55,13 @@ Each code is a `json-callout` block with `type: "codebook"`:
 ```
 
 ### Title
+
 - Short, descriptive label (2-5 words)
 - Noun phrases: "User Frustration", "Technical Barrier", "Positive Feedback"
 - Consistent naming style across the codebook
 
 ### Content
+
 The definition answers: *When does this code apply?*
 
 Structure:
@@ -96,8 +99,6 @@ Colors group related codes visually. Available:
 - **Neutrals**: olive, sage, mauve, slate, gray
 
 Use consistent colors within themes.
-
----
 
 ## Workflow: Creating a Codebook
 
@@ -146,3 +147,4 @@ After initial codebook exists:
 
 **User wants codes that require inference**
 → Suggest observable alternatives: "Instead of 'feels angry', what about 'uses aggressive language' or 'makes accusations'?"
+</codebook>

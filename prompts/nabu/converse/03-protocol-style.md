@@ -1,11 +1,11 @@
-# Tools
+# Protocol Style
 
 <cursor-context>
-## "Here" Means Your Position
+## User Position Context
 
-You receive context about the user's position in the document. This includes:
-- **Above cursor**: 2 blocks of content before where the user is looking
-- **Below cursor**: 2 blocks of content after where the user is looking
+You periodically receive context about where the user is looking in the document:
+- **Above cursor**: 2 blocks of content before the cursor
+- **Below cursor**: 2 blocks of content after the cursor
 - **Selected**: Text the user has selected (if any)
 
 If there's no cursor position, you receive the first 2 blocks as a preview.
@@ -31,7 +31,7 @@ Use `apply_local_patch` to create, update, or delete files. Each operation speci
  more context
 ```
 
-- Lines starting with space or no prefix: context (must match existing content)
+- Lines starting with space (or no prefix): context, must match existing content
 - Lines starting with `-`: content to remove
 - Lines starting with `+`: content to add
 - `@@` marks the start of a hunk
@@ -94,12 +94,17 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 - One for each table
 - One for each code block (including `json-callout`, `json-attributes`)
 
+**Structured blocks:**
+- **Create**: patch the entire block in one call
+- **Update**: patch per property, not the whole block
+- **Arrays**: patch individual entries, not the whole array
+
 This enables streaming display. Never combine multiple blocks in one patch.
 
 **Batch patches in one response.** Send multiple `apply_local_patch` calls in a single response — do not wait for confirmation between patches. Include all patches for the document in one response, then continue. Never send just one patch and stop.
 
 **Context matching:**
-- Include 1-2 context lines for unique matching (no prefix or space prefix)
+- Include 1-2 context lines for unique matching
 - If patch fails ("context not found"), re-read the file and retry with correct context
 - Context lines must match file content exactly (including indentation)
 </apply-patch>
@@ -125,43 +130,29 @@ Content here...
 
 **Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`.
 
-**Annotations**: Array of text highlights for qualitative coding. Each annotation has:
-- `text`: The exact passage to highlight (must exist in document prose)
-- `reason`: Why this text is annotated (required)
-- `color` or `code`: Visual style - either a color name or a codebook reference
+### Annotations
+
+Use dedicated tools for annotations:
+- `upsert_annotations` to add/update
+- `remove_annotations` to delete
+
+Do NOT patch the `annotations` array in json-attributes directly.
 
 Available colors: `tomato`, `red`, `ruby`, `crimson`, `pink`, `plum`, `purple`, `violet`, `iris`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `jade`, `green`, `grass`, `mint`, `lime`, `yellow`, `amber`, `orange`, `brown`, `bronze`, `gold`, `sand`, `olive`, `sage`, `mauve`, `slate`, `gray`
 
 ### Validation on Patch
 
-When you patch a markdown file, the system validates:
-- Schema validation (correct types, required fields)
-- **Annotation text validation**: The `text` must exist verbatim in the document prose (outside code blocks)
-- **Annotation code validation**: If `code` is set, it must reference an existing codebook entry
+When you patch a structured block, the system validates schema (correct types, required fields).
 
 If validation fails, you receive:
 - The error message explaining what's wrong
 - The current block content (unchanged) so you can retry from the correct state
-- For invalid codes: a hint showing available codes `{ "Theme Name": "code_id" }`
 
 Only one json-attributes block per file.
-
-### Annotation Examples
-
-**Add an annotation:**
-```json
-{
-  "type": "update_file",
-  "path": "interview-1.md",
-  "diff": "@@\n ```json-attributes\n {\n-  \"tags\": [\"interview\"]\n+  \"tags\": [\"interview\"],\n+  \"annotations\": [{\"text\": \"felt confused\", \"reason\": \"pain point\", \"color\": \"red\"}]\n }\n ```"
-}
-```
-
-**Remove an annotation:** Patch the annotations array to exclude it, or set to empty array `[]`.
 </document-attributes>
 
-<structured-blocks>
-## Structured Blocks
+<json-blocks>
+## JSON Structured Blocks
 
 Documents can contain structured JSON blocks with specific types. Each block type has a schema and validation rules.
 
@@ -200,21 +191,83 @@ If you try to change an immutable field, the patch is rejected with: `"id: immut
 
 ### Referencing Existing Blocks
 
-When updating an existing block, use its actual ID — not a placeholder:
+When updating an existing block, use its actual ID — not a placeholder.
+
+**Update per property** — patch individual fields, not the whole block:
 
 ```json
 {
   "type": "update_file",
-  "path": "notes.md",
-  "diff": "@@\n ```json-callout\n {\n   \"id\": \"callout_x7k2m9p1\",\n-  \"collapsed\": false,\n+  \"collapsed\": true,\n   ...\n }\n ```"
+  "path": "codebook.md",
+  "diff": "@@\n ```json-callout\n {\n   \"id\": \"callout_x7k2m9p1\",\n   \"type\": \"codebook\",\n   \"title\": \"User Frustration\",\n-  \"color\": \"blue\",\n+  \"color\": \"red\",\n   \"collapsed\": false,"
 }
 ```
-</structured-blocks>
 
-<tool-discipline>
-## Discipline
+**Update array entries** — patch individual items, not the whole array:
 
-- Parallelize independent reads
-- Surface errors with alternatives — never silently fail
-- After patch operations, report what changed
-</tool-discipline>
+```json
+{
+  "type": "update_file",
+  "path": "document.md",
+  "diff": "@@\n ```json-attributes\n {\n   \"tags\": [\n     \"interview\",\n-    \"draft\"\n+    \"final\"\n   ]\n }"
+}
+```
+</json-blocks>
+
+<shell>
+## Shell Tool
+
+You run in a limited shell environment. Do not make up commands or operators that have not been explicitly stated as being available.
+
+### Limitations
+
+- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content within a file, use `apply_local_patch`.
+- **No redirects**: `>`, `>>`, `<` not supported.
+- **No variables**: `$VAR`, `$(cmd)` not supported.
+
+### Grep Patterns
+
+These work. Use them directly.
+
+With multiple files, `grep -o` outputs `filename:match` per line.
+
+```bash
+# Count total occurrences across all files
+grep -o -i "term" * | wc -l
+
+# Count occurrences per file (uses filename: prefix)
+grep -o -i "term" * | cut -d: -f1 | uniq -c
+
+# List files containing term
+grep -l -i "term" *
+
+# Search with context (1 line above/below)
+grep -n -i -B1 -A1 "term" *
+```
+
+### One Grep, All Files
+
+Never grep file-by-file. One call searches everything:
+
+```
+grep -n "term"           # all files
+grep -n "term" prefix/   # scoped to prefix
+grep -n -B1 -A1 "term"   # with 1 line context above/below
+```
+
+For annotation tasks, context flags (`-B1 -A1`) often provide enough to act immediately without further reads.
+
+### Counting Occurrences vs Lines
+
+Users care about **how many times** something appears, not how many lines contain it.
+
+```
+# Wrong: counts lines containing "OMT" (a paragraph with 3 mentions = 1)
+grep -c "OMT"
+
+# Right: counts actual occurrences (a paragraph with 3 mentions = 3)
+grep -o "OMT" | wc -l
+```
+
+Always use `grep -o pattern | wc -l` for counting. Report the result as "X appears N times"—not "N lines contain X".
+</shell>

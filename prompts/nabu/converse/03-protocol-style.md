@@ -75,14 +75,6 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 }
 ```
 
-**Delete a file:**
-```json
-{
-  "type": "delete_file",
-  "path": "old-notes.md"
-}
-```
-
 **Protected files:** You cannot delete `.hidden.[ext]` files (e.g., `memory.hidden.md`). These are system-managed.
 
 ### Patch Discipline

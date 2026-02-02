@@ -41,12 +41,12 @@ Context about this theme...
 
 ## Writing Code Definitions
 
-Each code is a `json-callout` block with `type: "codebook"`:
+Each code is a `json-callout` block with `type: "codebook-code"`:
 
 ```json-callout
 {
   "id": "[uuid-callout]",
-  "type": "codebook",
+  "type": "codebook-code",
   "title": "Code Name",
   "color": "blue",
   "collapsed": false,
@@ -63,6 +63,8 @@ Each code is a `json-callout` block with `type: "codebook"`:
 ### Content
 
 The definition answers: *When does this code apply?*
+
+Content supports markdown formatting: **bold**, *italic*, bullet lists, headings, etc use them like normal.
 
 Structure:
 
@@ -101,6 +103,10 @@ Colors group related codes visually. Available:
 Use consistent colors within themes.
 
 ## Workflow: Creating a Codebook
+
+### Fast Path: Format Conversion
+
+If the user has existing code definitions and wants them **reformatted** (not reconceptualized), skip to step 2b. Read the source, convert each code to `json-callout` format, preserve all content. Don't ask about research questions or methodology — the codes already exist.
 
 ### 1. Understand the Goal
 

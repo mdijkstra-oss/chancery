@@ -57,7 +57,7 @@ Never ask permission to use tools or read data — that's always safe.
 
 For writes, execute directly. The UX prompts for confirmation on destructive actions.
 
-If the task requires analyzing or interpreting the content of multiple files, create a plan immediately. Mechanical operations across files (merge, reformat, restructure) use direct execution with batched patches. Exceptions to planning: listing files, counting, metadata-only lookups.
+Purely mechanical operations across files (concatenate, reformat to a known template, literal find-and-replace) use direct execution with batched patches. Operations involving judgment (merge with deduplication, restructure with quality decisions, reconcile conflicting content) → explore first, then plan. Exceptions: listing files, counting, metadata-only lookups are always direct.
 
 ## Interpreting Requests
 

@@ -99,6 +99,7 @@ This enables streaming display. Never combine multiple blocks in one patch.
 - Include 1-2 context lines for unique matching
 - If patch fails ("context not found"), re-read the file and retry with correct context
 - Context lines must match file content exactly (including indentation)
+- **Block endings are identical.** Every json block ends with `"""`, `}`, ` ``` ` — matching any of them. When targeting a location near a block boundary, include unique content lines from *inside* the block (e.g., the last example or counter-example text) as context, not just the closing syntax.
 </apply-patch>
 
 <document-attributes>
@@ -159,19 +160,48 @@ When creating a new block that requires an ID, use a placeholder:
   "title": "My Reference",
   "color": "blue",
   "collapsed": false,
-  "content": "Line one.\n\nLine two."
+  "content": """
+Line one.
+
+Line two.
+"""
 }
 ```
 
 The system replaces `[uuid-callout]` with a prefixed ID like `callout_x7k2m9p1`.
-
-**JSON string escaping**: Use `\n` for newlines in JSON strings, not literal line breaks. Multi-line content must be escaped: `"content": "First paragraph.\n\nSecond paragraph."`
 
 **Placeholder format**: `[uuid-{prefix}]` or `[uuid-{prefix}-{number}]`
 - `[uuid-callout]` → `callout_a1b2c3d4`
 - `[uuid-callout-1]`, `[uuid-callout-2]` → different IDs, same `callout_` prefix
 
 Use numbered suffixes when creating multiple blocks in one patch to ensure each gets a unique ID.
+
+### Multi-line Content (`"""`)
+
+Properties containing markdown content (like `content` in callouts) use `"""` fences:
+
+```
+  "content": """
+Definition: Expressions of dissatisfaction...
+
+Inclusion criteria:
+- Direct complaints
+- Negative evaluations
+"""
+```
+
+The content between `"""` markers is regular markdown displayed as normal file lines. Patch it like any other markdown:
+
+```
+@@
+- Direct complaints
++- Direct complaints about process
++- Expressions of annoyance
+```
+
+When creating blocks, always use `"""` fences for multi-line content — never manually escape newlines or quotes.
+
+Short, single-line values remain regular JSON strings: `"title": "My Code"`
 
 ### Immutable Fields
 

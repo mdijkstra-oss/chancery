@@ -50,7 +50,22 @@ Each code is a `json-callout` block with `type: "codebook-code"`:
   "title": "Code Name",
   "color": "blue",
   "collapsed": false,
-  "content": "Definition and application guidance..."
+  "content": """
+Definition: What this code captures (1-2 sentences).
+
+Inclusion criteria:
+- Specific signal or marker
+- Another indicator
+
+Exclusion criteria:
+- What this does NOT include
+
+Examples:
+- "Illustrative quote or phrase"
+
+Counter examples:
+- "Phrase that seems to fit but doesn't"
+"""
 }
 ```
 
@@ -64,7 +79,7 @@ Each code is a `json-callout` block with `type: "codebook-code"`:
 
 The definition answers: *When does this code apply?*
 
-Content supports markdown formatting: **bold**, *italic*, bullet lists, headings, etc use them like normal.
+Content uses `"""` fences and supports markdown formatting: **bold**, *italic*, bullet lists, headings, etc. The content appears as regular file lines — patch it like normal markdown.
 
 Structure:
 

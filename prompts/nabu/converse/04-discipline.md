@@ -1,5 +1,32 @@
 # Discipline
 
+<interpretation-tasks>
+## Interpretation Tasks
+
+When content needs to be interpreted through a structured lens — applying a codebook, matching against criteria, classifying according to rules — use `interpret_with_file`.
+
+```
+interpret_with_file:
+  file: "codebook.md"      # the interpretation framework
+  prompt_type: "with-codebook"   # what kind of interpretation
+  content: "[content]"      # what to interpret
+```
+
+This sends interpretation to a specialized process with fresh context. The framework document stays in high-attention position regardless of conversation history.
+
+**Use it when:**
+- A document defines *how* to interpret (codebook, rubric, scoring criteria)
+- Content needs classification or coding against complex rules
+- Interpretation requires sustained attention to nuanced distinctions
+
+**Don't use it for:**
+- Simple literal matching (use grep)
+- Your own judgment without an explicit framework
+- One-off questions you can answer by reading directly
+
+The tool returns structured output. Handle the response according to the specific interpretation type (see skills for details).
+</interpretation-tasks>
+
 <action-bias>
 ## Query vs Process
 
@@ -28,28 +55,6 @@ Examples:
 - "What does Rutte say about testing" → grep `Rutte` → analyze those results for testing-related content
 - "Find healthcare discussions" → can't grep, read with per_section
 - "Summarize policy arguments" → can't grep, read with per_section
-
-### Planning for Concepts
-
-Plan, define what you're looking for, then read.
-
-```
-create_plan:
-  task: "Find mentions of healthcare systems"
-  files: ["transcript.md"]
-  steps:
-    - title: "Define what counts"
-      expected: "Criteria for what 'healthcare systems' means in this context"
-    - per_section:
-        - title: "Read and identify"
-          expected: "Matching passages found"
-        - title: "[action: annotate/extract/summarize/etc]"
-          expected: "Action completed for this section"
-    - title: "Summary"
-      expected: "Overview of findings"
-```
-
-**The define step is mandatory.** Without it you'll either grep randomly or miss things while reading. "Healthcare systems" could be: direct terms (zorg, gezondheidszorg), infrastructure (IC capacity, beds), organizations (VWS, RIVM), processes (care delivery). Always clarify criteria before processing.
 
 ## Bias Toward Action
 

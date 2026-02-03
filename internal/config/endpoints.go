@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type EndpointConfig struct {
@@ -24,9 +25,39 @@ var Endpoints = map[string]EndpointConfig{
 	"converse": {
 		Folder: "nabu/converse",
 	},
+	"interpret": {
+		Folder: "nabu/interpret",
+	},
 }
 
 func GetEndpoint(name string) (EndpointConfig, bool) {
-	cfg, ok := Endpoints[name]
-	return cfg, ok
+	if cfg, ok := Endpoints[name]; ok {
+		return cfg, true
+	}
+
+	base, subpath := splitEndpointPath(name)
+	if subpath == "" {
+		return EndpointConfig{}, false
+	}
+
+	baseCfg, ok := Endpoints[base]
+	if !ok {
+		return EndpointConfig{}, false
+	}
+
+	folder := filepath.Join(baseCfg.Folder, subpath)
+	path := filepath.Join(PromptsDir, folder)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return EndpointConfig{}, false
+	}
+
+	return EndpointConfig{Folder: folder}, true
+}
+
+func splitEndpointPath(name string) (base, subpath string) {
+	idx := strings.Index(name, "/")
+	if idx == -1 {
+		return name, ""
+	}
+	return name[:idx], name[idx+1:]
 }

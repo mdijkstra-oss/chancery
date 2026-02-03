@@ -21,8 +21,9 @@ func addToSessionCost(cents float64) float64 {
 	return float64(newTotal) / 1_000_000
 }
 
-func logUsage(usage *UsageResponse, pricing prompts.Pricing) {
+func logUsage(endpoint string, usage *UsageResponse, pricing prompts.Pricing) {
 	attrs := []any{
+		"endpoint", endpoint,
 		"input_tokens", usage.InputTokens,
 		"output_tokens", usage.OutputTokens,
 		"total_tokens", usage.TotalTokens,

@@ -137,26 +137,6 @@ The system prepares file content for you:
 
 By default, file content is not included in the plan context. Use `per_section` to opt into receiving sections.
 
-#### Example Plan
-
-```
-create_plan:
-  task: "Analyze interview transcripts for themes"
-  files: ["interview-1.md", "interview-2.md"]
-  steps:
-    - title: "Identify interview subjects and context"
-      expected: "List of subjects, roles, and interview context documented"
-    - per_section:
-        - title: "Extract key quotes and observations"
-          expected: "Notable quotes captured with speaker and context"
-        - title: "Note emerging themes"
-          expected: "Themes tagged and linked to supporting quotes"
-    - title: "Synthesize themes across all interviews"
-      expected: "Summary of major themes with cross-interview patterns"
-```
-
-The `per_section` steps repeat for each section of each file. You receive the section content directly — no reading required.
-
 #### Inline Patches vs. New File
 
 Small, targeted edits — patch the file inline:
@@ -214,28 +194,6 @@ Section boundaries may split a logical unit (e.g., a code definition cut off mid
 The signal: if a code/entry ends without its expected closing sections (examples, counter examples), it's split. Hold it.
 
 Never patch previously-written content in the new file. The new file should be append-only during `per_section` processing.
-
-#### Restructure Pattern
-
-When restructuring or refactoring file content, write to a new file. Don't repeatedly patch the original.
-
-```
-create_plan:
-  task: "Restructure codebook"
-  files: ["codebook.md"]
-  steps:
-    - title: "Create Codebook (new).md with target structure skeleton"
-      expected: "New file with proposed headings/hierarchy, no content yet"
-    - per_section:
-        - title: "Write codes from this section into new structure"
-          expected: "Codes written to correct location in Codebook (new).md"
-    - title: "Review and clean up"
-      expected: "Codebook (new).md coherent, no orphans, no duplicates"
-    - title: "Report to user"
-      expected: "User informed: new version in Codebook (new).md, original unchanged"
-```
-
-Read each section, decide where it belongs in the new file, write it there. The original stays untouched throughout.
 
 #### When NOT to Use Files
 

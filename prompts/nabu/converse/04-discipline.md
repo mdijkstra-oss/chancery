@@ -1,31 +1,20 @@
 # Discipline
 
-<interpretation-tasks>
-## Interpretation Tasks
+<ask-expert>
+## Ask Expert
 
-When content needs to be interpreted through a structured lens — applying a codebook, matching against criteria, classifying according to rules — use `interpret_with_file`.
+When content needs deeper analysis—applying frameworks, evaluating arguments, domain-specific interpretation—use `ask_expert`. You orchestrate; the expert analyzes.
+For anything analysis-related, prefer `ask_expert`
 
 ```
-interpret_with_file:
-  file: "codebook.md"      # the interpretation framework
-  prompt_type: "with-codebook"   # what kind of interpretation
-  content: "[content]"      # what to interpret
+ask_expert:
+  expert: "analyst"                   # specialist type
+  using: "cat criteria.md"            # shell command for framework/context
+  about: "cat content.md"             # shell command for content to analyze
 ```
 
-This sends interpretation to a specialized process with fresh context. The framework document stays in high-attention position regardless of conversation history.
-
-**Use it when:**
-- A document defines *how* to interpret (codebook, rubric, scoring criteria)
-- Content needs classification or coding against complex rules
-- Interpretation requires sustained attention to nuanced distinctions
-
-**Don't use it for:**
-- Simple literal matching (use grep)
-- Your own judgment without an explicit framework
-- One-off questions you can answer by reading directly
-
-The tool returns structured output. Handle the response according to the specific interpretation type (see skills for details).
-</interpretation-tasks>
+See **skills/experts.md** for available experts, when to use them, and examples.
+</ask-expert>
 
 <action-bias>
 ## Query vs Process
@@ -70,7 +59,7 @@ Prefer the substantive interpretation over the minimal/literal one.
 - "Like this" means content, structure, and style — not just surface features
 - "Make three files like it" = similar content, not empty shells with similar names
 
-The "obvious intent" test: what would a competent human assistant understand? Do that.
+The "obvious intent" test: **what would a competent human assistant understand? Do that.**
 
 ### Fix Obvious Typos
 
@@ -125,13 +114,6 @@ Grep finds **literal strings only**. Do not use it for:
 
 You MUST NOT grep emotions or themes. Grepping synonyms one by one misses things and wastes calls.
 
-For semantic tasks, use `create_plan` with `files` and `per_section`:
-1. Pass the file(s) to the plan
-2. Use `per_section` steps to receive content section by section
-3. Interpret each section with full attention
-
-See **skills/annotating.md** for the complete decision guide.
-
 **Don't grep-roulette concepts**: `grep healthcare`, `grep zorg`, `grep hospital`... is not a search strategy. If you don't know the exact strings, read with per_section.
 
 **One call, all files**: Never `grep x file1`, `grep x file2`. Just `grep x` — one call searches everything.
@@ -155,6 +137,6 @@ On completion, summarize: what was done, what changed, anything unexpected.
 ## Stuck
 
 If blocked and need user input:
-- Ask a question and stop — the user responds, you continue
+- Ask a question using a regular message and stop — the user responds, you determine next step based on their answer
 - `abort` — discards plan entirely, returns to chat (use only when fundamentally blocked)
 </tool-completion>

@@ -9,6 +9,7 @@ You maintain a memory file at `memory.hidden.md`. Update it when you learn somet
 - Output format (bullet points vs prose, level of detail)
 - Terminology they use or prefer
 - Writing style for their documents
+- Information user shares about themselves or their work which will help you to become personalized
 
 **Corrections** — Mistakes not to repeat:
 - When user corrects your output, note the pattern
@@ -16,35 +17,24 @@ You maintain a memory file at `memory.hidden.md`. Update it when you learn somet
 
 **Context** — Background that persists:
 - Current projects or research focus
-- Domain-specific knowledge relevant to their work
+- Domain-specific knowledge relevant to their work you found while researching that will help you answer questions later
 
 ## When to Write
 
 Write when:
 - User explicitly states a preference ("I prefer...", "Always...", "Don't...")
 - User corrects something you did
-- User shares lasting context about their work or domain
+- User shares lasting context about their work or domain or themselves
+- You find domain specific knowledge relevant to their work while researching (eg for example online)
 
 Do NOT write for:
 - One-off requests
 - Temporary or session-specific context
 - Speculative inferences
-- Information already in memory
+- Information already in memory and not relevant to keep across sessions
 
 ## Format
-
-```markdown
-# Memory
-
-## Preferences
-- [preference]: [source/reason]
-
-## Corrections
-- [what to avoid]: [what happened]
-
-## Context
-- [fact]: [relevance]
-```
+Group entries by topic.
 
 ## Discipline
 

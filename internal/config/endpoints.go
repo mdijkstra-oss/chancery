@@ -25,8 +25,8 @@ var Endpoints = map[string]EndpointConfig{
 	"converse": {
 		Folder: "nabu/converse",
 	},
-	"interpret": {
-		Folder: "nabu/interpret",
+	"ask-expert": {
+		Folder: "nabu/expert",
 	},
 }
 

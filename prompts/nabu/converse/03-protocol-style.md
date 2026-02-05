@@ -42,7 +42,7 @@ Use `apply_local_patch` to create, update, or delete files. Each operation speci
 1. First call: `create_file` with just the title
 2. Subsequent calls: one `update_file` call per logical block (paragraph, list, code block, etc.)
 
-Never put entire file content in one patch. Send **multiple separate `apply_local_patch` tool calls**.
+Never put entire file content in one patch. Send **multiple separate `apply_local_patch` tool calls in one stream**.
 
 When appending, do NOT anchor to previous content — just use `+` lines only. No context lines needed.
 
@@ -75,7 +75,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 }
 ```
 
-**Protected files:** You cannot delete `.hidden.[ext]` files (e.g., `memory.hidden.md`). These are system-managed.
+**Protected files:** There can be `.hidden.[ext]` files in the repo, these are for your internal use and are not visible to the user. Do not reference them in prose.
 
 ### Patch Discipline
 
@@ -114,24 +114,10 @@ Content here...
 
 ```json-attributes
 {
-  "tags": ["interview", "round-1"]
+  "tags": ["interview", "round-1"],
+  ...
 }
 ```
-```
-
-### Attribute Fields
-
-**Tags**: Array of slugs (lowercase, numbers, hyphens). Examples: `codebook`, `theme-2`.
-
-### Annotations
-
-Use dedicated tools for annotations:
-- `upsert_annotations` to add/update
-- `remove_annotations` to delete
-
-Do NOT patch the `annotations` array in json-attributes directly.
-
-Available colors: `tomato`, `red`, `ruby`, `crimson`, `pink`, `plum`, `purple`, `violet`, `iris`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `jade`, `green`, `grass`, `mint`, `lime`, `yellow`, `amber`, `orange`, `brown`, `bronze`, `gold`, `sand`, `olive`, `sage`, `mauve`, `slate`, `gray`
 
 ### Validation on Patch
 
@@ -234,6 +220,23 @@ When updating an existing block, use its actual ID — not a placeholder.
   "diff": "@@\n ```json-attributes\n {\n   \"tags\": [\n     \"interview\",\n-    \"draft\"\n+    \"final\"\n   ]\n }"
 }
 ```
+
+### Fuzzy matching
+**If a patch fails with "not found":** The text you specified doesn't match the file exactly. This is often a casing or whitespace issue. Retry using `FUZZY[text here]` to match approximately:
+
+```diff
+- FUZZY[some Heading]
++ ## Some Heading (Corrected)
+```
+
+The system will find the closest match in the file.
+
+**Rules for FUZZY:**
+- Only use after an exact match fails
+- Use ONLY for the search text (old text), not the replacement
+- Keep the fuzzy text as specific as possible to avoid wrong matches
+- It's a utility to help you over the hump, not the excuse to write sloppily
+
 </json-blocks>
 
 <shell>
@@ -247,29 +250,9 @@ You run in a limited shell environment. Do not make up commands or operators tha
 - **No redirects**: `>`, `>>`, `<` not supported.
 - **No variables**: `$VAR`, `$(cmd)` not supported.
 
-### Grep Patterns
-
-These work. Use them directly.
-
-With multiple files, `grep -o` outputs `filename:match` per line.
-
-```bash
-# Count total occurrences across all files
-grep -o -i "term" * | wc -l
-
-# Count occurrences per file (uses filename: prefix)
-grep -o -i "term" * | cut -d: -f1 | uniq -c
-
-# List files containing term
-grep -l -i "term" *
-
-# Search with context (1 line above/below)
-grep -n -i -B1 -A1 "term" *
-```
-
 ### One Grep, All Files
 
-Never grep file-by-file. One call searches everything:
+Never grep file-by-file when searching across files. One call searches everything:
 
 ```
 grep -n "term"           # all files
@@ -277,7 +260,7 @@ grep -n "term" prefix/   # scoped to prefix
 grep -n -B1 -A1 "term"   # with 1 line context above/below
 ```
 
-For annotation tasks, context flags (`-B1 -A1`) often provide enough to act immediately without further reads.
+Use, context flags (`-B1 -A1`) to get more context when needed.
 
 ### Counting Occurrences vs Lines
 

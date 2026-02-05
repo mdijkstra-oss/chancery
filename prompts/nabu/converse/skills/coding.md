@@ -11,6 +11,10 @@ User asks to:
 - "Annotate with codes"
 - "Do qualitative coding on..."
 
+## Key Principle
+
+**Coding adds annotations to the original file.** Do NOT create a separate "coded" file. Annotations are metadata attached to the document, not a transformed copy.
+
 ## Prerequisites
 
 - Codebook exists in workspace (file tagged `codebook` or named as such)
@@ -18,107 +22,105 @@ User asks to:
 
 ## Workflow
 
-This is the typical flow—adapt based on user's specific needs or instructions.
+### 1. Identify Files and Codebook
 
-### 1. Orient
+Determine:
+- Which files to code (from conversation context or ask user)
+- Which codebook(s) to use (partial read to confirm structure—the expert will receive the full codebook)
 
-Before planning, understand what you're working with:
-- Locate the codebook
-- Identify target documents (ask if ambiguous)
-- Analyze codebook to understand the codes available
-
-### 2. Plan
-
-Create a plan with:
-- `files`: the documents to code (not the codebook—you've already read it)
-- `per_section` steps in this order:
+### 2. Create Plan with Expert
 
 ```
 create_plan:
   task: "Apply codebook to interview transcripts"
   files: ["interview-1.md", "interview-2.md"]
+  ask_expert:
+    expert: "qualitative-researcher"
+    task: "apply-codebook"
+    using: "cat Codebook.md"
   steps:
     - per_section:
-        - title: "Analyze which codes apply"
-          expected: "List of codes and passages, ambiguities noted"
-        - title: "Resolve ambiguities with user"
-          expected: "User clarification received, codebook updated if needed"
-        - title: "Apply annotations"
-          expected: "Annotations added for this section"
-    - title: "Summary"
-      expected: "Counts per code, patterns observed"
+        - title: "Review analysis and apply codes"
+          expected: "Codes discussed with user, then applied to original file"
+    - title: "Revise codebook from resolutions"
+      expected: "Codebook updated based on resolved ambiguities"
 ```
 
-**Order matters:** Understand before you apply. If there's ambiguity, ask the user before annotating. Don't apply with uncertainty—get clarity first, update codebook if needed, then apply.
+### 3. Per Section (Interactive)
 
-If a section has no ambiguity, the "Resolve" step is quick (just note "no ambiguities"). If it does, you ask and wait for user response before continuing to "Apply."
+Each section arrives with an `<analysis>` block from the expert containing:
+- Proposed annotations (text, code, reason, confidence, ambiguity)
+- Suggested deletions of existing annotations (id, reason)
+- Notes on patterns or gaps
 
-### 3. Per Section
+**This is a conversation, not silent processing.**
 
-For each section, follow this order:
+**a) Surface to user** — Tell them what the analysis found:
+- "This section has 3 potential codes: [X] for '...passage...', [Y] for '...passage...'"
+- "One is ambiguous: the expert flagged '...passage...' as possibly [A] or [B] because [reason]. What do you think?"
+- "The expert suggests removing an existing annotation because [reason]. Agree?"
+- If nothing matched: "No codes apply to this section based on the current codebook."
 
-**a) Analyze** — Identify passages where codes apply. Keep notes brief—code name + short marker.
+**b) Wait for user** — Let them respond. They may:
+- Confirm: "looks good, apply it"
+- Clarify ambiguity: "use [A], it's about policy not economy"
+- Disagree: "skip that one" or "actually that's [C]"
+- Ask questions
 
-Good: "Appeal to expertise: RIVM/OMT mentions"
-Bad: "multiple explicit expert-warrant statements (RIVM/OMT/WHO) → Appeal to expertise (callout_m66odckb)"
+**c) Apply to original file** — Use `apply_local_patch` to add/update/remove annotations in the document's annotation block. NOT a new file.
 
-Never include code IDs in analysis or user-facing output. Reference codes by title only.
-
-**b) Resolve ambiguities** — If anything is unclear:
-- Ask the user: "This passage could be X or Y—which fits better?"
-- Wait for response before continuing
-- Update codebook if the answer reveals a gap or unclear definition
-- Then proceed to Apply
-
-If no ambiguities, note "No ambiguities" and continue.
-
-**c) Apply** — Now that you understand, annotate using `upsert_annotations`:
-
+For resolved ambiguities, include `resolved_locally`:
+```json
+{
+  "text": "...",
+  "code": "code_xyz",
+  "reason": "...",
+  "resolved_locally": "User clarified: interpret 'testing policy' broadly"
+}
 ```
-upsert_annotations:
-  path: "document.md"
-  annotations:
-    - text: "the exact passage from document"
-      code: "callout_abc123"  # internal ID, never shown to user
-      reason: "Why this code applies"
+
+**d) Complete step** — Move to next section
+
+### 4. After All Sections: Revise Codebook
+
+Query annotations with local resolutions:
+```
+ask_expert:
+  expert: "qualitative-researcher"
+  task: "revise-codebook"
+  using: "cat Codebook.md"
+  about: "blocks json-callout *.md | jq '.[] | select(.json.resolved_locally)'"
 ```
 
-Set `code` OR `color`, never both. Use `code` when applying codebook codes. Use `color` only for ad-hoc highlights without a codebook reference.
+The expert returns recommended updates. Review and apply to codebook via `apply_local_patch`.
 
-Do NOT use `apply_local_patch` for annotations—it will fail. Use `remove_annotations` to delete.
+Skip if no resolutions occurred.
 
-**d) Note gaps** — If content suggests a missing code:
-- Flag for user: "I'm seeing patterns about X that don't fit existing codes—want to add one?"
+### 5. Summary
 
-### 4. After All Sections
+- Report codes applied: counts per code, patterns observed
+- Report codebook changes made (if any)
 
-- Summarize what was coded: counts per code, any patterns
-- List any unresolved questions
-- Offer to update codebook if gaps were noted
+## Anti-patterns
+
+- **Creating a separate coded file** — Annotations go on the original. Always.
+- **Silent processing** — Each section needs user interaction before applying.
+- **Applying despite ambiguity** — If confidence is low, ask first.
+- **Batch-applying at the end** — Apply each section after user confirms.
+- **Ignoring the analysis** — The expert did the work. Surface it, discuss it.
+- **Exposing IDs** — Never show internal IDs to users.
 
 ## Edge Cases
 
 **No codebook exists**
-→ Ask: "I don't see a codebook. Want me to help create one, or do you have codes in mind?"
+→ Ask: "I don't see a codebook. Want me to help create one?"
 
-**Codebook exists but is empty/minimal**
-→ Note: "The codebook does not seem fleshed out. Want to proceed, or develop it further first?"
+**Analysis returns nothing**
+→ Valid. Tell user: "No codes apply to this section."
+
+**User disagrees with expert**
+→ Follow user's judgment. Note in `resolved_locally`.
 
 **User wants exploratory coding (no predefined codes)**
-→ Different workflow: read sections, surface themes, propose codes iteratively. Build codebook as you go rather than applying existing codes.
-
-**Very large document**
-→ The `per_section` approach handles this automatically. Don't try to read the whole thing at once.
-
-**User disagrees with a coding decision**
-→ Update the annotation. If it reveals a codebook gap, offer to clarify the code definition.
-
-## Anti-patterns
-
-- **Applying before understanding** — Don't annotate if you're uncertain. Ask first, then apply.
-- **Reading all sections, then coding** — Process each section fully before moving on
-- **Guessing on ambiguous cases** — Ask the user
-- **Skipping the codebook read** — You need to know the codes before you can apply them
-- **Coding without reasons** — Every annotation needs a `reason`
-- **Exposing IDs** — Never show callout_xxx or code_xxx to users
+→ Different workflow: surface themes, propose codes iteratively. Build codebook as you go.
 </coding-documents>

@@ -40,7 +40,17 @@ Use `apply_local_patch` to create, update, or delete files. Each operation speci
 
 **Creating new files:** You MUST:
 1. First call: `create_file` with just the title
-2. Subsequent calls: one `update_file` call per logical block (paragraph, list, code block, etc.)
+2. For `.md` files: immediately append a `json-attributes` block with appropriate tags (see [Tagging Files](#tagging-files))
+3. Subsequent calls: one `update_file` call per logical block (paragraph, list, code block, etc.)
+
+Every `.md` file must have a `json-attributes` block with tags. Include it right after creation:
+```json
+{
+  "type": "update_file",
+  "path": "notes.md",
+  "diff": "@@\n+\n+```json-attributes\n+{\n+  \"tags\": [\"meeting-notes\"]\n+}\n+```"
+}
+```
 
 Never put entire file content in one patch. Send **multiple separate `apply_local_patch` tool calls in one stream**.
 
@@ -118,6 +128,20 @@ Content here...
   ...
 }
 ```
+
+### Tagging Files
+
+Every `.md` file must be tagged. When creating a new file, discover existing tags first and reuse them where appropriate:
+
+```
+blocks json-attributes | jq "map(.tags // []) | flatten | unique"
+```
+
+Pick tags that fit the new file's content. Use existing tags over inventing new ones. Only create a new tag when nothing existing fits.
+
+**Tag format:** lowercase slugs (`kebab-case`): `interview`, `round-1`, `meeting-notes`.
+
+**Never create a file with an empty `json-attributes` block** — always include at least one tag.
 
 ### Validation on Patch
 
@@ -221,11 +245,54 @@ When updating an existing block, use its actual ID — not a placeholder.
 }
 ```
 
+### Updating Block JSON with `patch_json_block`
+
+For targeted changes to JSON properties within a block, use `patch_json_block` instead of `apply_local_patch`. It applies RFC 6902 JSON Patch operations to the block's parsed JSON and produces the file diff automatically.
+
+```json
+{
+  "path": "document.md",
+  "language": "json-attributes",
+  "operations": [
+    { "op": "replace", "path": "/tags/1", "value": "final" },
+    { "op": "add", "path": "/annotations/-", "value": { "text": "...", "code": "code_abc" } }
+  ]
+}
+```
+
+**Supported operations:** `add`, `remove`, `replace`, `move`, `copy`, `test`
+
+**Paths** use JSON Pointer syntax (RFC 6901):
+- `/field` — top-level field
+- `/array/0` — first array element
+- `/array/-` — append to array
+- `/nested/deep/field` — nested access
+
+**When to use which:**
+- `patch_json_block` — changing specific JSON properties, adding/removing array entries, any structured data change
+- `apply_local_patch` — changing prose, markdown structure, multi-line `"""` content, or non-JSON parts of the file
+
+### Removing Blocks with `remove_block`
+
+To remove an entire fenced code block from a document, use `remove_block`. It identifies the block by language and optionally by the `id` field in its JSON content.
+
+```json
+{
+  "path": "document.md",
+  "language": "json-callout",
+  "id": "callout_x7k2m9p1"
+}
+```
+
+- `id` is required when multiple blocks of the same language exist in the file
+- `id` can be omitted for singleton blocks (e.g., the single `json-attributes` block)
+- The tool produces a file diff — it goes through the same validation pipeline as `apply_local_patch`
+
 ### Fuzzy matching
-**If a patch fails with "not found":** The text you specified doesn't match the file exactly. This is often a casing or whitespace issue. Retry using `FUZZY[text here]` to match approximately:
+**If a patch fails with "not found":** The text you specified doesn't match the file exactly. This is often a casing or whitespace issue. Retry using `FUZZY[[text here]]` to match approximately:
 
 ```diff
-- FUZZY[some Heading]
+- FUZZY[[some Heading]]
 + ## Some Heading (Corrected)
 ```
 

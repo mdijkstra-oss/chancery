@@ -3,8 +3,9 @@ package http
 import "encoding/json"
 
 type ChatRequest struct {
-	Messages []json.RawMessage `json:"messages"`
-	Tools    []json.RawMessage `json:"tools,omitempty"`
+	Messages       []json.RawMessage `json:"messages"`
+	Tools          []json.RawMessage `json:"tools,omitempty"`
+	ResponseFormat json.RawMessage   `json:"response_format,omitempty"`
 }
 
 type Config struct {
@@ -38,7 +39,8 @@ type ReasoningConfig struct {
 }
 
 type TextConfig struct {
-	Verbosity string `json:"verbosity"`
+	Format    json.RawMessage `json:"format,omitempty"`
+	Verbosity string          `json:"verbosity,omitempty"`
 }
 
 type PromptTokensDetails struct {

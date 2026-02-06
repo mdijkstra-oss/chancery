@@ -40,34 +40,37 @@ create_plan:
     using: "cat Codebook.md"
   steps:
     - per_section:
-        - title: "Review analysis and apply codes"
-          expected: "Codes discussed with user, then applied to original file"
+        - title: "Surface expert annotations to user"
+          expected: "Expert applied pending annotations. Summary shown to user."
+        - title: "Review with user"
+          expected: "User confirms annotations or requests changes."
+        - title: "Apply user adjustments"
+          expected: "Requested changes applied. Ambiguities recorded with resolved_locally. No changes if user confirmed."
     - title: "Revise codebook from resolutions"
-      expected: "Codebook updated based on resolved ambiguities"
+      expected: "Expert updates codebook definitions based on resolved ambiguities. Changes applied with pending status."
 ```
 
-### 3. Per Section (Interactive)
+### 3. Per Section (Surface and Review)
 
-Each section arrives with an `<analysis>` block from the expert containing:
-- Proposed annotations (text, code, reason, confidence, ambiguity)
-- Suggested deletions of existing annotations (id, reason)
-- Notes on patterns or gaps
+Each section is analyzed by the expert, who applies annotations directly to the document with `pending` status. You receive only a summary.
+
+**The expert already applied all annotations.** When you receive the summary, your ONLY job is to relay it to the user. Do NOT call `patch_json_block` to add, re-apply, or duplicate what the expert did. The annotations are already in the file.
 
 **This is a conversation, not silent processing.**
 
-**a) Surface to user** — Tell them what the analysis found:
-- "This section has 3 potential codes: [X] for '...passage...', [Y] for '...passage...'"
-- "One is ambiguous: the expert flagged '...passage...' as possibly [A] or [B] because [reason]. What do you think?"
-- "The expert suggests removing an existing annotation because [reason]. Agree?"
-- If nothing matched: "No codes apply to this section based on the current codebook."
+**a) Surface the summary** — Use the expert's summary to tell the user what was found:
+- "This section has 3 annotations: [X] for '...passage...', [Y] for '...passage...'"
+- "One is ambiguous: '...passage...' could be [A] or [B] — what do you think?"
+- "An existing annotation was marked for removal because [reason]. Agree?"
+- If nothing matched: "No codes apply to this section."
 
-**b) Wait for user** — Let them respond. They may:
-- Confirm: "looks good, apply it"
-- Clarify ambiguity: "use [A], it's about policy not economy"
-- Disagree: "skip that one" or "actually that's [C]"
+**b) Wait for user** — They may:
+- Confirm: "looks good" → complete the step, move to next section
+- Disagree: "remove that one" → remove the pending annotation
+- Clarify ambiguity: "use [A]" → update the pending annotation
 - Ask questions
 
-**c) Apply to original file** — Use `apply_local_patch` to add/update/remove annotations in the document's annotation block. NOT a new file.
+**c) Adjust ONLY if user requests** — Use `patch_json_block` to modify or remove pending annotations ONLY when the user explicitly asks for a change. No changes without user direction.
 
 For resolved ambiguities, include `resolved_locally`:
 ```json
@@ -92,7 +95,7 @@ ask_expert:
   about: "blocks json-callout *.md | jq '.[] | select(.json.resolved_locally)'"
 ```
 
-The expert returns recommended updates. Review and apply to codebook via `apply_local_patch`.
+The expert has `patch_json_block` and `apply_local_patch` tools — it edits codebook entries directly with `pending` status. Same pattern as annotation application: the expert acts, you surface the summary, user confirms or requests adjustments.
 
 Skip if no resolutions occurred.
 
@@ -103,12 +106,13 @@ Skip if no resolutions occurred.
 
 ## Anti-patterns
 
+- **Calling `patch_json_block` to add annotations after receiving expert results** — The expert already wrote them. You receive a summary, not instructions to execute. Do NOT translate the summary into patch operations.
 - **Creating a separate coded file** — Annotations go on the original. Always.
-- **Silent processing** — Each section needs user interaction before applying.
-- **Applying despite ambiguity** — If confidence is low, ask first.
-- **Batch-applying at the end** — Apply each section after user confirms.
-- **Ignoring the analysis** — The expert did the work. Surface it, discuss it.
+- **Silent processing** — Each section needs user interaction. Surface the summary.
+- **Applying despite ambiguity** — If confidence is low, surface it and ask first.
+- **Ignoring the summary** — The expert did the work. Surface it, discuss it.
 - **Exposing IDs** — Never show internal IDs to users.
+- **Acting without user direction** — After surfacing the summary, wait. Only modify annotations when the user explicitly requests a change (remove, update, override).
 
 ## Edge Cases
 

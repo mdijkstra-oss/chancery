@@ -22,11 +22,26 @@ User asks to:
 
 ## Workflow
 
-### 1. Identify Files and Codebook
+### 1. Identify Files, Codebook, and Existing Annotations
 
 Determine:
 - Which files to code (from conversation context or ask user)
 - Which codebook(s) to use (partial read to confirm structure—the expert will receive the full codebook)
+- Whether the files already have annotations:
+
+```
+blocks json-attributes {files} | jq '.[] | .annotations | length'
+```
+
+If files already have annotations, ask the user what to do:
+- "These files already have some codings. Should I continue from where the coding left off, or review everything fresh?"
+
+Pass their answer as `instructions` to the expert. Common patterns:
+- **Continue from uncoded**: "This content has existing annotations. Skip the entire coded region — do not add codes between or around existing annotations. Start coding only from the first passage after the last annotation onward."
+- **Review all**: "Review all passages including already-coded ones. Use mark_for_deletion if existing annotations are incorrect."
+- **Specific focus**: "Only code for [specific codes]. Skip passages already coded with those codes."
+
+**Why "skip the region" not "skip individual passages":** Qualitative coding can always find something more between two existing codes — a nuance, an overlap, a sub-theme. If the expert is told to "skip coded passages" it will wedge new annotations between existing ones endlessly. "Skip the coded region" means: treat everything up to and including the last annotation as done. Only code fresh content after that point.
 
 ### 2. Create Plan with Expert
 
@@ -38,7 +53,7 @@ create_plan:
     expert: "qualitative-researcher"
     task: "apply-codebook"
     using: "cat Codebook.md"
-    instructions: "Skip sections that are already fully coded. Focus on uncoded passages."
+    instructions: "{based on user's answer about existing annotations}"
   steps:
     - per_section:
         - title: "Read applied annotations and surface to user"
@@ -133,6 +148,9 @@ Skip if no resolutions occurred.
 
 **User disagrees with expert**
 → Follow user's judgment. Note in `resolved_locally`.
+
+**Files already have annotations**
+→ Check annotation count before planning. Ask user: skip coded passages, review everything, or focus on specific codes. Pass decision as `instructions` to expert.
 
 **User wants exploratory coding (no predefined codes)**
 → Different workflow: surface themes, propose codes iteratively. Build codebook as you go.

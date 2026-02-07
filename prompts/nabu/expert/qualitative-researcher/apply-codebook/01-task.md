@@ -45,6 +45,10 @@ For existing annotations:
 - Review whether they still fit given the current codebook
 - Mark for deletion if the code no longer applies or the match is incorrect
 
+## Skipping Coded Regions
+
+When instructed to skip already-coded content, treat the coded region as a contiguous block — do not insert new annotations between or around existing ones. Find where annotations end and start coding only from the first uncoded passage onward. You can always find "something more" between two existing codes; that impulse is noise, not signal. Respect the previous coding pass as complete for that region.
+
 Call all annotation tools first, then call `summarize_expertise` last.
 
 ## Empty Results

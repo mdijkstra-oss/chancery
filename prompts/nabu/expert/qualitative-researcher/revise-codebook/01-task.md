@@ -3,6 +3,7 @@
 Review locally-resolved annotations and update codebook definitions. You receive:
 - The current codebook (via system message)
 - Annotations that were resolved during coding (with `resolved_locally` notes explaining decisions made)
+- Instructions from the orchestrator (if any) — these reflect user intent and should guide your focus, priorities, or scope
 
 ## Purpose
 
@@ -28,8 +29,7 @@ Apply a unified diff to a markdown file. Use this to edit prose sections of the 
 ### `summarize_expertise`
 
 Provide a summary of your changes. **Call this last, after all edits.** This is the only output the orchestrator sees. Arguments:
-- **orchestrator_summary**: Technical summary — what was changed and why
-- **display_summary**: User-facing summary (1-2 sentences)
+- **orchestrator_summary**: Technical summary for the orchestrator only — what was changed and why, patterns in the resolutions, remaining gaps. Focus on what the file edits alone don't capture.
 
 ## Process
 

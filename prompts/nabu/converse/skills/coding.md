@@ -38,10 +38,11 @@ create_plan:
     expert: "qualitative-researcher"
     task: "apply-codebook"
     using: "cat Codebook.md"
+    instructions: "Skip sections that are already fully coded. Focus on uncoded passages."
   steps:
     - per_section:
-        - title: "Surface expert annotations to user"
-          expected: "Expert applied pending annotations. Summary shown to user."
+        - title: "Read applied annotations and surface to user"
+          expected: "Read pending annotations from file. Combined with expert summary, relay findings to user in plain language."
         - title: "Review with user"
           expected: "User confirms annotations or requests changes."
         - title: "Apply user adjustments"
@@ -52,25 +53,33 @@ create_plan:
 
 ### 3. Per Section (Surface and Review)
 
-Each section is analyzed by the expert, who applies annotations directly to the document with `pending` status. You receive only a summary.
+Each section is analyzed by the expert, who applies annotations directly to the document with `pending` status.
 
-**The expert already applied all annotations.** When you receive the summary, your ONLY job is to relay it to the user. Do NOT call `patch_json_block` to add, re-apply, or duplicate what the expert did. The annotations are already in the file.
+**The expert already applied all annotations.** Do NOT call `patch_json_block` to add, re-apply, or duplicate what the expert did. The annotations are already in the file.
 
 **This is a conversation, not silent processing.**
 
-**a) Surface the summary** — Use the expert's summary to tell the user what was found:
-- "This section has 3 annotations: [X] for '...passage...', [Y] for '...passage...'"
-- "One is ambiguous: '...passage...' could be [A] or [B] — what do you think?"
-- "An existing annotation was marked for removal because [reason]. Agree?"
-- If nothing matched: "No codes apply to this section."
+**a) Read the applied annotations** — The file is your primary source. Query the pending annotations to see exactly what the expert wrote — passages, codes, confidence, ambiguity notes. This is cheaper than having the expert describe its work twice.
 
-**b) Wait for user** — They may:
+```
+blocks json-attributes {current_file} | jq '.[] | .annotations | map(select(.status == "pending"))'
+```
+
+The expert's `orchestrator_summary` supplements this with context the file doesn't capture: patterns, gaps, edge cases, passages that didn't fit any code. Use both together.
+
+**b) Surface to user** — Build the user-facing message from what you read in the file, enriched by the expert's observations. Present in plain non-technical language. No JSON, IDs, blocks, patches, or implementation details — the user is not a computer person. Use the actual passage text and code names (not IDs) from what you read.
+- "I found 3 passages that match codes: [X] for '...passage...', [Y] for '...passage...'"
+- "One is ambiguous: '...passage...' could be [A] or [B] — what do you think?"
+- "I'd suggest removing a previous coding on '...passage...' because [reason]. Agree?"
+- If nothing matched: "Nothing in this section fits the codebook."
+
+**c) Wait for user** — They may:
 - Confirm: "looks good" → complete the step, move to next section
 - Disagree: "remove that one" → remove the pending annotation
 - Clarify ambiguity: "use [A]" → update the pending annotation
 - Ask questions
 
-**c) Adjust ONLY if user requests** — Use `patch_json_block` to modify or remove pending annotations ONLY when the user explicitly asks for a change. No changes without user direction.
+**d) Adjust ONLY if user requests** — Use `patch_json_block` to modify or remove pending annotations ONLY when the user explicitly asks for a change. No changes without user direction.
 
 For resolved ambiguities, include `resolved_locally`:
 ```json
@@ -82,7 +91,7 @@ For resolved ambiguities, include `resolved_locally`:
 }
 ```
 
-**d) Complete step** — Move to next section
+**e) Complete step** — Move to next section
 
 ### 4. After All Sections: Revise Codebook
 

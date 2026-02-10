@@ -1,17 +1,7 @@
-# Protocol Style
-
-<cursor-context>
-## User Position Context
-
-You periodically receive context about where the user is looking in the document:
-- **Above cursor**: 2 blocks of content before the cursor
-- **Below cursor**: 2 blocks of content after the cursor
-- **Selected**: Text the user has selected (if any)
-
-If there's no cursor position, you receive the first 2 blocks as a preview.
-
-When the user says "here", "insert here", "update this", or similar — they mean their cursor position. Use the surrounding context to target that location accurately.
-</cursor-context>
+---
+requires:
+  - apply_local_patch
+---
 
 <apply-patch>
 ## File Operations with apply_local_patch
@@ -245,50 +235,8 @@ When updating an existing block, use its actual ID — not a placeholder.
 }
 ```
 
-### Updating Block JSON with `patch_json_block`
-
-For targeted changes to JSON properties within a block, use `patch_json_block` instead of `apply_local_patch`. It applies RFC 6902 JSON Patch operations to the block's parsed JSON and produces the file diff automatically.
-
-```json
-{
-  "path": "document.md",
-  "language": "json-attributes",
-  "operations": [
-    { "op": "replace", "path": "/tags/1", "value": "final" },
-    { "op": "add", "path": "/annotations/-", "value": { "text": "...", "code": "code_abc" } }
-  ]
-}
-```
-
-**Supported operations:** `add`, `remove`, `replace`, `move`, `copy`, `test`
-
-**Paths** use JSON Pointer syntax (RFC 6901):
-- `/field` — top-level field
-- `/array/0` — first array element
-- `/array/-` — append to array
-- `/nested/deep/field` — nested access
-
-**When to use which:**
-- `patch_json_block` — changing specific JSON properties, adding/removing array entries, any structured data change
-- `apply_local_patch` — changing prose, markdown structure, multi-line `"""` content, or non-JSON parts of the file
-
-### Removing Blocks with `remove_block`
-
-To remove an entire fenced code block from a document, use `remove_block`. It identifies the block by language and optionally by the `id` field in its JSON content.
-
-```json
-{
-  "path": "document.md",
-  "language": "json-callout",
-  "id": "callout_x7k2m9p1"
-}
-```
-
-- `id` is required when multiple blocks of the same language exist in the file
-- `id` can be omitted for singleton blocks (e.g., the single `json-attributes` block)
-- The tool produces a file diff — it goes through the same validation pipeline as `apply_local_patch`
-
 ### Fuzzy matching
+
 **If a patch fails with "not found":** The text you specified doesn't match the file exactly. This is often a casing or whitespace issue. Retry using `FUZZY[[text here]]` to match approximately:
 
 ```diff
@@ -303,43 +251,4 @@ The system will find the closest match in the file.
 - Use ONLY for the search text (old text), not the replacement
 - Keep the fuzzy text as specific as possible to avoid wrong matches
 - It's a utility to help you over the hump, not the excuse to write sloppily
-
 </json-blocks>
-
-<shell>
-## Shell Tool
-
-You run in a limited shell environment. Do not make up commands or operators that have not been explicitly stated as being available.
-
-### Limitations
-
-- **File-level writes only**: cp, mv, rm, touch operate on whole files. For editing content within a file, use `apply_local_patch`.
-- **No redirects**: `>`, `>>`, `<` not supported.
-- **No variables**: `$VAR`, `$(cmd)` not supported.
-
-### One Grep, All Files
-
-Never grep file-by-file when searching across files. One call searches everything:
-
-```
-grep -n "term"           # all files
-grep -n "term" prefix/   # scoped to prefix
-grep -n -B1 -A1 "term"   # with 1 line context above/below
-```
-
-Use, context flags (`-B1 -A1`) to get more context when needed.
-
-### Counting Occurrences vs Lines
-
-Users care about **how many times** something appears, not how many lines contain it.
-
-```
-# Wrong: counts lines containing "OMT" (a paragraph with 3 mentions = 1)
-grep -c "OMT"
-
-# Right: counts actual occurrences (a paragraph with 3 mentions = 3)
-grep -o "OMT" | wc -l
-```
-
-Always use `grep -o pattern | wc -l` for counting. Report the result as "X appears N times"—not "N lines contain X".
-</shell>

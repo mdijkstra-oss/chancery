@@ -1,3 +1,8 @@
+---
+requires:
+  - chat
+---
+
 <links>
 ## Linking to Content
 

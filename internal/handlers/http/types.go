@@ -6,6 +6,7 @@ type ChatRequest struct {
 	Messages       []json.RawMessage `json:"messages"`
 	Tools          []json.RawMessage `json:"tools,omitempty"`
 	ResponseFormat json.RawMessage   `json:"response_format,omitempty"`
+	Chat           bool              `json:"chat,omitempty"`
 }
 
 type Config struct {

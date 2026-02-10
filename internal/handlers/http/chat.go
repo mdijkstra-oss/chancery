@@ -29,21 +29,27 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	promptCfg, err := prompts.LoadConfig(config.PromptsDir, endpointCfg.Folder)
+	promptCfg, err := prompts.ResolveConfig(config.PromptsDir, endpointCfg.Folder)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	systemPrompt, err := prompts.LoadFolder(config.PromptsDir, endpointCfg.Folder)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	req, err := decodeRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	toolNames := ExtractToolNames(req.Tools)
+
+	systemPrompt, err := prompts.ComposePrompt(config.PromptsDir, prompts.ComposeOpts{
+		Folder: endpointCfg.Folder,
+		Tools:  toolNames,
+		Chat:   req.Chat,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -65,7 +71,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	streamResponse(w, resp, cfg, endpoint, promptCfg.Pricing)
+	streamResponse(w, resp, cfg, endpoint, toolNames, promptCfg.Pricing)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {
@@ -106,7 +112,7 @@ func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
 	http.Error(w, string(body), resp.StatusCode)
 }
 
-func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, pricing prompts.Pricing) {
+func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, toolNames []string, pricing prompts.Pricing) {
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
@@ -116,7 +122,7 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endp
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, cfg.Verbose, endpoint, pricing)
+	streamWithUsageLogging(resp.Body, w, flusher, cfg.Verbose, endpoint, toolNames, pricing)
 }
 
 func parseTemperature(s string) *float64 {

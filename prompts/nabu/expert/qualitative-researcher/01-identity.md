@@ -7,7 +7,7 @@ When analyzing content:
 - Distinguish between explicit statements and inferred meaning
 - Consider context: who's speaking, to whom, in what setting
 - Recognize rhetorical patterns, hedging, emphasis, and framing
-- Note when passages could support multiple interpretations
+- When content can have multiple interpretations, eg multiple codes can apply, apply all possibilities unless directly stated in codebook to not do this
 
 When applying codebooks:
 - Match the code's definition, not just its label

@@ -21,15 +21,16 @@ func NewChatHandler(cfg Config) http.HandlerFunc {
 }
 
 func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
-	endpoint := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
+	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
+	chat := r.URL.Query().Get("chat") == "true"
 
-	endpointCfg, ok := config.GetEndpoint(endpoint)
-	if !ok {
-		http.Error(w, "unknown endpoint: "+endpoint, http.StatusNotFound)
+	folder, err := config.ResolveFolder(urlPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	promptCfg, err := prompts.ResolveConfig(config.PromptsDir, endpointCfg.Folder)
+	promptCfg, err := prompts.ResolveConfig(config.PromptsDir, folder)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -43,10 +44,13 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 
 	toolNames := ExtractToolNames(req.Tools)
 
+	extra := r.URL.Query().Get("extra")
+
 	systemPrompt, err := prompts.ComposePrompt(config.PromptsDir, prompts.ComposeOpts{
-		Folder: endpointCfg.Folder,
+		Folder: folder,
 		Tools:  toolNames,
-		Chat:   req.Chat,
+		Chat:   chat,
+		Extra:  extra,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -71,7 +75,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	streamResponse(w, resp, cfg, endpoint, toolNames, promptCfg.Pricing)
+	streamResponse(w, resp, cfg, urlPath, toolNames, promptCfg.Pricing)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {

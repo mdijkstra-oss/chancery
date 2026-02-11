@@ -2,6 +2,7 @@ package prompts
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -26,24 +27,11 @@ type ComposeOpts struct {
 	Folder string
 	Tools  []string
 	Chat   bool
+	Extra  string
 }
 
 func ComposePrompt(baseDir string, opts ComposeOpts) (string, error) {
 	var layers []string
-
-	shared, err := loadLayer(filepath.Join(baseDir, "nabu", "shared"))
-	if err != nil {
-		return "", err
-	}
-	layers = append(layers, shared...)
-
-	if opts.Chat {
-		chat, err := loadLayer(filepath.Join(baseDir, "nabu", "tools", "chat"))
-		if err != nil {
-			return "", err
-		}
-		layers = append(layers, chat...)
-	}
 
 	for _, folder := range ancestorFolders(opts.Folder) {
 		agent, err := loadLayer(filepath.Join(baseDir, folder))
@@ -53,11 +41,27 @@ func ComposePrompt(baseDir string, opts ComposeOpts) (string, error) {
 		layers = append(layers, agent...)
 	}
 
+	if opts.Chat {
+		chat, err := loadLayer(filepath.Join(baseDir, "nabu", "tools", "chat"))
+		if err != nil {
+			return "", err
+		}
+		layers = append(layers, chat...)
+	}
+
 	tools, err := loadToolFiles(filepath.Join(baseDir, "nabu", "tools"), opts.Tools)
 	if err != nil {
 		return "", err
 	}
 	layers = append(layers, tools...)
+
+	if opts.Extra != "" {
+		extra, err := loadExtraFile(baseDir, opts.Extra)
+		if err != nil {
+			return "", err
+		}
+		layers = append(layers, extra)
+	}
 
 	return strings.Join(layers, "\n\n"), nil
 }
@@ -184,6 +188,15 @@ func loadToolFilesRecursive(dir string, available []string, skipChat bool) ([]st
 		}
 	}
 	return parts, nil
+}
+
+func loadExtraFile(baseDir, name string) (string, error) {
+	path := filepath.Join(baseDir, "extra", name+".md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("unknown extra prompt: %s", name)
+	}
+	return string(data), nil
 }
 
 func ancestorFolders(folder string) []string {

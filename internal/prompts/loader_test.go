@@ -17,34 +17,49 @@ func TestComposePrompt(t *testing.T) {
 		want string
 	}{
 		{
-			name: "converse gets shared chat agent tools",
-			opts: ComposeOpts{Folder: "nabu/converse", Tools: []string{"orientate"}, Chat: true},
-			want: "shared-id\n\nshared-disc\n\nchat-style\n\nconverse-experts\n\nconverse-coding\n\norchestration-body",
+			name: "orchestrator gets base layer with chat and tools",
+			opts: ComposeOpts{Folder: "nabu", Tools: []string{"orientate"}, Chat: true},
+			want: "base-id\n\nbase-disc\n\nchat-style\n\norchestration-body",
 		},
 		{
-			name: "expert base gets shared plus expert layer",
+			name: "expert gets base plus expert layer",
 			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"run_local_shell"}},
-			want: "shared-id\n\nshared-disc\n\nexpert-base\n\nanalyst-id\n\nshell-body",
+			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nshell-body",
 		},
 		{
 			name: "expert task walks up through ancestor layers",
 			opts: ComposeOpts{Folder: "nabu/expert/researcher/apply-codebook", Tools: []string{}},
-			want: "shared-id\n\nshared-disc\n\nexpert-base\n\nresearcher-id\n\napply-task",
+			want: "base-id\n\nbase-disc\n\nexpert-base\n\nresearcher-id\n\napply-task",
 		},
 		{
 			name: "chat false excludes chat prompts",
-			opts: ComposeOpts{Folder: "nabu/converse", Tools: []string{}, Chat: false},
-			want: "shared-id\n\nshared-disc\n\nconverse-experts\n\nconverse-coding",
+			opts: ComposeOpts{Folder: "nabu", Tools: []string{}, Chat: false},
+			want: "base-id\n\nbase-disc",
 		},
 		{
 			name: "frontmatter filters out unavailable tools",
 			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"orientate"}},
-			want: "shared-id\n\nshared-disc\n\nexpert-base\n\nanalyst-id\n\norchestration-body",
+			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\norchestration-body",
 		},
 		{
 			name: "no tools excludes all frontmatter files",
 			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{}},
-			want: "shared-id\n\nshared-disc\n\nexpert-base\n\nanalyst-id",
+			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id",
+		},
+		{
+			name: "chat comes after ancestors but before tools",
+			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"run_local_shell"}, Chat: true},
+			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nchat-style\n\nshell-body",
+		},
+		{
+			name: "extra plan appended last",
+			opts: ComposeOpts{Folder: "nabu", Tools: []string{"orientate"}, Chat: true, Extra: "plan"},
+			want: "base-id\n\nbase-disc\n\nchat-style\n\norchestration-body\n\nplan-extra",
+		},
+		{
+			name: "extra exec appended last",
+			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{}, Extra: "exec"},
+			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nexec-extra",
 		},
 	}
 
@@ -63,7 +78,9 @@ func TestComposePrompt(t *testing.T) {
 
 func TestResolveConfig(t *testing.T) {
 	base := t.TempDir()
-	expertCfg := `{"model": "gpt-5", "reasoning_effort": "high"}`
+	baseCfg := `{"model": "gpt-5.2", "reasoning_effort": "medium"}`
+	expertCfg := `{"model": "gpt-5.2", "reasoning_effort": "high"}`
+	writeFile(t, filepath.Join(base, "nabu/config.json"), baseCfg)
 	writeFile(t, filepath.Join(base, "nabu/expert/config.json"), expertCfg)
 	os.MkdirAll(filepath.Join(base, "nabu/expert/researcher/apply-codebook"), 0755)
 
@@ -74,18 +91,23 @@ func TestResolveConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "exact folder has config",
-			folder: "nabu/expert",
-			want:   PromptConfig{Model: "gpt-5", ReasoningEffort: "high"},
+			name:   "orchestrator gets base config",
+			folder: "nabu",
+			want:   PromptConfig{Model: "gpt-5.2", ReasoningEffort: "medium"},
 		},
 		{
-			name:   "walks up to parent config",
+			name:   "expert gets expert config",
+			folder: "nabu/expert",
+			want:   PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high"},
+		},
+		{
+			name:   "deep path walks up to expert config",
 			folder: "nabu/expert/researcher/apply-codebook",
-			want:   PromptConfig{Model: "gpt-5", ReasoningEffort: "high"},
+			want:   PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high"},
 		},
 		{
 			name:    "no config anywhere",
-			folder:  "nabu/missing",
+			folder:  "missing",
 			wantErr: true,
 		},
 	}
@@ -117,13 +139,13 @@ func TestAncestorFolders(t *testing.T) {
 	}{
 		{
 			name:   "single segment",
-			folder: "converse",
-			want:   []string{"converse"},
+			folder: "nabu",
+			want:   []string{"nabu"},
 		},
 		{
 			name:   "two segments",
-			folder: "nabu/converse",
-			want:   []string{"nabu", "nabu/converse"},
+			folder: "nabu/expert",
+			want:   []string{"nabu", "nabu/expert"},
 		},
 		{
 			name:   "deep path",
@@ -147,18 +169,18 @@ func setupPromptTree(t *testing.T) string {
 	base := t.TempDir()
 
 	files := map[string]string{
-		"nabu/shared/01-identity.md":                         "shared-id",
-		"nabu/shared/02-discipline.md":                       "shared-disc",
-		"nabu/tools/chat/style.md":                           "chat-style",
-		"nabu/tools/orchestration.md":                        "---\nrequires:\n  - orientate\n---\norchestration-body",
-		"nabu/tools/shell.md":                                "---\nrequires:\n  - run_local_shell\n---\nshell-body",
-		"nabu/tools/patching/patching.md":                    "---\nrequires:\n  - apply_local_patch\n---\npatching-body",
-		"nabu/converse/01-experts.md":                        "converse-experts",
-		"nabu/converse/02-coding.md":                         "converse-coding",
-		"nabu/expert/01-identity.md":                         "expert-base",
-		"nabu/expert/analyst/01-identity.md":                 "analyst-id",
-		"nabu/expert/researcher/01-identity.md":              "researcher-id",
-		"nabu/expert/researcher/apply-codebook/01-task.md":   "apply-task",
+		"nabu/01-identity.md":                              "base-id",
+		"nabu/02-discipline.md":                            "base-disc",
+		"nabu/tools/chat/style.md":                         "chat-style",
+		"nabu/tools/orchestration.md":                      "---\nrequires:\n  - orientate\n---\norchestration-body",
+		"nabu/tools/shell.md":                              "---\nrequires:\n  - run_local_shell\n---\nshell-body",
+		"nabu/tools/patching/patching.md":                  "---\nrequires:\n  - apply_local_patch\n---\npatching-body",
+		"nabu/expert/01-identity.md":                       "expert-base",
+		"nabu/expert/analyst/01-identity.md":               "analyst-id",
+		"nabu/expert/researcher/01-identity.md":            "researcher-id",
+		"nabu/expert/researcher/apply-codebook/01-task.md": "apply-task",
+		"extra/plan.md": "plan-extra",
+		"extra/exec.md": "exec-extra",
 	}
 
 	for name, content := range files {

@@ -24,13 +24,13 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 	chat := r.URL.Query().Get("chat") == "true"
 
-	folder, err := config.ResolveFolder(urlPath)
+	resolved, err := config.ResolveFolder(urlPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	promptCfg, err := prompts.ResolveConfig(config.PromptsDir, folder)
+	promptCfg, err := prompts.ResolveConfig(config.PromptsDir, resolved.Folder)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -44,13 +44,11 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 
 	toolNames := ExtractToolNames(req.Tools)
 
-	extra := r.URL.Query().Get("extra")
-
 	systemPrompt, err := prompts.ComposePrompt(config.PromptsDir, prompts.ComposeOpts{
-		Folder: folder,
+		Folder: resolved.Folder,
 		Tools:  toolNames,
 		Chat:   chat,
-		Extra:  extra,
+		Extra:  resolved.Extra,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

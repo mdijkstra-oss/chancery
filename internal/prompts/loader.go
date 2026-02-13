@@ -42,25 +42,25 @@ func ComposePrompt(baseDir string, opts ComposeOpts) (string, error) {
 	}
 
 	if opts.Chat {
-		chat, err := loadLayer(filepath.Join(baseDir, "nabu", "tools", "chat"))
+		chat, err := loadLayer(filepath.Join(baseDir, "tools", "chat"))
 		if err != nil {
 			return "", err
 		}
 		layers = append(layers, chat...)
 	}
 
-	tools, err := loadToolFiles(filepath.Join(baseDir, "nabu", "tools"), opts.Tools)
+	tools, err := loadToolFiles(filepath.Join(baseDir, "tools"), opts.Tools)
 	if err != nil {
 		return "", err
 	}
 	layers = append(layers, tools...)
 
 	if opts.Extra != "" {
-		extra, err := loadExtraFile(baseDir, opts.Extra)
+		extra, err := loadExtraLayer(baseDir, opts.Extra)
 		if err != nil {
 			return "", err
 		}
-		layers = append(layers, extra)
+		layers = append(layers, extra...)
 	}
 
 	return strings.Join(layers, "\n\n"), nil
@@ -190,13 +190,13 @@ func loadToolFilesRecursive(dir string, available []string, skipChat bool) ([]st
 	return parts, nil
 }
 
-func loadExtraFile(baseDir, name string) (string, error) {
-	path := filepath.Join(baseDir, "extra", name+".md")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("unknown extra prompt: %s", name)
+var validExtras = map[string]bool{"plan": true, "exec": true, "merge": true}
+
+func loadExtraLayer(baseDir, name string) ([]string, error) {
+	if !validExtras[name] {
+		return nil, fmt.Errorf("unknown extra prompt: %s", name)
 	}
-	return string(data), nil
+	return loadLayer(filepath.Join(baseDir, "extra", name))
 }
 
 func ancestorFolders(folder string) []string {

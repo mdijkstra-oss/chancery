@@ -1,8 +1,3 @@
----
-requires:
-  - chat
----
-
 <chat-discipline>
 ## Interpreting Requests
 

@@ -171,16 +171,16 @@ func setupPromptTree(t *testing.T) string {
 	files := map[string]string{
 		"nabu/01-identity.md":                              "base-id",
 		"nabu/02-discipline.md":                            "base-disc",
-		"nabu/tools/chat/style.md":                         "chat-style",
-		"nabu/tools/orchestration.md":                      "---\nrequires:\n  - orientate\n---\norchestration-body",
-		"nabu/tools/shell.md":                              "---\nrequires:\n  - run_local_shell\n---\nshell-body",
-		"nabu/tools/patching/patching.md":                  "---\nrequires:\n  - apply_local_patch\n---\npatching-body",
+		"tools/chat/style.md":                         "chat-style",
+		"tools/orientation.md":                        "---\nrequires:\n  - orientate\n---\norchestration-body",
+		"tools/shell.md":                              "---\nrequires:\n  - run_local_shell\n---\nshell-body",
+		"tools/patching/patching.md":                  "---\nrequires:\n  - apply_local_patch\n---\npatching-body",
 		"nabu/expert/01-identity.md":                       "expert-base",
 		"nabu/expert/analyst/01-identity.md":               "analyst-id",
 		"nabu/expert/researcher/01-identity.md":            "researcher-id",
 		"nabu/expert/researcher/apply-codebook/01-task.md": "apply-task",
-		"extra/plan.md": "plan-extra",
-		"extra/exec.md": "exec-extra",
+		"extra/plan/01-plan.md":                             "plan-extra",
+		"extra/exec/01-exec.md":                             "exec-extra",
 	}
 
 	for name, content := range files {

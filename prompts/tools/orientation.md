@@ -3,7 +3,7 @@ requires:
   - orientate
 ---
 
-<orchestration>
+<orientation>
 ## Ground Rules
 
 Your reasoning is ephemeral. Outside of orient/plan modes, nothing you think survives to the next turn. Only `reorient`, `complete_step`, and tool results persist.

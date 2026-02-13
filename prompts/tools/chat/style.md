@@ -1,8 +1,3 @@
----
-requires:
-  - chat
----
-
 # Style
 
 <tone>

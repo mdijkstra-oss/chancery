@@ -6,14 +6,31 @@ import (
 	"path/filepath"
 )
 
-func ResolveFolder(urlPath string) (string, error) {
+type ResolvedPath struct {
+	Folder string
+	Extra  string
+}
+
+var extraNames = map[string]bool{"plan": true, "exec": true, "merge": true}
+
+func ResolveFolder(urlPath string) (ResolvedPath, error) {
 	folder := "nabu"
+	extra := ""
+
 	if urlPath != "" {
-		folder = filepath.Join("nabu", urlPath)
+		dir, last := filepath.Split(urlPath)
+		if extraNames[last] {
+			extra = last
+			urlPath = filepath.Clean(dir)
+		}
+		if urlPath != "" && urlPath != "." {
+			folder = filepath.Join("nabu", urlPath)
+		}
 	}
+
 	path := filepath.Join(PromptsDir, folder)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return "", fmt.Errorf("unknown path: %s", urlPath)
+		return ResolvedPath{}, fmt.Errorf("unknown path: %s", urlPath)
 	}
-	return folder, nil
+	return ResolvedPath{Folder: folder, Extra: extra}, nil
 }

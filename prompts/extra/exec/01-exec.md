@@ -1,3 +1,4 @@
+<execution>
 # Executing a plan
 
 You received a plan file. Your job is to work through it step by step, doing the actual work, and resolve when done.
@@ -24,9 +25,9 @@ You still make judgment calls during execution — the plan can't predetermine e
 
 ## For-each steps over files
 
-File interpretation work — coding, reviewing, annotating, extracting, evaluating — always goes through `forEach`. When the plan has a for-each step over a file, call `forEach` with the file path and the sub-steps. You don't split the file yourself, manage iteration, or track progress across sections. The `forEach` tool handles all of that and returns a consolidated result as if the entire file was processed in one pass.
+Any work that applies to a full file — coding, reviewing, annotating, extracting, evaluating — always goes through `for_each`. When calling `for_each`, include the specific instructions from the plan that apply to this file at this point. The branch receives only the file content and your task description — it has no access to the plan. So the task must contain everything the branch needs: what to look for, what to produce, what format to use, what rules to follow, what to skip. Copy the relevant plan steps into the task verbatim rather than summarising them.
 
-If you encounter file interpretation work that isn't structured as a for-each in the plan, use `forEach` anyway. This is the standard way file content gets processed — each part gets a clean focused context rather than a growing one where earlier analysis dilutes attention on later content.
+If you encounter file work that isn't structured as a for-each in the plan, use `for_each` anyway. This is the standard way file content gets processed — each part gets a clean focused context rather than a growing one where earlier analysis dilutes attention on later content.
 
 After `forEach` returns, continue with the next step in the plan. The result contains everything the sub-steps produced — coded entries, memos, flagged items, whatever the sub-steps generated. Use it as input for the post-processing steps that follow.
 
@@ -60,3 +61,4 @@ When all steps are checked off, resolve. Your resolve should include everything 
 - **artifacts** — All files created or modified during execution.
 
 Reject when the task cannot be completed — not just when no steps were actionable, but when the steps you did complete reveal that the work is fundamentally blocked. Checking that a codebook exists (it does) and then finding it's invalid is still a reject: you ran steps, but they were diagnostic, and the result is that the task can't proceed. Reject describes "this can't be done and here's why", not "I didn't try." Reserve resolve for when there's usable work product to hand back.
+</execution>

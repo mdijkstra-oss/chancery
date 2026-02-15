@@ -3,7 +3,10 @@ export
 
 RUN_CMD := go run cmd/main.go
 
-start:
+kill:
+	@-lsof -ti:8081 | xargs kill -9 2>/dev/null || true
+
+start: kill
 	@$(RUN_CMD)
 
 start-prod:
@@ -11,7 +14,7 @@ start-prod:
 
 .PHONY: dev
 dev:
-	@watchexec -q -e go -r make start
+	@watchexec -q -e go,md -r make start
 
 deepseek:
 	MODEL=deepseek/deepseek-v3.2 PROVIDER=avian/fp8 $(RUN_CMD)

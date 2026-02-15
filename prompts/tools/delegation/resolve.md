@@ -3,6 +3,7 @@ requires:
   - resolve
 ---
 
+<resolve-reject>
 # Responding to delegated work
 
 When you finish work — or can't start it — you respond using resolve or reject.
@@ -31,3 +32,4 @@ Reasons to reject:
 - Context references files or material that don't exist or can't be found
 - The intent is ambiguous or contradictory and you can't reasonably interpret it
 - The task is outside your capability or domain
+</resolve-reject>

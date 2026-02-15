@@ -12,54 +12,64 @@ func TestComposePrompt(t *testing.T) {
 	base := setupPromptTree(t)
 
 	cases := []struct {
-		name string
-		opts ComposeOpts
-		want string
+		name        string
+		opts        ComposeOpts
+		wantPrompt  string
+		wantSources []string
 	}{
 		{
-			name: "orchestrator gets base layer with chat and tools",
-			opts: ComposeOpts{Folder: "nabu", Tools: []string{"orientate"}, Chat: true},
-			want: "base-id\n\nbase-disc\n\nchat-style\n\norchestration-body",
+			name:        "orchestrator gets base layer with chat and tools",
+			opts:        ComposeOpts{Folder: "nabu", Tools: []string{"orientate"}, Chat: true},
+			wantPrompt:  "base-id\n\nbase-disc\n\nchat-style\n\norchestration-body",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "tools/chat/style.md", "tools/orientation.md"},
 		},
 		{
-			name: "expert gets base plus expert layer",
-			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"run_local_shell"}},
-			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nshell-body",
+			name:        "expert gets base plus expert layer",
+			opts:        ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"run_local_shell"}},
+			wantPrompt:  "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nshell-body",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "nabu/expert/01-identity.md", "nabu/expert/analyst/01-identity.md", "tools/shell.md"},
 		},
 		{
-			name: "expert task walks up through ancestor layers",
-			opts: ComposeOpts{Folder: "nabu/expert/researcher/apply-codebook", Tools: []string{}},
-			want: "base-id\n\nbase-disc\n\nexpert-base\n\nresearcher-id\n\napply-task",
+			name:        "expert task walks up through ancestor layers",
+			opts:        ComposeOpts{Folder: "nabu/expert/researcher/apply-codebook", Tools: []string{}},
+			wantPrompt:  "base-id\n\nbase-disc\n\nexpert-base\n\nresearcher-id\n\napply-task",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "nabu/expert/01-identity.md", "nabu/expert/researcher/01-identity.md", "nabu/expert/researcher/apply-codebook/01-task.md"},
 		},
 		{
-			name: "chat false excludes chat prompts",
-			opts: ComposeOpts{Folder: "nabu", Tools: []string{}, Chat: false},
-			want: "base-id\n\nbase-disc",
+			name:        "chat false excludes chat prompts",
+			opts:        ComposeOpts{Folder: "nabu", Tools: []string{}, Chat: false},
+			wantPrompt:  "base-id\n\nbase-disc",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md"},
 		},
 		{
-			name: "frontmatter filters out unavailable tools",
-			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"orientate"}},
-			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\norchestration-body",
+			name:        "frontmatter filters out unavailable tools",
+			opts:        ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"orientate"}},
+			wantPrompt:  "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\norchestration-body",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "nabu/expert/01-identity.md", "nabu/expert/analyst/01-identity.md", "tools/orientation.md"},
 		},
 		{
-			name: "no tools excludes all frontmatter files",
-			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{}},
-			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id",
+			name:        "no tools excludes all frontmatter files",
+			opts:        ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{}},
+			wantPrompt:  "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "nabu/expert/01-identity.md", "nabu/expert/analyst/01-identity.md"},
 		},
 		{
-			name: "chat comes after ancestors but before tools",
-			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"run_local_shell"}, Chat: true},
-			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nchat-style\n\nshell-body",
+			name:        "chat comes after ancestors but before tools",
+			opts:        ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{"run_local_shell"}, Chat: true},
+			wantPrompt:  "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nchat-style\n\nshell-body",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "nabu/expert/01-identity.md", "nabu/expert/analyst/01-identity.md", "tools/chat/style.md", "tools/shell.md"},
 		},
 		{
-			name: "extra plan appended last",
-			opts: ComposeOpts{Folder: "nabu", Tools: []string{"orientate"}, Chat: true, Extra: "plan"},
-			want: "base-id\n\nbase-disc\n\nchat-style\n\norchestration-body\n\nplan-extra",
+			name:        "extra plan appended last",
+			opts:        ComposeOpts{Folder: "nabu", Tools: []string{"orientate"}, Chat: true, Extra: "plan"},
+			wantPrompt:  "base-id\n\nbase-disc\n\nchat-style\n\norchestration-body\n\nplan-extra",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "tools/chat/style.md", "tools/orientation.md", "extra/plan/01-plan.md"},
 		},
 		{
-			name: "extra exec appended last",
-			opts: ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{}, Extra: "exec"},
-			want: "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nexec-extra",
+			name:        "extra exec appended last",
+			opts:        ComposeOpts{Folder: "nabu/expert/analyst", Tools: []string{}, Extra: "exec"},
+			wantPrompt:  "base-id\n\nbase-disc\n\nexpert-base\n\nanalyst-id\n\nexec-extra",
+			wantSources: []string{"nabu/01-identity.md", "nabu/02-discipline.md", "nabu/expert/01-identity.md", "nabu/expert/analyst/01-identity.md", "extra/exec/01-exec.md"},
 		},
 	}
 
@@ -69,8 +79,11 @@ func TestComposePrompt(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tc.wantPrompt, got.Prompt); diff != "" {
+				t.Errorf("prompt mismatch (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tc.wantSources, got.Sources); diff != "" {
+				t.Errorf("sources mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -171,16 +184,16 @@ func setupPromptTree(t *testing.T) string {
 	files := map[string]string{
 		"nabu/01-identity.md":                              "base-id",
 		"nabu/02-discipline.md":                            "base-disc",
-		"tools/chat/style.md":                         "chat-style",
-		"tools/orientation.md":                        "---\nrequires:\n  - orientate\n---\norchestration-body",
-		"tools/shell.md":                              "---\nrequires:\n  - run_local_shell\n---\nshell-body",
-		"tools/patching/patching.md":                  "---\nrequires:\n  - apply_local_patch\n---\npatching-body",
+		"tools/chat/style.md":                              "chat-style",
+		"tools/orientation.md":                             "---\nrequires:\n  - orientate\n---\norchestration-body",
+		"tools/shell.md":                                   "---\nrequires:\n  - run_local_shell\n---\nshell-body",
+		"tools/patching/patching.md":                       "---\nrequires:\n  - apply_local_patch\n---\npatching-body",
 		"nabu/expert/01-identity.md":                       "expert-base",
 		"nabu/expert/analyst/01-identity.md":               "analyst-id",
 		"nabu/expert/researcher/01-identity.md":            "researcher-id",
 		"nabu/expert/researcher/apply-codebook/01-task.md": "apply-task",
-		"extra/plan/01-plan.md":                             "plan-extra",
-		"extra/exec/01-exec.md":                             "exec-extra",
+		"extra/plan/01-plan.md":                            "plan-extra",
+		"extra/exec/01-exec.md":                            "exec-extra",
 	}
 
 	for name, content := range files {

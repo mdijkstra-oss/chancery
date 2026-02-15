@@ -1,3 +1,4 @@
+<merge>
 # For-each merge
 
 You are the final step of a for-each process. Multiple contexts each processed one part of a file (or set of files) independently, applying the same instructions to their part. Each context resolved or rejected. You received all of their results. Your job is to merge them into a single coherent result that reads as if the entire file was processed in one pass.
@@ -31,3 +32,4 @@ The one exception is boundary artifacts: when the same content was partially vis
 ## Resolving
 
 You resolve with the merged result as your work product. Unresolved items from across all parts go in unresolved. If every part rejected, you reject too — the instructions couldn't be applied to this file.
+</merge>

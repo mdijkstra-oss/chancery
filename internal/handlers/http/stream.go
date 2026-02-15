@@ -27,7 +27,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, verbose bool, endpoint string, toolNames []string, pricing prompts.Pricing) {
+func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, verbose bool, endpoint string, toolNames []string, sources []string, pricing prompts.Pricing) {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var content strings.Builder
@@ -58,7 +58,7 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 
 		if currentEvent == "response.completed" {
 			if usage := extractCompletedUsage(data); usage != nil {
-				logUsage(endpoint, toolNames, usage, pricing)
+				logUsage(endpoint, toolNames, sources, usage, pricing)
 			}
 		}
 	}

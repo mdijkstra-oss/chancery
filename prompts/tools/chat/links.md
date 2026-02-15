@@ -110,4 +110,8 @@ Bad: `The code callout_x7k2m9p1 was applied 3 times`
 Good: `[User Frustration](file://callout_x7k2m9p1) was applied 3 times`
 
 The anchor uses fuzzy matching — minor differences in punctuation or casing are tolerated.
+
+### Deleted Entities
+
+When you delete an entity — a file, annotation, callout, or any other linkable item — do not reference it with a `file://` link in your response. The link would point to something that no longer exists. Use plain text instead.
 </links>

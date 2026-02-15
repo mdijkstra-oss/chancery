@@ -1,30 +1,18 @@
-<plan-template>
-# Plan: {concise title}
+<plan-format>
+Resolve with your outcome as JSON:
 
-## Goal
-What success looks like. Specific enough that the executor can check its own work.
+{
+  "task": "High-level description of what we're accomplishing",
+  "steps": [
+    { "title": "Step name", "expected": "What completion looks like" },
+    { "per_section": [
+      { "title": "Per-file step", "expected": "What completion looks like" }
+    ], "files": ["file1.md", "file2.md"] }
+  ],
+  "decisions": ["Judgment calls made during planning"]
+}
 
-## Involvement
-Concrete guidance on when to interact with the user. Not a level — explicit instructions the executor follows without interpretation.
-
-## Steps
-
-- [ ] **Bold title** — detail the executor needs to act on
-  - [ ] Sub-step if needed
-  - [ ] What to do on failure or edge case
-- [ ] **Next step** — detail
-- [ ] **For each {part} of {source}:**
-  - [ ] **Do the work** — detail per part
-  - [ ] **Present for review** — summarize, focus on items needing input
-  - [ ] **Apply feedback** — detail if applicable
-- [ ] **After main work:**
-  - [ ] **Resolve deferred items** — detail
-  - [ ] **Final output** — detail
-- [ ] **Resolve** — with {artifacts}
-
-## Decisions
-Judgment calls made during planning. Clear statements the executor follows without re-litigating.
-
-## On failure
-Fallback rules for unexpected situations the steps don't cover.
-</plan-template>
+- steps: 3-7 top-level. Say WHAT, not HOW.
+- per_section: exactly one allowed. Contains sub-steps that repeat per file section. Files live inside the per_section step.
+- decisions: forces you to surface assumptions. Even if empty.
+</plan-format>

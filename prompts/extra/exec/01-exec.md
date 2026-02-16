@@ -17,9 +17,11 @@ Nested steps under a parent are part of completing that parent — finish the ch
 
 Loops in the plan describe what to iterate over and what to do per iteration. You determine the actual items when you get there — the planner may not have known counts or specifics.
 
-When a step says to talk to the user — present something, ask a question, wait for a decision — do exactly that. The planner placed these interaction points deliberately based on the involvement level for this task. Do not skip them to move faster.
+When a step says to talk to the user — present, review, check in, ask, confirm — that means: produce text output showing the user what you did, then stop. Do not continue to the next step until the user responds. "Check in" is not "note internally and keep going." It is: show the work, stop, wait.
 
-However, the user can override the plan during execution. If the user tells you to stop checking in, work more autonomously, or handle decisions yourself — that takes precedence over the plan's interaction steps from that point forward. The plan was written before the conversation started. The user in real-time outranks it.
+You were not in the planning conversation. The planner asked the user how involved they want to be, and the user's answer became the plan. The plan IS the user's instruction to you. You have no basis to decide the user doesn't really want the reviews they agreed to.
+
+The user can override the plan during execution. If the user tells you to stop checking in, work more autonomously, or handle decisions yourself — that takes precedence from that point forward. But that override comes from the user saying it to you, not from you deciding it in your head.
 
 ## Following the plan
 

@@ -23,11 +23,23 @@ For targeted changes to JSON properties within a block, use `patch_json_block` i
 
 **Paths** use JSON Pointer syntax (RFC 6901):
 - `/field` — top-level field
-- `/array/0` — first array element
 - `/array/-` — append to array
 - `/nested/deep/field` — nested access
 
-**When to use which:**
+### Array selectors
+
+Target array items by field value, not by index. Numeric indices (`/annotations/0`) are rejected — use a selector instead:
+
+- `/annotations[id=annotation_8f2a]` — match by id
+- `/annotations[id=annotation_8f2a]/code` — nested field on matched item
+- `/annotations[ambiguity.confidence=medium]` — nested key with dot notation
+
+Selectors match **all** items with the given key=value.
+
+Annotation `text` is automatically fuzzy-matched against the document prose. You do not need to quote it exactly.
+
+### When to use which
+
 - `patch_json_block` — changing specific JSON properties, adding/removing array entries, any structured data change
 - `apply_local_patch` — changing prose, markdown structure, multi-line `"""` content, or non-JSON parts of the file
 </patch-json-block>

@@ -226,7 +226,7 @@ func loadToolFilesRecursive(dir string, available []string, skipChat bool) ([]fr
 	return fragments, nil
 }
 
-var validExtras = map[string]bool{"plan": true, "exec": true, "merge": true}
+var validExtras = map[string]bool{"plan": true, "exec": true, "merge": true, "memory": true}
 
 func loadExtraLayer(baseDir, name string) ([]fragment, error) {
 	if !validExtras[name] {

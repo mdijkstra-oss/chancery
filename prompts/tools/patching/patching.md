@@ -190,7 +190,7 @@ Inclusion criteria:
 """
 ```
 
-The content between `"""` markers is regular markdown displayed as normal file lines. Patch it like any other markdown:
+The content between `"""` markers is regular markdown displayed as normal file lines. To update it, use `apply_local_patch` on the content lines directly — no need to rewrite the entire field through `patch_json_block`:
 
 ```
 @@
@@ -198,6 +198,8 @@ The content between `"""` markers is regular markdown displayed as normal file l
 +- Direct complaints about process
 +- Expressions of annoyance
 ```
+
+This is more precise than replacing the whole field, and works naturally with long content.
 
 When creating blocks, always use `"""` fences for multi-line content — never manually escape newlines or quotes.
 

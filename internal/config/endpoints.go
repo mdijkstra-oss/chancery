@@ -11,7 +11,7 @@ type ResolvedPath struct {
 	Extra  string
 }
 
-var extraNames = map[string]bool{"plan": true, "exec": true, "merge": true}
+var extraNames = map[string]bool{"plan": true, "exec": true, "merge": true, "memory": true}
 
 func ResolveFolder(urlPath string) (ResolvedPath, error) {
 	folder := "nabu"

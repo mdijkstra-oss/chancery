@@ -52,9 +52,3 @@ Documents may be in a different language than the user speaks. Match document la
 
 If unsure about the document language, check the content before correcting spelling or choosing search terms. "omirkon" in Dutch documents → "omikron" (Dutch), not "omicron" (English).
 </language-context>
-
-<output-hygiene>
-## Output Hygiene
-
-Never expose internal identifiers, function names, slugs, technical terms, or implementation details in output. Describe using names and plain language.
-</output-hygiene>

@@ -1,6 +1,6 @@
 {
   "model": "gpt-5.2",
-  "reasoning_effort": "medium",
+  "reasoning_effort": "high",
   "reasoning_summary": "auto",
   "verbosity": "low",
   "pricing": {

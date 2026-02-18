@@ -10,17 +10,21 @@ import (
 	"hermes-logos/internal/bootstrap"
 	"hermes-logos/internal/config"
 	httpHandlers "hermes-logos/internal/handlers/http"
+	"hermes-logos/internal/prompts"
 )
 
 func main() {
 	cfg := config.Load()
 	bootstrap.SetupLogger(cfg.LogLevel)
 
+	registry := prompts.CompileRegistry(prompts.PromptsDir)
+	slog.Info("prompts compiled", "agents", len(registry.Agents))
+
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
 		APIKey:  cfg.APIKey,
 		BaseURL: cfg.BaseURL,
 		Verbose: cfg.Verbose,
-	})
+	}, registry)
 
 	r := chi.NewRouter()
 	httpHandlers.SetupRoutes(r, chatHandler, cfg.CorsOrigins)

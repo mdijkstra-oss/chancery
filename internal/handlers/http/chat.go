@@ -6,33 +6,32 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"hermes-logos/internal/config"
 	"hermes-logos/internal/prompts"
 )
 
-func NewChatHandler(cfg Config) http.HandlerFunc {
+func NewChatHandler(cfg Config, registry prompts.Registry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleChat(w, r, cfg)
+		handleChat(w, r, cfg, registry)
 	}
 }
 
-func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
+func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry prompts.Registry) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
-	chat := r.URL.Query().Get("chat") == "true"
 
-	resolved, err := config.ResolveFolder(urlPath)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+	agent, ok := registry.Agents[urlPath]
+	if !ok {
+		http.Error(w, "unknown agent: "+urlPath, http.StatusNotFound)
 		return
 	}
 
-	promptCfg, err := prompts.ResolveConfig(config.PromptsDir, resolved.Folder)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	promptCfg, ok := registry.Configs[urlPath]
+	if !ok {
+		http.Error(w, "no config for agent: "+urlPath, http.StatusInternalServerError)
 		return
 	}
 
@@ -44,20 +43,22 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 
 	toolNames := ExtractToolNames(req.Tools)
 
-	composed, err := prompts.ComposePrompt(config.PromptsDir, prompts.ComposeOpts{
-		Folder: resolved.Folder,
-		Tools:  toolNames,
-		Chat:   chat,
-		Extra:  resolved.Extra,
-	})
+	toolPrompt, toolSources, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	fullPrompt := agent.Prompt
+	if toolPrompt != "" {
+		fullPrompt = fullPrompt + "\n\n" + toolPrompt
+	}
+
+	allSources := append(agent.Sources, toolSources...)
+
 	toolChoice := r.URL.Query().Get("tool_choice")
 	temperature := parseTemperature(r.URL.Query().Get("temperature"))
-	apiReq := buildResponsesRequest(promptCfg.Model, composed.Prompt, promptCfg.ReasoningEffort, promptCfg.ReasoningSummary, promptCfg.Verbosity, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
+	apiReq := buildResponsesRequest(promptCfg.Model, fullPrompt, promptCfg.ReasoningEffort, promptCfg.ReasoningSummary, promptCfg.Verbosity, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
 
 	logOutgoingRequest(apiReq, cfg.Verbose)
 
@@ -73,7 +74,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	streamResponse(w, resp, cfg, urlPath, toolNames, composed.Sources, promptCfg.Pricing, promptCfg.ReasoningEffort)
+	streamResponse(w, resp, cfg, urlPath, toolNames, allSources, promptCfg.Pricing, promptCfg.ReasoningEffort)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {

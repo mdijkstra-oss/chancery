@@ -14,8 +14,6 @@ type Config struct {
 	Verbose     bool
 }
 
-const PromptsDir = "prompts"
-
 func Load() Config {
 	return Config{
 		Port:        getEnv("PORT", "8081"),

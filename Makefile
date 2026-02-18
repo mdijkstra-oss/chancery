@@ -43,5 +43,8 @@ haiku:
 mistral:
 	MODEL=mistralai/ministral-14b-2512 $(RUN_CMD)
 
+prompt:
+	@go run ./cmd/generate $(ARGS)
+
 build:
 	go build -o main cmd/main.go

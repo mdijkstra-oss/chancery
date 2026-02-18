@@ -1,7 +1,3 @@
----
-requires:
-  - remove_block
----
 
 <remove-block>
 ## `remove_block`

@@ -1,7 +1,3 @@
----
-requires:
-  - patch_json_block
----
 
 <patch-json-block>
 ## `patch_json_block` — extended path syntax

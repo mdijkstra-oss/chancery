@@ -1,7 +1,3 @@
----
-requires:
-  - orientate
----
 
 <orientation>
 ## Ground Rules

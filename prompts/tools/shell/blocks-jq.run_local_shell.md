@@ -1,7 +1,3 @@
----
-requires:
-  - run_local_shell
----
 
 <shell-blocks-jq>
 ## Querying structured data with `blocks | jq`

@@ -1,7 +1,3 @@
----
-requires:
-  - execute_with_plan
----
 
 <execute-with-plan>
 # Execute with plan

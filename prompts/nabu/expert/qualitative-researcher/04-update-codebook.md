@@ -11,21 +11,11 @@ When accumulated annotations reveal a code boundary problem, update the code def
 
 **Adding examples from data** — when a researcher confirms an ambiguous annotation, add the passage as an example or counter-example to the relevant code definition.
 
-## Merge workflow
-
-When an annotation's ambiguity resolution reveals something the codebook should capture permanently:
-
-1. Update the code definition — add the clarification to inclusion/exclusion criteria or examples
-2. Record `user_feedback` on the annotation — capture the researcher's rationale
-3. Set `merged: true` on the annotation — signals the resolution has been absorbed into the codebook
-
-The sequence matters: update the codebook first, then mark merged. An annotation marked merged without a corresponding codebook change is misleading.
-
 ## When not to merge
 
 Not every ambiguity resolution needs a codebook change:
 
-- **One-off judgment calls** — the text is genuinely edge-case and the codebook is fine as-is. Record `user_feedback` but leave `merged` unset.
+- **One-off judgment calls** — the text is genuinely edge-case and the codebook is fine as-is. Record feedback but leave merged unset.
 - **Researcher preference** — the researcher resolves it based on their knowledge of the participant or context, not because the code definition is lacking.
 - **Insufficient pattern** — a single ambiguous instance is not enough to change a definition. Wait for a cluster before proposing codebook changes.
 

@@ -73,7 +73,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	streamResponse(w, resp, cfg, urlPath, toolNames, composed.Sources, promptCfg.Pricing)
+	streamResponse(w, resp, cfg, urlPath, toolNames, composed.Sources, promptCfg.Pricing, promptCfg.ReasoningEffort)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {
@@ -114,7 +114,7 @@ func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
 	http.Error(w, string(body), resp.StatusCode)
 }
 
-func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, toolNames []string, sources []string, pricing prompts.Pricing) {
+func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, toolNames []string, sources []string, pricing prompts.Pricing, reasoningEffort string) {
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
@@ -124,7 +124,7 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endp
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, cfg.Verbose, endpoint, toolNames, sources, pricing)
+	streamWithUsageLogging(resp.Body, w, flusher, cfg.Verbose, endpoint, toolNames, sources, pricing, reasoningEffort)
 }
 
 func parseTemperature(s string) *float64 {

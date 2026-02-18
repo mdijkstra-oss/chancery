@@ -1,7 +1,3 @@
----
-requires:
-  - run_local_shell
----
 
 <shell-grep>
 ## grep discipline

@@ -44,7 +44,7 @@ func ComposePrompt(baseDir string, opts ComposeOpts) (ComposeResult, error) {
 	var fragments []fragment
 
 	for _, folder := range ancestorFolders(opts.Folder) {
-		loaded, err := loadLayer(filepath.Join(baseDir, folder))
+		loaded, err := loadLayer(filepath.Join(baseDir, folder), opts.Tools)
 		if err != nil {
 			return ComposeResult{}, err
 		}
@@ -52,7 +52,7 @@ func ComposePrompt(baseDir string, opts ComposeOpts) (ComposeResult, error) {
 	}
 
 	if opts.Chat {
-		loaded, err := loadLayer(filepath.Join(baseDir, "tools", "chat"))
+		loaded, err := loadLayer(filepath.Join(baseDir, "tools", "chat"), opts.Tools)
 		if err != nil {
 			return ComposeResult{}, err
 		}
@@ -66,7 +66,7 @@ func ComposePrompt(baseDir string, opts ComposeOpts) (ComposeResult, error) {
 	fragments = append(fragments, loaded...)
 
 	if opts.Extra != "" {
-		loaded, err := loadExtraLayer(baseDir, opts.Extra)
+		loaded, err := loadExtraLayer(baseDir, opts.Extra, opts.Tools)
 		if err != nil {
 			return ComposeResult{}, err
 		}
@@ -159,7 +159,7 @@ func ListDirectories(baseDir string) ([]string, error) {
 	return filterDirectories(entries), nil
 }
 
-func loadLayer(dir string) ([]fragment, error) {
+func loadLayer(dir string, tools []string) ([]fragment, error) {
 	entries, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -171,8 +171,12 @@ func loadLayer(dir string) ([]fragment, error) {
 	names := filterMarkdownNames(entries)
 	slices.Sort(names)
 
+	toolSet := toSet(tools)
 	fragments := make([]fragment, 0, len(names))
 	for _, name := range names {
+		if req := parseToolRequirement(name); req != "" && !toolSet[req] {
+			continue
+		}
 		path := filepath.Join(dir, name)
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -199,6 +203,7 @@ func loadToolFilesRecursive(dir string, available []string, skipChat bool) ([]fr
 	names := filterToolEntryNames(entries, skipChat)
 	slices.Sort(names)
 
+	toolSet := toSet(available)
 	var fragments []fragment
 	for _, name := range names {
 		path := filepath.Join(dir, name)
@@ -214,25 +219,25 @@ func loadToolFilesRecursive(dir string, available []string, skipChat bool) ([]fr
 			fragments = append(fragments, sub...)
 			continue
 		}
+		if req := parseToolRequirement(name); req != "" && !toolSet[req] {
+			continue
+		}
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
-		fm, body := ParseFrontmatter(string(data))
-		if HasRequired(fm.Requires, available) {
-			fragments = append(fragments, fragment{path: path, content: body})
-		}
+		fragments = append(fragments, fragment{path: path, content: string(data)})
 	}
 	return fragments, nil
 }
 
 var validExtras = map[string]bool{"plan": true, "exec": true, "merge": true, "memory": true}
 
-func loadExtraLayer(baseDir, name string) ([]fragment, error) {
+func loadExtraLayer(baseDir, name string, tools []string) ([]fragment, error) {
 	if !validExtras[name] {
 		return nil, fmt.Errorf("unknown extra prompt: %s", name)
 	}
-	return loadLayer(filepath.Join(baseDir, "extra", name))
+	return loadLayer(filepath.Join(baseDir, "extra", name), tools)
 }
 
 func ancestorFolders(folder string) []string {
@@ -295,4 +300,21 @@ func filterDirectories(entries []os.DirEntry) []string {
 		}
 	}
 	return dirs
+}
+
+func toSet(items []string) map[string]bool {
+	m := make(map[string]bool, len(items))
+	for _, item := range items {
+		m[item] = true
+	}
+	return m
+}
+
+func parseToolRequirement(name string) string {
+	base := strings.TrimSuffix(name, ".md")
+	dot := strings.LastIndex(base, ".")
+	if dot == -1 {
+		return ""
+	}
+	return base[dot+1:]
 }

@@ -1,7 +1,3 @@
----
-requires:
-  - resolve
----
 
 <resolve-reject>
 # Responding to delegated work

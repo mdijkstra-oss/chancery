@@ -1,7 +1,3 @@
----
-requires:
-- apply_local_patch
----
 
 # Memory
 

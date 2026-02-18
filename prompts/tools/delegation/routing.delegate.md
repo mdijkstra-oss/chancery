@@ -1,7 +1,3 @@
----
-requires:
-  - delegate
----
 
 <delegation>
 # Delegation of work

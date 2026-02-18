@@ -1,7 +1,3 @@
----
-requires:
-  - apply_local_patch
----
 
 <apply-patch>
 ## File Operations with apply_local_patch

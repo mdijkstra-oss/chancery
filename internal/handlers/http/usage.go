@@ -21,7 +21,7 @@ func addToSessionCost(cents float64) float64 {
 	return float64(newTotal) / 1_000_000
 }
 
-func logUsage(endpoint string, toolNames []string, sources []string, usage *UsageResponse, pricing prompts.Pricing) {
+func logUsage(endpoint string, toolNames []string, sources []string, usage *UsageResponse, pricing prompts.Pricing, reasoningEffort string) {
 	attrs := []any{
 		"endpoint", endpoint,
 		"tools", toolNames,
@@ -29,6 +29,7 @@ func logUsage(endpoint string, toolNames []string, sources []string, usage *Usag
 		"input_tokens", usage.InputTokens,
 		"output_tokens", usage.OutputTokens,
 		"total_tokens", usage.TotalTokens,
+		"reasoning", reasoningEffort,
 	}
 	if usage.InputTokensDetails != nil {
 		attrs = append(attrs, "cached_tokens", usage.InputTokensDetails.CachedTokens)

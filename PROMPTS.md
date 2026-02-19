@@ -5,8 +5,8 @@
 | Layer | Teaches | Where in code |
 |-------|---------|---------------|
 | Tool schema | Format, arg names, types | `nabu-theatron/app/lib/agent/executors/*.ts` — zod schemas with `.describe()` |
-| Tool prompt | Tool-specific patterns | `hermes-logos/prompts/tools/**/*.md` — gated by `requires` frontmatter |
-| Domain prompt | Domain intent and judgment | `hermes-logos/prompts/nabu/**/*.md` — layered by folder hierarchy |
+| Tool prompt | Tool-specific patterns | `hermes-logos/prompts/tools/**/*.md` — gated by filename convention |
+| Domain prompt | Domain intent and judgment | `hermes-logos/prompts/shared/**/*.md` — composed by agent manifests |
 
 Each layer trusts the one below. Never re-teach what a lower layer already covers.
 
@@ -40,12 +40,12 @@ Each layer trusts the one below. Never re-teach what a lower layer already cover
 - Parameter names, types, required/optional
 - One-line description of what the tool does
 
-**In the tool prompt (e.g. json-block.md, patching.md):**
+**In the tool prompt (e.g. selectors.patch_json_block.md):**
 - Patterns specific to the tool: selector syntax, batching, `"""` content
 - When to use this tool vs another tool
 - Validation behavior, error recovery
 
-**In the domain prompt (e.g. 02-coding.md):**
+**In the domain prompt (e.g. qualitative-researcher/coding.md):**
 - Domain concepts: what an annotation is, what codes mean
 - Decision criteria: when confidence is medium vs high, when to merge
 - Value shapes: the data structure the domain works with (without the tool call wrapper)
@@ -81,73 +81,72 @@ The LLM reads tool errors. An error message is a prompt that teaches recovery.
 
 ## Codebase architecture
 
-### Layer 1: Tool schemas (zod)
+Three directories, three mechanisms:
+
+```
+prompts/
+├── agents/    ← manifests (compose from shared/) + config.json
+├── shared/    ← all building block prompts
+└── tools/     ← tool-gated prompts
+```
+
+### Tool schemas (zod)
 
 Location: `nabu-theatron/app/lib/agent/executors/*.ts`
 
 Each tool is a zod schema with `.describe()` on fields. This generates the JSON schema the model sees as the tool definition. The model learns format, arg names, and types from this alone.
 
-Example: `patch.ts` defines `apply_local_patch`, `json-patch.ts` defines `patch_json_block`.
-
-To change what a tool accepts or how args are described: edit the zod schema. The `.describe()` strings are the tool's documentation to the model.
-
-### Layer 2: Tool prompts
+### Tool prompts
 
 Location: `hermes-logos/prompts/tools/**/*.md`
 
-Gated by frontmatter — a tool prompt is only included when the agent has the matching tool:
+Gated by filename convention: `concept.toolname.md`. The segment after the last `.` (before `.md`) is the required tool name. If the agent doesn't have that tool, the prompt is skipped. Files without a dot in the base name are always included.
 
-```yaml
----
-requires:
-  - apply_local_patch
----
+Examples: `selectors.patch_json_block.md`, `grep.run_local_shell.md`, `routing.delegate.md`.
+
+Loaded per-request based on the tools the frontend sends. Appended after the agent's manifest prompt.
+
+### Shared prompts
+
+Location: `hermes-logos/prompts/shared/**/*.md`
+
+All building block prompts — identity, discipline, methodology, chat behavior, planning, execution, etc. Never loaded directly. Only included when a manifest references them.
+
+### Agent manifests
+
+Location: `hermes-logos/prompts/agents/**/*.md`
+
+Each `.md` file is a manifest that composes shared prompts via `[path.md]` syntax. Includes resolve relative to `prompts/shared/`. Literal text between includes is kept as-is.
+
+```markdown
+[nabu/identity.md]
+[nabu/discipline.md]
+[expert/approach.md]
+
+Glue text specific to this agent/mode.
+
+[chat/discipline.md]
+[planning/planning.md]
 ```
 
-OR semantics: if any required tool is available, the prompt is included.
+Naming determines the registry key:
+- `agents/analyst/index.md` → key: `analyst`
+- `agents/expert/qualitative-researcher/index.md` → key: `expert/qualitative-researcher`
+- `agents/expert/qualitative-researcher/plan.md` → key: `expert/qualitative-researcher/plan`
 
-These teach tool-specific patterns the schema can't express: selector syntax, `"""` fenced content, batching, fuzzy matching, when to use `patch_json_block` vs `apply_local_patch`.
-
-### Layer 3: Domain prompts
-
-Location: `hermes-logos/prompts/nabu/**/*.md`
-
-Assembled by walking the folder hierarchy. For `nabu/expert/qualitative-researcher`:
-
-```
-nabu/01-identity.md           ← base identity (all agents)
-nabu/02-discipline.md         ← base discipline (all agents)
-nabu/03-cursor.md             ← base cursor (all agents)
-nabu/expert/01-identity.md    ← expert identity (all experts)
-nabu/expert/qualitative-researcher/01-identity.md  ← specialist identity
-nabu/expert/qualitative-researcher/02-coding.md    ← specialist domain
-```
-
-Deeper folders inherit all ancestor prompts. Numbered prefixes control ordering within each folder.
-
-These teach only domain intent: what an annotation is, when to code, confidence thresholds, merge workflow. No tool call format.
-
-### Extra prompts
-
-Location: `hermes-logos/prompts/extra/{plan,exec,merge}/*.md`
-
-Appended when the agent is in plan/exec/merge mode. Same rules — domain intent only.
+Different manifests for different modes (index, plan, exec, compact, orient) — each is a complete prompt composition, not a diff from the base.
 
 ### Config cascade
 
-Each folder can have a `config.json` controlling model, reasoning effort, etc. Walks up the hierarchy — deepest config wins.
-
-```
-nabu/config.json               → reasoning_effort: "medium"
-nabu/expert/config.json         → reasoning_effort: "high"
-```
+`config.json` at any directory level under `agents/`. Agents without a direct config inherit from the nearest parent directory.
 
 ### Assembly flow
 
-1. Frontend agent definition (`nabu-theatron/.../agents.ts`) declares path + tools
-2. Request hits backend: `POST /expert/qualitative-researcher?chat=true`
-3. `ComposePrompt` walks ancestors, loads base → chat → tool (filtered by requires) → extra
-4. Concatenated with `\n\n`, sent as system message
+1. `CompileRegistry` walks `agents/` at startup, resolves all manifests from `shared/`
+2. Request hits backend: `POST /expert/qualitative-researcher/plan`
+3. URL path maps directly to registry key → compiled manifest prompt
+4. Tool prompts loaded per-request, filtered by available tools, appended
+5. Concatenated prompt sent as system message
 
 ### Where to edit
 
@@ -155,7 +154,7 @@ nabu/expert/config.json         → reasoning_effort: "high"
 |----------------|------|
 | Tool arg names/types/descriptions | Zod schema in `nabu-theatron/.../executors/*.ts` |
 | Tool-specific patterns (selectors, batching) | `hermes-logos/prompts/tools/**/*.md` |
-| Domain intent (what to annotate, when to merge) | `hermes-logos/prompts/nabu/**/*.md` |
+| Domain intent (what to annotate, when to merge) | `hermes-logos/prompts/shared/**/*.md` |
+| Which prompts an agent uses | Manifest in `hermes-logos/prompts/agents/**/*.md` |
 | Which tools an agent has | Agent definition in `nabu-theatron/.../agents.ts` |
-| Model/reasoning settings | `config.json` in the appropriate folder level |
-| Plan/exec/merge behavior | `hermes-logos/prompts/extra/{plan,exec,merge}/*.md` |
+| Model/reasoning settings | `config.json` in `hermes-logos/prompts/agents/` |

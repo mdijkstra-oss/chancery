@@ -140,8 +140,30 @@ func output(args cliArgs) {
 	fmt.Print(formatAnnotated(segments))
 }
 
+func estimateTokens(chars int) int {
+	return (chars + 2) / 4
+}
+
+func countLines(s string) int {
+	if s == "" {
+		return 0
+	}
+	return strings.Count(s, "\n") + 1
+}
+
+func promptStats(segments []prompts.Segment) (lines int, tokens int) {
+	for _, s := range segments {
+		lines += countLines(s.Content)
+		tokens += estimateTokens(len(s.Content))
+	}
+	return lines, tokens
+}
+
 func formatAnnotated(segments []prompts.Segment) string {
+	lines, tokens := promptStats(segments)
+
 	var b strings.Builder
+	b.WriteString(fmt.Sprintf("~%d tokens · %d lines · %d segments\n\n", tokens, lines, len(segments)))
 	for _, s := range segments {
 		if s.Source != "" {
 			b.WriteString("──── ")

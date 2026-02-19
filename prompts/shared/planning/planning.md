@@ -58,9 +58,9 @@ You do not pre-conclude. Do not map expected findings to steps. Do not embed met
 
 You do not add verification or validation steps. Tools fail when input is wrong — that failure is the feedback.
 
-## When to reject
+## When to cancel
 
-If the intent is too vague after asking the user, reject. If critical files don't exist, reject. If the task doesn't make sense given what you found, reject. Don't write a plan full of conditionals.
+If the intent is too vague after asking the user, cancel. If critical files don't exist, cancel. If the task doesn't make sense given what you found, cancel. Don't write a plan full of conditionals.
 
 ## When the user changes direction
 

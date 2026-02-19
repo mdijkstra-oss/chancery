@@ -1,14 +1,15 @@
 
-<resolve-reject>
+<resolve-cancel>
 # Responding to delegated work
 
-Partial completion is a `resolve` with `unresolved` items — not a `reject`. You did what you could and are being clear about what's left.
+`cancel` means you can't continue at all — not that you failed mid-work. If you've already started and hit a wall, that's not a cancel.
 
-`reject` means you can't start the work at all — not that you failed mid-work. If you've already started and hit a wall, that's a resolve with unresolved items.
-
-Reasons to reject:
+Reasons to cancel:
 
 - Context references files or material that don't exist or can't be found
 - The intent is ambiguous or contradictory and you can't reasonably interpret it
 - The task is outside your capability or domain
-</resolve-reject>
+- Critical files are missing or the plan is fundamentally blocked
+
+`resolve` is for the plan agent only — it submits the completed plan as JSON.
+</resolve-cancel>

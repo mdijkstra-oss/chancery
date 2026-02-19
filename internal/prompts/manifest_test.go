@@ -224,9 +224,9 @@ func TestManifestKeyFromPath(t *testing.T) {
 		},
 		{
 			name:      "deep path named file",
-			path:      "/agents/expert/qualitative-researcher/memory.md",
+			path:      "/agents/expert/qualitative-researcher/compact.md",
 			agentsDir: "/agents",
-			want:      "expert/qualitative-researcher/memory",
+			want:      "expert/qualitative-researcher/compact",
 		},
 	}
 

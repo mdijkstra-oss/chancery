@@ -3,4 +3,4 @@
 [expert/approach.md]
 [qualitative-researcher/methodology.md]
 
-[merge/merge.md]
+[compact/compact.md]

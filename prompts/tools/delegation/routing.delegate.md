@@ -35,7 +35,7 @@ If the outcome matches what you asked for and unresolved is empty, the task succ
 
 If there are unresolved items, assess: is the result good enough to present, or does more work need to happen? You can delegate again with a narrower intent focused on the unresolved items.
 
-If the expert rejects, don't silently retry the same delegate. Either fix what the expert said was missing, or tell the user what's needed.
+If the expert cancels, don't silently retry the same delegate. Either fix what the expert said was missing, or tell the user what's needed.
 
 ## General rules
 

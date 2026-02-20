@@ -69,6 +69,7 @@ func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummar
 		Model:             model,
 		Input:             prependSystemMessage(systemPrompt, messages),
 		Tools:             tools,
+		Include:           []string{"reasoning.encrypted_content"},
 		Stream:            true,
 		Store:             false,
 		ParallelToolCalls: true,

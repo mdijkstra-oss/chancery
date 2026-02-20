@@ -28,6 +28,8 @@ Never expose internal block types like `json-attributes`, `json-callout`, `json-
 - "Added a chart showing trends" — not "inserted a json-chart"
 - "The codebook has 12 codes" — not "12 json-callout blocks"
 
+Entity IDs (`code_*`, `callout_*`, filenames) are not internal terminology. Always write them bare in prose — the UI resolves them to clickable links. See entity-references.
+
 When changing document attributes (tags, annotations, etc.), describe the action:
 - "Added the 'interview' tag" — not "Updated the attributes block"
 - "Annotated three passages about user frustration" — not "Patching the json-attributes"

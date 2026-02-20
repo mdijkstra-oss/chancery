@@ -43,6 +43,12 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 
 	req.Messages = ExpandMessages(req.Messages, registry.Modes)
 
+	var reasoningEffort string
+	req.Messages, reasoningEffort = ExtractReasoningEffort(req.Messages)
+	if reasoningEffort == "" {
+		reasoningEffort = promptCfg.ReasoningEffort
+	}
+
 	toolNames := ExtractToolNames(req.Tools)
 
 	toolPrompt, toolSources, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
@@ -60,7 +66,11 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 
 	toolChoice := r.URL.Query().Get("tool_choice")
 	temperature := parseTemperature(r.URL.Query().Get("temperature"))
-	apiReq := buildResponsesRequest(promptCfg.Model, fullPrompt, promptCfg.ReasoningEffort, promptCfg.ReasoningSummary, promptCfg.Verbosity, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
+	reasoningSummary := r.URL.Query().Get("reasoning_summary")
+	if reasoningSummary == "" {
+		reasoningSummary = promptCfg.ReasoningSummary
+	}
+	apiReq := buildResponsesRequest(promptCfg.Model, fullPrompt, reasoningEffort, reasoningSummary, promptCfg.Verbosity, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
 
 	logOutgoingRequest(apiReq, cfg.Verbose)
 
@@ -76,7 +86,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		return
 	}
 
-	streamResponse(w, resp, cfg, urlPath, toolNames, allSources, promptCfg.Pricing, promptCfg.ReasoningEffort)
+	streamResponse(w, resp, cfg, urlPath, toolNames, allSources, promptCfg.Pricing, reasoningEffort)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {

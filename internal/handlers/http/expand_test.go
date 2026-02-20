@@ -83,6 +83,72 @@ func TestExpandMessages(t *testing.T) {
 	}
 }
 
+func TestExtractReasoningEffort(t *testing.T) {
+	cases := []struct {
+		name         string
+		messages     []json.RawMessage
+		wantEffort   string
+		wantMsgCount int
+	}{
+		{
+			name:         "no markers",
+			messages:     []json.RawMessage{msg("user", "hello")},
+			wantEffort:   "",
+			wantMsgCount: 1,
+		},
+		{
+			name:         "single marker",
+			messages:     []json.RawMessage{msg("system", "<!-- reasoning: high -->")},
+			wantEffort:   "high",
+			wantMsgCount: 0,
+		},
+		{
+			name: "last marker wins",
+			messages: []json.RawMessage{
+				msg("system", "<!-- reasoning: low -->"),
+				msg("user", "hi"),
+				msg("system", "<!-- reasoning: high -->"),
+			},
+			wantEffort:   "high",
+			wantMsgCount: 1,
+		},
+		{
+			name: "markers stripped other messages kept",
+			messages: []json.RawMessage{
+				msg("user", "hello"),
+				msg("system", "<!-- reasoning: medium -->"),
+				msg("user", "go"),
+			},
+			wantEffort:   "medium",
+			wantMsgCount: 2,
+		},
+		{
+			name:         "non-system reasoning marker unchanged",
+			messages:     []json.RawMessage{msg("user", "<!-- reasoning: high -->")},
+			wantEffort:   "",
+			wantMsgCount: 1,
+		},
+		{
+			name:         "marker with extra whitespace",
+			messages:     []json.RawMessage{msg("system", "<!--  reasoning:  medium  -->")},
+			wantEffort:   "medium",
+			wantMsgCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotMessages, gotEffort := ExtractReasoningEffort(tc.messages)
+			if gotEffort != tc.wantEffort {
+				t.Errorf("effort: got %q, want %q", gotEffort, tc.wantEffort)
+			}
+			if len(gotMessages) != tc.wantMsgCount {
+				t.Errorf("message count: got %d, want %d", len(gotMessages), tc.wantMsgCount)
+			}
+		})
+	}
+}
+
 func rawSliceToStrings(raws []json.RawMessage) []string {
 	result := make([]string, len(raws))
 	for i, r := range raws {

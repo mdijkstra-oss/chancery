@@ -24,6 +24,7 @@ type ResponsesRequest struct {
 	Model             string            `json:"model"`
 	Input             []json.RawMessage `json:"input"`
 	Tools             []json.RawMessage `json:"tools,omitempty"`
+	Include           []string          `json:"include,omitempty"`
 	ToolChoice        *string           `json:"tool_choice,omitempty"`
 	Temperature       *float64          `json:"temperature,omitempty"`
 	Stream            bool              `json:"stream"`

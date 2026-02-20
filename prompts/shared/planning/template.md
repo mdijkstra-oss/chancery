@@ -1,5 +1,5 @@
 <plan-format>
-Resolve with your outcome as JSON:
+Call `create_plan` with:
 
 {
   "task": "High-level description of what we're accomplishing",

@@ -68,10 +68,17 @@ func pickAgent() string {
 	defer tty.Close()
 
 	registry := prompts.CompileRegistry(prompts.PromptsDir)
-	keys := sortedKeys(registry.Agents)
+	agentKeys := sortedKeys(registry.Agents)
+	modeKeys := sortedStringMapKeys(registry.Modes)
 
-	fmt.Fprintln(tty, "pick an agent:")
-	for i, k := range keys {
+	var all []string
+	all = append(all, agentKeys...)
+	for _, k := range modeKeys {
+		all = append(all, "mode/"+k)
+	}
+
+	fmt.Fprintln(tty, "pick a prompt:")
+	for i, k := range all {
 		fmt.Fprintf(tty, "  %d) %s\n", i+1, k)
 	}
 	fmt.Fprint(tty, "> ")
@@ -83,11 +90,11 @@ func pickAgent() string {
 	input := strings.TrimSpace(scanner.Text())
 
 	var idx int
-	if _, err := fmt.Sscanf(input, "%d", &idx); err == nil && idx >= 1 && idx <= len(keys) {
-		return keys[idx-1]
+	if _, err := fmt.Sscanf(input, "%d", &idx); err == nil && idx >= 1 && idx <= len(all) {
+		return all[idx-1]
 	}
 
-	for _, k := range keys {
+	for _, k := range all {
 		if strings.Contains(k, input) {
 			return k
 		}
@@ -110,7 +117,19 @@ func matchFlag(args []string, i int, name string) (string, int) {
 	return "", 0
 }
 
+func isModePath(path string) (string, bool) {
+	if strings.HasPrefix(path, "mode/") {
+		return strings.TrimPrefix(path, "mode/"), true
+	}
+	return "", false
+}
+
 func output(args cliArgs) {
+	if modeKey, ok := isModePath(args.agentPath); ok {
+		outputMode(modeKey)
+		return
+	}
+
 	var skip func(string) bool
 	if len(args.collapse) > 0 {
 		skip = buildSkip(args.collapse)
@@ -123,6 +142,7 @@ func output(args cliArgs) {
 		for _, k := range sortedKeys(registry.Agents) {
 			fmt.Fprintf(os.Stderr, "  %s\n", k)
 		}
+		printAvailableModes(registry)
 		os.Exit(1)
 	}
 
@@ -138,6 +158,28 @@ func output(args cliArgs) {
 	}
 
 	fmt.Print(formatAnnotated(segments))
+}
+
+func outputMode(modeKey string) {
+	mode, err := prompts.CompileMode(prompts.PromptsDir, modeKey)
+	if err != nil {
+		registry := prompts.CompileRegistry(prompts.PromptsDir)
+		fmt.Fprintf(os.Stderr, "unknown mode: %s\n", modeKey)
+		printAvailableModes(registry)
+		os.Exit(1)
+	}
+	fmt.Print(formatAnnotated(mode.Segments))
+}
+
+func printAvailableModes(registry prompts.Registry) {
+	modeKeys := sortedStringMapKeys(registry.Modes)
+	if len(modeKeys) == 0 {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "\nmodes:\n")
+	for _, k := range modeKeys {
+		fmt.Fprintf(os.Stderr, "  mode/%s\n", k)
+	}
 }
 
 func estimateTokens(chars int) int {
@@ -208,6 +250,15 @@ func parseCSV(s string) []string {
 }
 
 func sortedKeys(m map[string]prompts.CompiledAgent) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedStringMapKeys(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

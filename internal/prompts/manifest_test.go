@@ -245,9 +245,12 @@ func TestCompileRegistry(t *testing.T) {
 	promptsDir := filepath.Join(base, "prompts")
 
 	sharedFiles := map[string]string{
-		"shared/nabu/identity.md":   "I am Nabu.",
-		"shared/nabu/discipline.md": "Be disciplined.",
-		"shared/chat/style.md":      "Be direct.",
+		"shared/nabu/identity.md":       "I am Nabu.",
+		"shared/nabu/discipline.md":     "Be disciplined.",
+		"shared/chat/style.md":          "Be direct.",
+		"shared/planning/planning.md":   "Plan carefully.",
+		"shared/planning/template.md":   "Template here.",
+		"shared/execution/execution.md": "Execute the plan.",
 	}
 	for name, content := range sharedFiles {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
@@ -263,11 +266,19 @@ func TestCompileRegistry(t *testing.T) {
 	}
 
 	configFiles := map[string]string{
-		"agents/expert/config.json":                          `{"model": "gpt-5.2", "reasoning_effort": "high"}`,
-		"agents/expert/qualitative-researcher/config.json":   `{"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"}`,
-		"agents/analyst/config.json":                         `{"model": "gpt-5.2", "reasoning_effort": "medium"}`,
+		"agents/expert/config.json":                        `{"model": "gpt-5.2", "reasoning_effort": "high"}`,
+		"agents/expert/qualitative-researcher/config.json": `{"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"}`,
+		"agents/analyst/config.json":                       `{"model": "gpt-5.2", "reasoning_effort": "medium"}`,
 	}
 	for name, content := range configFiles {
+		writeTestFile(t, filepath.Join(promptsDir, name), content)
+	}
+
+	modeFiles := map[string]string{
+		"modes/planning.md":  "Planning intro.\n\n[planning/planning.md]\n[planning/template.md]",
+		"modes/execution.md": "Execution intro.\n\n[execution/execution.md]",
+	}
+	for name, content := range modeFiles {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
 	}
 
@@ -329,6 +340,32 @@ func TestCompileRegistry(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want, cfg); diff != "" {
 				t.Errorf("config mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+
+	modeCases := []struct {
+		key        string
+		wantPrompt string
+	}{
+		{
+			key:        "planning",
+			wantPrompt: "Planning intro.\n\nPlan carefully.\nTemplate here.",
+		},
+		{
+			key:        "execution",
+			wantPrompt: "Execution intro.\n\nExecute the plan.",
+		},
+	}
+
+	for _, tc := range modeCases {
+		t.Run("mode/"+tc.key, func(t *testing.T) {
+			prompt, ok := registry.Modes[tc.key]
+			if !ok {
+				t.Fatalf("mode %q not found in registry", tc.key)
+			}
+			if diff := cmp.Diff(tc.wantPrompt, prompt); diff != "" {
+				t.Errorf("mode prompt mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

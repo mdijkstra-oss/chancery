@@ -41,6 +41,8 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		return
 	}
 
+	req.Messages = ExpandMessages(req.Messages, registry.Modes)
+
 	toolNames := ExtractToolNames(req.Tools)
 
 	toolPrompt, toolSources, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)

@@ -25,6 +25,7 @@ type CompiledAgent struct {
 type Registry struct {
 	Agents  map[string]CompiledAgent
 	Configs map[string]PromptConfig
+	Modes   map[string]string
 }
 
 var includePattern = regexp.MustCompile(`^\[([^\]]+\.md)\]$`)
@@ -91,6 +92,18 @@ func ManifestKeyFromPath(path, agentsDir string) string {
 	return dir + "/" + name
 }
 
+func CompileMode(promptsDir, modeKey string) (CompiledAgent, error) {
+	modesDir := filepath.Join(promptsDir, "modes")
+	sharedDir := filepath.Join(promptsDir, "shared")
+
+	data, err := os.ReadFile(filepath.Join(modesDir, modeKey+".md"))
+	if err != nil {
+		return CompiledAgent{}, fmt.Errorf("read mode %s: %w", modeKey, err)
+	}
+	lines := ParseManifest(string(data))
+	return ResolveManifest(lines, osReadFile, sharedDir, nil)
+}
+
 func CompileAgent(promptsDir, agentKey string, skip func(string) bool) (CompiledAgent, error) {
 	agentsDir := filepath.Join(promptsDir, "agents")
 	sharedDir := filepath.Join(promptsDir, "shared")
@@ -115,6 +128,7 @@ func CompileRegistry(promptsDir string) Registry {
 	registry := Registry{
 		Agents:  make(map[string]CompiledAgent),
 		Configs: make(map[string]PromptConfig),
+		Modes:   compileModes(promptsDir),
 	}
 
 	filepath.Walk(agentsDir, func(path string, info os.FileInfo, err error) error {
@@ -144,6 +158,40 @@ func CompileRegistry(promptsDir string) Registry {
 
 	resolveAgentConfigs(registry, agentsDir)
 	return registry
+}
+
+func compileModes(promptsDir string) map[string]string {
+	modesDir := filepath.Join(promptsDir, "modes")
+	sharedDir := filepath.Join(promptsDir, "shared")
+	modes := make(map[string]string)
+
+	entries, err := os.ReadDir(modesDir)
+	if os.IsNotExist(err) {
+		return modes
+	}
+	if err != nil {
+		panic(fmt.Sprintf("read modes dir: %v", err))
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+		path := filepath.Join(modesDir, entry.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			panic(fmt.Sprintf("read mode %s: %v", entry.Name(), err))
+		}
+		lines := ParseManifest(string(data))
+		compiled, err := ResolveManifest(lines, osReadFile, sharedDir, nil)
+		if err != nil {
+			panic(fmt.Sprintf("compile mode %s: %v", entry.Name(), err))
+		}
+		key := strings.TrimSuffix(entry.Name(), ".md")
+		modes[key] = compiled.Prompt
+	}
+
+	return modes
 }
 
 func osReadFile(path string) (string, error) {

@@ -1,15 +1,16 @@
 
 <resolve-cancel>
-# Responding to delegated work
+# resolve and cancel
 
-`cancel` means you can't continue at all — not that you failed mid-work. If you've already started and hit a wall, that's not a cancel.
+`resolve` = the plan is complete. Call from execution mode when all steps are done. Submits the outcome.
 
-Reasons to cancel:
+`cancel` = abandon the current mode and return to chat. Use when:
 
 - Context references files or material that don't exist or can't be found
 - The intent is ambiguous or contradictory and you can't reasonably interpret it
 - The task is outside your capability or domain
 - Critical files are missing or the plan is fundamentally blocked
+- The user wants to stop the current plan or execution
 
-`resolve` is for the plan agent only — it submits the completed plan as JSON.
+`cancel` is not failure — it's a mode transition back to conversation.
 </resolve-cancel>

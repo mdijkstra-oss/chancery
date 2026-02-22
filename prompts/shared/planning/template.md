@@ -1,5 +1,5 @@
 <plan-format>
-Call `create_plan` with:
+Call `submit_plan` with:
 
 {
   "task": "High-level description of what we're accomplishing",

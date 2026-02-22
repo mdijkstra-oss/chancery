@@ -1,10 +1,10 @@
 
-<execute-with-plan>
-# Execute with plan
+<plan>
+# Plan
 
 Decide how to handle the user's request.
 
-## Call execute_with_plan
+## Call plan
 
 Enters planning mode. You and the user shape the approach together, then you execute it.
 
@@ -15,4 +15,4 @@ Do not handle directly just because the task seems simple. "Code this file" seem
 ## Handle directly
 
 Only for lightweight tasks that need no structure: answering a question, giving feedback, making a single small edit, looking something up. If the work involves judgment across multiple parts or the user should have visibility into progress — that needs a plan.
-</execute-with-plan>
+</plan>

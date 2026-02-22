@@ -41,28 +41,6 @@ The system prepares file content for you:
 
 By default, file content is not included in the plan context initial step. Use `per_section` to opt into receiving sections.
 
-### Inline patches vs. new file
-
-Small, targeted edits — patch the file inline:
-- Add a paragraph, insert a table, replace a word
-- Append content to the end
-- Update a single section
-- **Annotations/coding** — always patch the original file's annotation block
-
-Large transforms that use `per_section` to **rewrite majority of content** — write to a **new file**:
-- Restructuring, reformatting, converting, merging
-- Any plan where most sections produce content writes to the same file
-
-**Exception: Annotations are NOT content rewrites.** Coding/annotation tasks add metadata to the original file — they don't transform the document's content. Always patch annotations inline on the original.
-
-Convention for new files:
-- Create the new version as `filename (new).md`
-- Leave the original untouched during the entire plan
-- At the end, tell the user: "New version: `filename (new).md`. Original is unchanged."
-
-- **TLDR**: For changes that change minority of sections, patch original file directly, if large chunks of sections change patch into new file
-- **Warning**: If you did not create a new file at the beginning of the plan DO NOT start writing to a new file. Make the patch location decision **before** you start processing sections.
-
 ### Process incrementally
 
 Each section should be fully processed (including writes) before moving to the next. Don't collect information from all sections first, then write at the end — that defeats the purpose of sectioned processing and risks losing information from earlier sections.

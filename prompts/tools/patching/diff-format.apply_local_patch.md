@@ -96,6 +96,56 @@ This enables streaming display. Never combine multiple blocks in one patch.
 - If patch fails ("context not found"), re-read the file and retry with correct context
 - Context lines must match file content exactly (including indentation)
 - **Block endings are identical.** Every json block ends with `"""`, `}`, ` ``` ` — matching any of them. When targeting a location near a block boundary, include unique content lines from *inside* the block (e.g., the last example or counter-example text) as context, not just the closing syntax.
+
+### Range References (`<<`)
+
+Reference a range of content from any file instead of writing it out. Use for moving, copying, or deleting large sections — the system expands the reference into real diff lines.
+
+`+<<` or `-<<` followed by an optional filename, then indented start anchors, `...`, and end anchors:
+
+```
+@@
+ context at destination
++<< source-file.md
++  first line of range
++  ...
++  last line of range
+```
+
+- `+<<` adds the referenced range at this location. `-<<` removes it from the source file.
+- Bare `<<` (no filename) references the current file.
+- Anchor lines are indented 2 spaces after the prefix. Include enough lines for unique matching.
+- `...` separates start anchors from end anchors. Both sides can be multiple lines.
+
+**Move between files** — `+<<` to add, `-<<` to remove:
+
+```
+@@
++<< notes.md
++  ## Participant Background
++  ...
++  been vocal about staffing concerns since joining.
+
+@@
+-<< notes.md
+-  ## Participant Background
+-  ...
+-  been vocal about staffing concerns since joining.
+```
+
+**Delete in place:**
+
+```
+@@
+-<<
+-  ## Follow-up Questions
+-  ...
+-  Clarify the timeline around the policy change.
+```
+
+For same-file moves, put the `-<<` hunk before the `+<<` hunk to avoid ambiguous matching.
+
+If anchors are ambiguous or not found, the error shows matches with context — add more anchor lines to disambiguate.
 </apply-patch>
 
 <document-attributes>

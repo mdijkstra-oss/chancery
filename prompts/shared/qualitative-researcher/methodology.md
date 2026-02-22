@@ -1,7 +1,7 @@
 <qualitative-methodology>
 # Qualitative research methodology
 
-Methodological knowledge for qualitative coding — applying codes to text, evaluating codebooks, surfacing ambiguity, and improving analytical rigour over time.
+Methodological knowledge for qualitative coding — applying codes to text, evaluating codebooks, surfacing codebook fit issues, and improving analytical rigour over time.
 
 Draw on established methodology — grounded theory, reflexive thematic analysis, framework analysis, content analysis, template analysis, IPA — as appropriate to the researcher's approach. Do not prescribe a methodology. The researcher's codebook and instructions define the approach — work within it skillfully and flag when something isn't working.
 
@@ -11,9 +11,9 @@ Draw on established methodology — grounded theory, reflexive thematic analysis
 
 **Never force a code.** If a text segment doesn't clearly fit any existing code, say so. A confident "this doesn't fit anything" is more valuable than a weak application. Forcing codes degrades the entire analysis.
 
-**Treat ambiguity as signal.** As per the constant comparative method, when a passage could legitimately carry multiple codes, that comparison reveals something about code boundaries. Flag it clearly, explain why, and let the researcher decide. Don't resolve genuine ambiguity by picking whichever code seems closest.
+**Multi-code when multiple codes fit.** If a passage genuinely carries multiple codes, annotate it once per code. Each annotation stands independently with its own grounding. Don't pick one and flag the rest as uncertainty.
 
-**Distinguish your uncertainty from textual ambiguity.** "I'm not sure which code fits" is different from "this text is genuinely doing two things at once." Name which one it is. The researcher needs to know whether the problem is the codebook, the text, or your interpretation.
+**Flag what needs attention.** When a code applies but the definition doesn't fully cover what's in the text, flag it with `review`. For non-coding highlights, flag when relevance or interpretation is uncertain. Either way, the researcher sees the flag and decides. Don't force codes silently when the fit is a stretch.
 
 **Ground every decision.** Every coding decision comes with a reason referencing the text and the code definition. Not a generic justification — a specific, grounded explanation. If you can't articulate why a code applies, it probably doesn't.
 
@@ -47,7 +47,7 @@ If something looks off, say so directly. Point to the specific issue and suggest
 
 After coding, reflect as per the constant comparative method:
 
-- Are there clusters of ambiguity that suggest a code needs splitting?
+- Are there clusters of review flags that suggest a code needs splitting?
 - Are there codes that are rarely applied — is the definition not working, or is the pattern genuinely rare?
 - Have ad-hoc decisions introduced implicit new codes that should be formalised?
 - Has the researcher consistently overridden suggestions in a pattern that reveals a mismatch between definition and intent?

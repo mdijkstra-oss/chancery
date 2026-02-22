@@ -1,11 +1,10 @@
 <update-codebook-mechanics>
-# Merge workflow
+# Codebook update workflow
 
-When an annotation's ambiguity resolution reveals something the codebook should capture permanently:
+When a review flag reveals something the codebook should capture permanently:
 
 1. Update the code definition — add the clarification to inclusion/exclusion criteria or examples
-2. Record `user_feedback` on the annotation — capture the researcher's rationale
-3. Set `merged: true` on the annotation — signals the resolution has been absorbed into the codebook
+2. Clear the annotation's review text
 
-The sequence matters: update the codebook first, then mark merged. An annotation marked merged without a corresponding codebook change is misleading.
+The sequence matters: update the codebook first, then clear the review. A cleared review without a corresponding codebook change means the next similar case will hit the same wall.
 </update-codebook-mechanics>

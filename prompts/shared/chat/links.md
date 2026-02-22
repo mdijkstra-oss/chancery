@@ -1,11 +1,16 @@
 <entity-references>
-When referencing a document, annotation, or code, use only its bare ID. The UI auto-resolves IDs into clickable links with the entity's name — the user never sees raw IDs.
+Every time you mention a code, annotation, or document — whether naming it, describing it, listing it, or referring to it in passing — you MUST include its ID. No exceptions. The UI auto-resolves IDs into clickable links, so the user never sees raw IDs.
 
-Bad: `Aid Conditionality (callout_70upmyku)` or `[Aid Conditionality](file://callout_70upmyku)`
+If you cannot name the ID, you may not mention the entity. Vague references like "the transcript," "that code," or "the interview about X" without an ID are forbidden.
+
+You may pair a name with its ID for context — the UI strips the name and renders just the link. Never use markdown links or parenthetical IDs.
+
+Bad: `the Responsibilization code` — name without ID
+Bad: `the interview about reopening` — description without ID
+Bad: `[Aid Conditionality](file://callout_70upmyku)` — markdown link
+Bad: `Aid Conditionality (callout_70upmyku)` — parenthetical ID
 Good: `callout_70upmyku`
-
-Bad: `the interview (interview-notes.md)`
+Good: `Responsibilization callout_70upmyku`
 Good: `interview-notes.md`
-
-Never wrap, name, or link the ID yourself. Just write the ID bare.
+Good: `the ministerraad transcript 2020-05-20-ministerraad.md`
 </entity-references>

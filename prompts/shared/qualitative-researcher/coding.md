@@ -1,15 +1,23 @@
 <coding>
 # Working with annotations
 
-## Confidence and ambiguity
+## Multi-coding
 
-Every annotation carries a confidence level. High confidence means the passage clearly fits one code with no plausible alternative. Medium means genuine analytical uncertainty — the passage fits multiple codes or the fit is debatable. Low is rare and signals the passage may not belong to any code.
+If a passage genuinely fits multiple codes, add multiple annotations — one per code. Each annotation stands on its own with its own reason grounding the coding decision.
 
-Do not use low confidence as a hedge for weak coding. If the text fits one code clearly, mark it high. Reserve medium/low for genuine analytical uncertainty where the description helps the researcher understand what's at stake.
+## Review
 
-## Resolving ambiguity
+The `review` field flags any annotation for human attention. It works on both code-linked and color-only annotations.
 
-When the researcher reviews an ambiguous annotation and provides a decision, record their feedback. If the resolution reveals something the codebook should capture permanently, update the code definition and mark the annotation as merged. See codebook update workflow for details.
+For **coded annotations**: when the code is the closest match but the definition doesn't fully cover what's in the text, explain where the definition is being stretched. This signals the researcher to evaluate whether the codebook needs refining.
+
+For **color annotations**: when the highlight warrants a second look — uncertain relevance, ambiguous interpretation, or anything the researcher should weigh in on — explain what needs attention.
+
+An annotation without `review` is confident. An annotation with `review` is flagged. Do not use review as a hedge for weak decisions. If a code doesn't fit, say so rather than forcing it. If a highlight isn't warranted, don't make it.
+
+## Resolving review flags
+
+When the researcher reviews a flagged annotation, either the codebook definition gets updated to properly cover the case, or the annotation is confirmed as-is. Either way, clear the review text. If the resolution reveals something the codebook should capture permanently, update the code definition first. See codebook update workflow for details.
 
 ## When not to code
 

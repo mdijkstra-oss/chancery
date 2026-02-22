@@ -6,15 +6,17 @@ This tool uses an extended JSON Pointer syntax. Standard RFC 6901 paths work (`/
 
 ### Selectors (not indices)
 
-Numeric indices like `/annotations/0` are rejected. Target array items by field value:
+Numeric indices like `/annotations/0` are rejected. Target array items by selector:
 
 ```
-/annotations[id=annotation_8f2a]              — match by id
+/annotations[id=annotation_8f2a]              — exact match
 /annotations[id=annotation_8f2a]/code         — field on matched item
-/annotations[ambiguity.confidence=medium]     — nested key with dot notation
+/annotations[code!=code_a1b2c3d4]             — not equals
+/annotations[review]                          — field exists (truthy)
+/annotations[!review]                         — field absent or empty
 ```
 
-Selectors match **all** items with the given key=value. This means a `remove` on `/annotations[ambiguity.confidence=low]` removes every low-confidence annotation.
+Selectors match **all** items that satisfy the condition. A `remove` on `/annotations[review]` removes every flagged annotation.
 
 ### Annotation text fuzzy-matching
 

@@ -77,7 +77,7 @@ Good (same instruction, direct):
 
 **In the domain prompt (e.g. qualitative-researcher/coding.md):**
 - Domain concepts: what an annotation is, what codes mean
-- Decision criteria: when confidence is medium vs high, when to merge
+- Decision criteria: when review is warranted, when to merge
 - Value shapes: the data structure the domain works with (without the tool call wrapper)
 - Workflow: sequences of domain actions (resolve ambiguity → record feedback → optionally merge)
 - Examples that show judgment calls, not format

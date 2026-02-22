@@ -3,40 +3,42 @@
 
 Each annotation contains:
 - **text** — the passage from the document being annotated
-- **reason** — why this passage was annotated. Ground it in the text and the code definition.
+- **reason** — why this passage was annotated. Ground it in the text.
 - **code** — the codebook code ID (e.g. `code_a1b2c3d4`). For coding, always use `code`.
-- **ambiguity** — always present:
-  - **confidence** — `"high"`, `"medium"`, or `"low"`
-  - **description** — explain the uncertainty. Required when confidence is not `"high"`.
-  - **user_feedback** — the researcher's note on how ambiguity was resolved
-  - **merged** — whether the resolution was absorbed into the codebook
-
-The `color` field exists for non-coding highlights (e.g. `teal`, `amber`, `violet`). When coding, use `code` — never both.
+- **color** — for non-coding highlights (e.g. `teal`, `amber`, `violet`). Use `color` or `code` — never both.
+- **review** — optional. Flags for human review — explain what needs attention.
 
 ## Annotation examples
 
-When confidence is high and unambiguous:
+Clean coding — no review:
 
 ```json
 {
   "text": "we are constantly running on empty and nobody seems to care",
   "reason": "Direct expression of burnout and perceived management indifference",
-  "code": "code_a1b2c3d4",
-  "ambiguity": { "confidence": "high" }
+  "code": "code_a1b2c3d4"
 }
 ```
 
-When a passage genuinely fits multiple codes, annotate with the strongest fit, lower the confidence, and describe why:
+Coded annotation with review — codebook definition stretch:
 
 ```json
 {
   "text": "the training was inadequate and the timeline was unrealistic",
-  "reason": "Could indicate training gaps or management criticism — both present",
+  "reason": "Training gaps expressed alongside systemic frustration",
   "code": "code_k9m2n4p6",
-  "ambiguity": {
-    "confidence": "medium",
-    "description": "Also expresses frustration with management decisions (timeline). Coded as training because the participant's emphasis is on learning, but management-criticism is a legitimate alternative."
-  }
+  "review": "The training-gaps code covers learning deficits but this passage also expresses frustration with structural constraints (timeline). The definition may need broadening to include systemic context around training failures."
+}
+```
+
+Color annotation with review — uncertain relevance:
+
+```json
+{
+  "text": "I remember thinking at the time that something felt off",
+  "reason": "Retrospective sense-making that may signal an unprocessed critical incident",
+  "color": "amber",
+  "review": "Ambiguous whether this is analytically relevant or casual reflection. Flagging for researcher judgment."
 }
 ```
 </coding-mechanics>

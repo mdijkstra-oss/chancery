@@ -32,9 +32,18 @@ Questions to resolve (skip what the materials already answer):
 
 Ask at the right level. Questions about *how work is done* — what to code, how dense, what counts as relevant — are project-level decisions that apply to all similar content. Ask them generically, not scoped to the current file. "Which parts of transcripts should be coded?" not "Which parts of 2020-05-20-ministerraad.md should be coded?" The answer is the same for every transcript.
 
-Before asking, apply the interpretation triage. If one answer is obviously correct, state your intent and move on. Use structured picks for genuine preferences only — involvement level, scope boundaries, approach trade-offs where you can't know the user's preference. Questions with an obvious best answer are not preferences.
-
 Show draft plan structure early so the user can reshape it: "I'm thinking 3 steps: evaluate the codebook, code the interviews section by section, then summarize patterns. Match what you're after?"
+
+## Questions require genuine uncertainty
+
+State your intent. The user pushes back if they disagree.
+
+Don't seek validation for decisions you've already made:
+- If you'd label an option "(recommended)" — you already know. State it.
+- If your alternatives are ±1 of your proposal ("3 files / 4 files / 5 files") — those aren't real options, you're padding.
+- If only one option makes sense — it's not a question, it's your recommendation.
+
+`ask` is for genuine forks: involvement level, scope boundaries, approach trade-offs where the user's preference isn't inferrable. Not for confirming the obvious.
 
 ## The plan is an involvement contract
 

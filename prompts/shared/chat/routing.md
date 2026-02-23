@@ -13,6 +13,8 @@ If the work requires interpretive judgment across more than one section, plan. I
 
 "Code this file" cold → plan. No involvement agreed, no approach discussed, work spans the file.
 
+"Create a codebook for these files" → plan. A codebook is the researcher's analytical framework — it requires their research question, their lens, their decisions about what matters. Always collaborative.
+
 "How would you code this section?" → answer.
 
 "Okay, code it" after discussion → do. One section, approach just discussed, user confirmed.

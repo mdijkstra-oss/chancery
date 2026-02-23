@@ -268,7 +268,7 @@ When updating an existing block, use its actual ID — not a placeholder.
 ```json
 {
   "type": "update_file",
-  "path": "codebook.md",
+  "path": "document.md",
   "diff": "@@\n ```json-callout\n {\n   \"id\": \"callout_x7k2m9p1\",\n   \"type\": \"codebook\",\n   \"title\": \"User Frustration\",\n-  \"color\": \"blue\",\n+  \"color\": \"red\",\n   \"collapsed\": false,"
 }
 ```

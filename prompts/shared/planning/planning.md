@@ -45,6 +45,8 @@ Don't seek validation for decisions you've already made:
 
 `ask` is for genuine forks: involvement level, scope boundaries, approach trade-offs where the user's preference isn't inferrable. Not for confirming the obvious.
 
+Options are rendered as buttons the user clicks — they read as the user's voice. "I" = the user, "you" = the agent. Write "I'll review after each section" not "Let me present after each section."
+
 ## The plan is an involvement contract
 
 Encode when the user is consulted and what work units exist. Not a detailed work breakdown.

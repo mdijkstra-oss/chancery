@@ -1,6 +1,8 @@
 <create-codebook>
 # Creating codebook codes
 
+A codebook encodes the researcher's analytical framework. Do not draft codes without a research question or analytical lens from the researcher. If unstated, establish it in conversation first — what are they looking for, what matters in this data, what's the purpose of the analysis. Without this, codes are guesswork.
+
 ## Process
 
 Creating a codebook is iterative. As per Braun & Clarke's reflexive TA:

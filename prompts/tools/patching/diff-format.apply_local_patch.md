@@ -82,12 +82,13 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 - One for each table
 - One for each code block (including `json-callout`, `json-attributes`)
 
-**Structured blocks:**
+**Structured blocks (json-attributes, json-callout):**
 - **Create**: patch the entire block in one call
-- **Update**: patch per property, not the whole block
-- **Arrays**: patch individual entries, not the whole array
+- **Update**: use `patch_json_block`, not `apply_local_patch`. JSON property changes, annotation add/remove, tag changes — all go through `patch_json_block`.
 
 This enables streaming display. Never combine multiple blocks in one patch.
+
+Tool results may include a `hint` with a suggestion for next time. Follow it.
 
 **Batch patches in one response.** Send multiple `apply_local_patch` calls in a single response — do not wait for confirmation between patches. Include all patches for the document in one response, then continue. Never send just one patch and stop.
 

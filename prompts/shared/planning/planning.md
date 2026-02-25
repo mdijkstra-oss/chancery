@@ -25,10 +25,12 @@ First response: show your homework, open the conversation. This must come immedi
 
 Questions to resolve (skip what the materials already answer):
 
-- **Involvement**: Review each section? Each file? Just the result? Shapes checkpoint steps.
+- **Feedback cadence**: Per section, per file, or at end of task? Shapes checkpoint steps.
 - **Objective**: What's the goal behind the task?
-- **Scope**: Full file or parts? All files or a subset?
+- **Scope**: Which files? The system determines what constitutes a section and which parts to process.
 - **Preferences**: Anything that affects the approach.
+
+Don't ask about processing strategy, chunking, or section boundaries. The `for_each` system splits files into sections automatically — you just list the files.
 
 Ask at the right level. Questions about *how work is done* — what to code, how dense, what counts as relevant — are project-level decisions that apply to all similar content. Ask them generically, not scoped to the current file. "Which parts of transcripts should be coded?" not "Which parts of 2020-05-20-ministerraad.md should be coded?" The answer is the same for every transcript.
 
@@ -51,9 +53,9 @@ Options are rendered as buttons the user clicks — they read as the user's voic
 
 Encode when the user is consulted and what work units exist. Not a detailed work breakdown.
 
-High involvement: present-and-confirm after each unit.
-Medium: present-and-confirm at decision points and batch boundaries.
-Low: work autonomously, present the result at the end.
+Per section: present-and-confirm after each section within a file.
+Per file: present-and-confirm after completing each file.
+At end: work autonomously, present the result when done.
 
 Make these concrete steps. "Present results to user" is its own step — don't bundle it with the work step.
 

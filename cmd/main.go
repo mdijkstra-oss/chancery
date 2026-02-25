@@ -23,7 +23,7 @@ func main() {
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
 		APIKey:  cfg.APIKey,
 		BaseURL: cfg.BaseURL,
-		Verbose: cfg.Verbose,
+		Inspect: cfg.Inspect,
 	}, registry)
 
 	r := chi.NewRouter()

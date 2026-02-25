@@ -27,16 +27,15 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, verbose bool, endpoint string, toolNames []string, sources []string, pricing prompts.Pricing, reasoningEffort string) {
+func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string, pricing prompts.Pricing, reasoningEffort string, estimatedTokens int) {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
-	var content strings.Builder
 	var currentEvent string
+	var completedData string
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		lineWithNewline := line + "\n"
-		dst.Write([]byte(lineWithNewline))
+		dst.Write([]byte(line + "\n"))
 		flusher.Flush()
 		lineCount++
 
@@ -50,15 +49,10 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 			continue
 		}
 
-		if verbose && currentEvent == "response.output_text.delta" {
-			if delta := extractTextDelta(data); delta != "" {
-				content.WriteString(delta)
-			}
-		}
-
 		if currentEvent == "response.completed" {
+			completedData = data
 			if usage := extractCompletedUsage(data); usage != nil {
-				logUsage(endpoint, toolNames, sources, usage, pricing, reasoningEffort)
+				logUsage(endpoint, usage, pricing, reasoningEffort, estimatedTokens)
 			}
 		}
 	}
@@ -67,8 +61,8 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 		slog.Error("stream read error", "error", err)
 	} else {
 		slog.Info("stream_complete", "lines_received", lineCount)
-		if verbose && content.Len() > 0 {
-			slog.Info("raw_response", "content", content.String())
+		if cfg.Inspect && completedData != "" {
+			inspectRawJSON(endpoint+" response", []byte(completedData))
 		}
 	}
 }

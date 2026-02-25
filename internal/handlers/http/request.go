@@ -78,6 +78,9 @@ func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummar
 	if temperature != nil {
 		req.Temperature = temperature
 	}
+	if reasoningEffort == "off" {
+		reasoningEffort = ""
+	}
 	if reasoningEffort != "" || reasoningSummary != "" {
 		req.Reasoning = &ReasoningConfig{Effort: reasoningEffort, Summary: reasoningSummary}
 	}

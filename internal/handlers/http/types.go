@@ -11,7 +11,7 @@ type ChatRequest struct {
 type Config struct {
 	APIKey  string
 	BaseURL string
-	Verbose bool
+	Inspect bool
 }
 
 type InputMessage struct {

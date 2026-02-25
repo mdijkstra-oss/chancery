@@ -41,6 +41,8 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		return
 	}
 
+	directives := extractDirectives(req.Messages)
+
 	req.Messages = ExpandMessages(req.Messages, registry.Modes)
 
 	var reasoningEffort string
@@ -51,7 +53,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 
 	toolNames := ExtractToolNames(req.Tools)
 
-	toolPrompt, toolSources, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
+	toolPrompt, _, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -62,8 +64,6 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		fullPrompt = fullPrompt + "\n\n" + toolPrompt
 	}
 
-	allSources := append(agent.Sources, toolSources...)
-
 	toolChoice := r.URL.Query().Get("tool_choice")
 	temperature := parseTemperature(r.URL.Query().Get("temperature"))
 	reasoningSummary := r.URL.Query().Get("reasoning_summary")
@@ -72,7 +72,48 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	}
 	apiReq := buildResponsesRequest(promptCfg.Model, fullPrompt, reasoningEffort, reasoningSummary, promptCfg.Verbosity, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
 
-	logOutgoingRequest(apiReq, cfg.Verbose)
+	forceCompact := r.URL.Query().Get("compact") == "true"
+	tokens := estimateTokens(apiReq.Input)
+	if forceCompact || shouldCompact(promptCfg.CompactAt, tokens) {
+		compacterAgent, compacterOk := registry.Agents["expert/compacter"]
+		compacterCfg, compacterCfgOk := registry.Configs["expert/compacter"]
+		if !compacterOk || !compacterCfgOk {
+			slog.Error("compacter agent not found in registry")
+		} else {
+			compactReq := buildCompactRequest(compacterCfg.Model, compacterAgent.Prompt, stripForCompaction(req.Messages))
+			resp, err := proxyRequest(r.Context(), compactReq, cfg)
+			if err != nil {
+				handleProxyError(w, err)
+				return
+			}
+			defer resp.Body.Close()
+			if isErrorResponse(resp) {
+				handleUpstreamError(w, resp)
+				return
+			}
+			slog.Info("compacting", "tokens", tokens, "compact_at", promptCfg.CompactAt)
+			if cfg.Inspect {
+				inspectJSON("expert/compacter request", compactReq)
+			}
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.WriteHeader(http.StatusOK)
+			flusher := w.(http.Flusher)
+			usage, err := streamCompaction(resp.Body, w, flusher, directives)
+			if err != nil {
+				slog.Error("compaction stream error", "error", err)
+				return
+			}
+			if usage != nil {
+				logUsage("expert/compacter", usage, compacterCfg.Pricing, "", 0)
+			}
+			return
+		}
+	}
+
+	if cfg.Inspect {
+		inspectJSON(urlPath+" request", apiReq)
+	}
 
 	resp, err := proxyRequest(r.Context(), apiReq, cfg)
 	if err != nil {
@@ -86,7 +127,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		return
 	}
 
-	streamResponse(w, resp, cfg, urlPath, toolNames, allSources, promptCfg.Pricing, reasoningEffort)
+	streamResponse(w, resp, cfg, urlPath, promptCfg.Pricing, reasoningEffort, tokens)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {
@@ -127,7 +168,7 @@ func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
 	http.Error(w, string(body), resp.StatusCode)
 }
 
-func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, toolNames []string, sources []string, pricing prompts.Pricing, reasoningEffort string) {
+func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, pricing prompts.Pricing, reasoningEffort string, estimatedTokens int) {
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
@@ -137,7 +178,7 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endp
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, cfg.Verbose, endpoint, toolNames, sources, pricing, reasoningEffort)
+	streamWithUsageLogging(resp.Body, w, flusher, cfg, endpoint, pricing, reasoningEffort, estimatedTokens)
 }
 
 func parseTemperature(s string) *float64 {

@@ -11,7 +11,7 @@ type Config struct {
 	BaseURL     string
 	CorsOrigins []string
 	LogLevel    slog.Level
-	Verbose     bool
+	Inspect     bool
 }
 
 func Load() Config {
@@ -21,7 +21,7 @@ func Load() Config {
 		BaseURL:     getEnv("BASE_URL", "https://api.openai.com/v1"),
 		CorsOrigins: []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:    parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		Verbose:     os.Getenv("VERBOSE") != "",
+		Inspect:     os.Getenv("INSPECT") != "",
 	}
 }
 

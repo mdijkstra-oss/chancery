@@ -17,4 +17,5 @@ type PromptConfig struct {
 	ReasoningSummary string  `json:"reasoning_summary"`
 	Verbosity        string  `json:"verbosity"`
 	Pricing          Pricing `json:"pricing"`
+	CompactAt        int     `json:"compact_at,omitempty"`
 }

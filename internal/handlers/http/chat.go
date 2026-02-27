@@ -75,8 +75,8 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	forceCompact := r.URL.Query().Get("compact") == "true"
 	tokens := estimateTokens(apiReq.Input)
 	if forceCompact || shouldCompact(promptCfg.CompactAt, tokens) {
-		compacterAgent, compacterOk := registry.Agents["expert/compacter"]
-		compacterCfg, compacterCfgOk := registry.Configs["expert/compacter"]
+		compacterAgent, compacterOk := registry.Agents["compacter"]
+		compacterCfg, compacterCfgOk := registry.Configs["compacter"]
 		if !compacterOk || !compacterCfgOk {
 			slog.Error("compacter agent not found in registry")
 		} else {
@@ -93,7 +93,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 			}
 			slog.Info("compacting", "tokens", tokens, "compact_at", promptCfg.CompactAt)
 			if cfg.Inspect {
-				inspectJSON("expert/compacter request", compactReq)
+				inspectJSON("compacter request", compactReq)
 			}
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.Header().Set("Cache-Control", "no-cache")
@@ -105,7 +105,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 				return
 			}
 			if usage != nil {
-				logUsage("expert/compacter", usage, compacterCfg.Pricing, "", 0)
+				logUsage("compacter", usage, compacterCfg.Pricing, "", 0)
 			}
 			return
 		}

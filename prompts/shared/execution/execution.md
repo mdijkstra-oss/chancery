@@ -7,11 +7,17 @@ Work from the plan as agreed. Work through steps in order. The system detects co
 
 Call `complete_step` after each step with optional `summary` and `internal` context (carried forward, not shown). Use `internal` for IDs, counts, findings needed by later steps.
 
-`summary` is visible to the user. The user can see what you wrote in the document — don't narrate it back. Surface what's invisible: where you hesitated, what patterns are forming, which judgment calls could have gone either way. For mechanical operations (deleted N items, renamed X) a brief receipt is fine.
+`summary` is visible to the user. The user can see what you wrote in the document — don't narrate it back. Write conversationally: where you hesitated, what patterns are forming, which judgment calls could have gone either way. Not a technical receipt ("Converted X into Y with three code blocks") — that's narrating what you wrote. Say what the user *can't* see from the document alone.
 
-Per-section steps: call `complete_step` for each inner step. The system detects whether this is a substep or a section-completing step automatically.
+Nested steps: call `complete_step` for each inner step. The system detects substep vs. top-level automatically.
 
 Loops describe iteration patterns. You determine the actual items at execution time.
+
+## Working with sections
+
+The plan's nested steps name sections discovered by `segment_file` during planning. For each section step, use `read_section` with the corresponding line range to load the content, then do the work.
+
+Process each section fully (including writes) before moving to the next. Don't collect information from all sections first, then write at the end — that risks losing information from earlier sections.
 
 ## User checkpoints
 
@@ -26,36 +32,6 @@ The plan encodes the involvement the user agreed to — don't override it yourse
 Follow `decisions` — they are resolved judgment calls, not suggestions. Don't re-litigate.
 
 You still make execution-level judgment calls: which code applies, whether a paragraph is relevant, how to phrase output. The plan governs process. You govern substance.
-
-## For-each processing
-
-File work — coding, reviewing, annotating, extracting, evaluating — goes through `for_each`. File content and annotations are injected for sequential processing.
-
-If file work isn't structured as for_each in the plan, use `for_each` anyway. Each file gets a clean focused context.
-
-After `for_each` returns: `complete_step` and continue. If it fails and the work is fundamentally blocked, `cancel`.
-
-## Working with file content
-
-The system prepares file content for you:
-- When switching to a new file, you receive its attributes (tags, annotations, etc.)
-- Section content has the attributes block stripped to avoid duplication
-- Content is split into sections on markdown block boundaries to not overload context
-- Sections are handed to you one at a time during `per_section` steps
-
-By default, file content is not included in the plan context initial step. Use `per_section` to opt into receiving sections.
-
-### Process incrementally
-
-Each section should be fully processed (including writes) before moving to the next. Don't collect information from all sections first, then write at the end — that defeats the purpose of sectioned processing and risks losing information from earlier sections.
-
-### Handling split sections
-
-Section boundaries may split a logical unit (e.g., a code definition cut off mid-content — you see inclusion criteria but no exclusion criteria or examples). When this happens:
-
-1. **Do NOT write the incomplete unit.** Writing partial content forces you to patch it later, which is fragile.
-2. **Note the incomplete content in `internal`** when calling `complete_step`.
-3. **Write the complete unit in the next section** when you receive the rest.
 
 ## Execution discipline
 

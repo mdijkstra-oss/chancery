@@ -32,6 +32,7 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 	lineCount := 0
 	var currentEvent string
 	var completedData string
+	var completedUsage *UsageResponse
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -51,19 +52,20 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 
 		if currentEvent == "response.completed" {
 			completedData = data
-			if usage := extractCompletedUsage(data); usage != nil {
-				logUsage(endpoint, usage, pricing, reasoningEffort, estimatedTokens)
-			}
+			completedUsage = extractCompletedUsage(data)
 		}
 	}
 
 	if err := scanner.Err(); err != nil && isUnexpectedStreamError(err) {
 		slog.Error("stream read error", "error", err)
 	} else {
-		slog.Info("stream_complete", "lines_received", lineCount)
 		if cfg.Inspect && completedData != "" {
 			inspectRawJSON(endpoint+" response", []byte(completedData))
 		}
+		if completedUsage != nil {
+			logUsage(endpoint, completedUsage, pricing, reasoningEffort, estimatedTokens)
+		}
+		slog.Info("stream_complete", "lines_received", lineCount)
 	}
 }
 

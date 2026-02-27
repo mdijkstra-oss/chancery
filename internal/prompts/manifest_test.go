@@ -206,27 +206,27 @@ func TestManifestKeyFromPath(t *testing.T) {
 	}{
 		{
 			name:      "index.md becomes parent dir",
-			path:      "/agents/expert/qualitative-researcher/index.md",
+			path:      "/agents/qual-coder/index.md",
 			agentsDir: "/agents",
-			want:      "expert/qualitative-researcher",
+			want:      "qual-coder",
 		},
 		{
 			name:      "named file becomes parent/name",
-			path:      "/agents/expert/qualitative-researcher/plan.md",
+			path:      "/agents/qual-coder/plan.md",
 			agentsDir: "/agents",
-			want:      "expert/qualitative-researcher/plan",
+			want:      "qual-coder/plan",
 		},
 		{
 			name:      "top-level index",
-			path:      "/agents/analyst/index.md",
+			path:      "/agents/compacter/index.md",
 			agentsDir: "/agents",
-			want:      "analyst",
+			want:      "compacter",
 		},
 		{
-			name:      "deep path named file",
-			path:      "/agents/expert/qualitative-researcher/compact.md",
+			name:      "nested path named file",
+			path:      "/agents/nested/sub-agent/compact.md",
 			agentsDir: "/agents",
-			want:      "expert/qualitative-researcher/compact",
+			want:      "nested/sub-agent/compact",
 		},
 	}
 
@@ -257,18 +257,17 @@ func TestCompileRegistry(t *testing.T) {
 	}
 
 	agentFiles := map[string]string{
-		"agents/expert/qualitative-researcher/index.md": "[nabu/identity.md]\n[nabu/discipline.md]\n\nYou are an expert.",
-		"agents/expert/qualitative-researcher/plan.md":  "[nabu/identity.md]\n\nPlan the work.\n\n[chat/style.md]",
-		"agents/analyst/index.md":                       "[nabu/identity.md]\n\nYou analyze.",
+		"agents/qual-coder/index.md": "[nabu/identity.md]\n[nabu/discipline.md]\n\nYou are an expert.",
+		"agents/qual-coder/plan.md":  "[nabu/identity.md]\n\nPlan the work.\n\n[chat/style.md]",
+		"agents/compacter/index.md":  "[nabu/identity.md]\n\nYou compact.",
 	}
 	for name, content := range agentFiles {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
 	}
 
 	configFiles := map[string]string{
-		"agents/expert/config.json":                        `{"model": "gpt-5.2", "reasoning_effort": "high"}`,
-		"agents/expert/qualitative-researcher/config.json": `{"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"}`,
-		"agents/analyst/config.json":                       `{"model": "gpt-5.2", "reasoning_effort": "medium"}`,
+		"agents/qual-coder/config.json": `{"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"}`,
+		"agents/compacter/config.json":  `{"model": "gpt-5.2", "reasoning_effort": "medium"}`,
 	}
 	for name, content := range configFiles {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
@@ -289,16 +288,16 @@ func TestCompileRegistry(t *testing.T) {
 		wantPrompt string
 	}{
 		{
-			key:        "expert/qualitative-researcher",
+			key:        "qual-coder",
 			wantPrompt: "I am Nabu.\nBe disciplined.\n\nYou are an expert.",
 		},
 		{
-			key:        "expert/qualitative-researcher/plan",
+			key:        "qual-coder/plan",
 			wantPrompt: "I am Nabu.\n\nPlan the work.\n\nBe direct.",
 		},
 		{
-			key:        "analyst",
-			wantPrompt: "I am Nabu.\n\nYou analyze.",
+			key:        "compacter",
+			wantPrompt: "I am Nabu.\n\nYou compact.",
 		},
 	}
 
@@ -319,15 +318,15 @@ func TestCompileRegistry(t *testing.T) {
 		want PromptConfig
 	}{
 		{
-			key:  "expert/qualitative-researcher",
+			key:  "qual-coder",
 			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high", Verbosity: "low"},
 		},
 		{
-			key:  "expert/qualitative-researcher/plan",
+			key:  "qual-coder/plan",
 			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high", Verbosity: "low"},
 		},
 		{
-			key:  "analyst",
+			key:  "compacter",
 			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "medium"},
 		},
 	}

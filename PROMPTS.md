@@ -160,8 +160,8 @@ Glue text specific to this agent.
 ```
 
 Naming determines the registry key:
-- `agents/analyst/index.md` → key: `analyst`
-- `agents/expert/qualitative-researcher/index.md` → key: `expert/qualitative-researcher`
+- `agents/compacter/index.md` → key: `compacter`
+- `agents/qual-coder/index.md` → key: `qual-coder`
 
 One manifest per agent — the base prompt. Mode-specific behavior comes from mode overlays.
 
@@ -180,7 +180,7 @@ The frontend pushes `<!-- prompt: planning -->` or `<!-- prompt: execution -->` 
 ### Assembly flow
 
 1. `CompileRegistry` walks `agents/` and `modes/` at startup, resolves all manifests from `shared/`
-2. Request hits backend: `POST /expert/qualitative-researcher`
+2. Request hits backend: `POST /qual-coder`
 3. URL path maps directly to registry key → compiled manifest prompt
 4. Messages containing `<!-- prompt: X -->` markers are expanded to compiled mode prompts
 5. Tool prompts loaded per-request, filtered by available tools, appended

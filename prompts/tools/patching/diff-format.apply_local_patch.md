@@ -85,6 +85,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 **Structured blocks (json-attributes, json-callout):**
 - **Create**: patch the entire block in one call
 - **Update**: use `patch_json_block`, not `apply_local_patch`. JSON property changes, annotation add/remove, tag changes — all go through `patch_json_block`.
+- **Comment lines** (`// start ...`, `// end ...`) are system-managed. Use them as context anchors, but never add, remove, or modify them.
 
 This enables streaming display. Never combine multiple blocks in one patch.
 

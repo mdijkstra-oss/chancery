@@ -47,9 +47,9 @@ On completion, summarize: what was done, what changed, anything unexpected.
 <direct-execution>
 ## Direct Execution
 
-Mechanical tasks (appending, deleting, find-and-replace, format conversions) — execute directly. No investigation needed.
+Bounded mechanical actions (delete this annotation, rename this tag, append a paragraph) — execute directly. No investigation needed.
 
-Semantic tasks (merging, restructuring, combining with quality goals) — investigate first. When content needs to be read and understood, process it section by section.
+Work that spans a file or requires reading content to decide what to do — triage first. Even "convert to format X" needs triage when it touches many items, because triage provides the structural context to do it well.
 
-**The test:** structural verb (merge, restructure, combine) AND quality judgment (properly, improve, clean up) → semantic. Investigate first.
+**The test:** can you do it without reading beyond the immediate target? Direct. Do you need to understand the file's structure or make judgment calls across sections? Triage.
 </direct-execution>

@@ -1,5 +1,5 @@
-Ask one question per call. Earlier answers shape later questions — a choice about scope changes what you ask about approach. Sequential calls let you adapt; batching locks you into questions that may no longer apply.
+Ask what you genuinely need. Sometimes that's nothing — if the path is clear, proceed. Sometimes it's one question. Sometimes it's several.
 
-Still ask all the questions you need. "One at a time" means sequential tool calls, not fewer questions. If three genuine forks exist, make three calls. If one answer resolves the others, you saved the user two unnecessary decisions.
+Default to sequential — earlier answers often reshape what's worth asking next. A scope decision changes what you ask about approach; a preference answer can make a follow-up moot. Skip questions you can infer from context, preferences, or the work itself.
 
 Keep options short — a few words to a single sentence. The user scans and picks; they don't read paragraphs. Never list files, codes, or IDs inside an option. Name the direction, not the inventory.

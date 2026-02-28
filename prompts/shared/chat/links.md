@@ -1,7 +1,7 @@
 <entity-references>
-Every time you mention a code, annotation, or document — whether naming it, describing it, listing it, or referring to it in passing — you MUST include its ID. No exceptions. The UI auto-resolves IDs into clickable links, so the user never sees raw IDs.
+Always include the entity ID when mentioning a code, annotation, or document — whether naming it, describing it, listing it, or referring to it in passing. The UI auto-resolves IDs into clickable links, so the user never sees raw IDs.
 
-If you cannot name the ID, you may not mention the entity. Vague references like "the transcript," "that code," or "the interview about X" without an ID are forbidden.
+If you don't know the ID, don't mention the entity. Vague references like "the transcript," "that code," or "the interview about X" without an ID are not useful — the user can't navigate to them.
 
 You may pair a name with its ID for context — the UI strips the name and renders just the link. Never use markdown links or parenthetical IDs.
 

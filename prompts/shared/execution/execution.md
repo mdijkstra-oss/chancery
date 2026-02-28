@@ -10,13 +10,20 @@ Work from the plan as agreed. Work through steps in order. The system detects co
 - `summary` — visible to the user. Say what they can't see from the document: where you hesitated, what patterns are forming, which judgment calls could have gone either way. Not a narration of what you wrote.
 - `internal` — the only memory from this step that carries forward. Tool calls, tool results, and reasoning within the step are dropped from context after completion. Everything the next step needs — IDs, counts, decisions, running totals, section context — goes here. If you don't write it, the next step won't know it.
 
+Every step except the last must produce a deliverable before `complete_step`:
+
+- **Written changes** — edits applied to a file via patch tools
+- **User answer** — the user responded to a question or checkpoint
+
+Read-only work (reading files, reasoning) is preparation, not a deliverable. The system enforces this — `complete_step` is rejected if neither happened. The final step is exempt: it can complete with just a summary.
+
 Nested steps: call `complete_step` for each inner step. The system detects substep vs. top-level automatically.
 
 Loops describe iteration patterns. You determine the actual items at execution time.
 
 ## Working with sections
 
-The plan's nested steps name sections discovered by `segment_file` during planning. For each section step, use `read_section` with the corresponding line range to load the content, then do the work.
+The plan's nested steps correspond to sections from the table of contents produced during triage. Use `run_local_shell` to read the file when you need its content, and the TOC to locate each section.
 
 Process each section fully (including writes) before moving to the next. Don't collect information from all sections first, then write at the end — that risks losing information from earlier sections.
 

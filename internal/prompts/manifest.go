@@ -44,7 +44,16 @@ func ParseManifest(content string) []Line {
 	return lines
 }
 
-func ResolveManifest(lines []Line, readFile func(string) (string, error), sharedDir string, skip func(string) bool) (CompiledAgent, error) {
+func resolveInclude(include string, readFile func(string) (string, error), localDir, sharedDir string) (string, error) {
+	if localDir != "" {
+		if content, err := readFile(filepath.Join(localDir, include)); err == nil {
+			return content, nil
+		}
+	}
+	return readFile(filepath.Join(sharedDir, include))
+}
+
+func ResolveManifest(lines []Line, readFile func(string) (string, error), sharedDir, localDir string, skip func(string) bool) (CompiledAgent, error) {
 	var parts []string
 	var sources []string
 	var segments []Segment
@@ -55,8 +64,7 @@ func ResolveManifest(lines []Line, readFile func(string) (string, error), shared
 				segments = append(segments, Segment{Content: "[" + line.Include + "]"})
 				continue
 			}
-			path := filepath.Join(sharedDir, line.Include)
-			content, err := readFile(path)
+			content, err := resolveInclude(line.Include, readFile, localDir, sharedDir)
 			if err != nil {
 				return CompiledAgent{}, fmt.Errorf("include %q: %w", line.Include, err)
 			}
@@ -101,7 +109,7 @@ func CompileMode(promptsDir, modeKey string) (CompiledAgent, error) {
 		return CompiledAgent{}, fmt.Errorf("read mode %s: %w", modeKey, err)
 	}
 	lines := ParseManifest(string(data))
-	return ResolveManifest(lines, osReadFile, sharedDir, nil)
+	return ResolveManifest(lines, osReadFile, sharedDir, "", nil)
 }
 
 func CompileAgent(promptsDir, agentKey string, skip func(string) bool) (CompiledAgent, error) {
@@ -118,7 +126,7 @@ func CompileAgent(promptsDir, agentKey string, skip func(string) bool) (Compiled
 		return CompiledAgent{}, fmt.Errorf("read manifest %s: %w", agentKey, err)
 	}
 	lines := ParseManifest(string(data))
-	return ResolveManifest(lines, osReadFile, sharedDir, skip)
+	return ResolveManifest(lines, osReadFile, sharedDir, filepath.Dir(manifestPath), skip)
 }
 
 func CompileRegistry(promptsDir string) Registry {
@@ -148,7 +156,7 @@ func CompileRegistry(promptsDir string) Registry {
 			panic(fmt.Sprintf("read manifest %s: %v", path, err))
 		}
 		lines := ParseManifest(string(data))
-		agent, err := ResolveManifest(lines, osReadFile, sharedDir, nil)
+		agent, err := ResolveManifest(lines, osReadFile, sharedDir, filepath.Dir(path), nil)
 		if err != nil {
 			panic(fmt.Sprintf("compile %s: %v", key, err))
 		}
@@ -183,7 +191,7 @@ func compileModes(promptsDir string) map[string]string {
 			panic(fmt.Sprintf("read mode %s: %v", entry.Name(), err))
 		}
 		lines := ParseManifest(string(data))
-		compiled, err := ResolveManifest(lines, osReadFile, sharedDir, nil)
+		compiled, err := ResolveManifest(lines, osReadFile, sharedDir, "", nil)
 		if err != nil {
 			panic(fmt.Sprintf("compile mode %s: %v", entry.Name(), err))
 		}

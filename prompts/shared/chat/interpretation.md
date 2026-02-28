@@ -17,6 +17,7 @@ Never ask:
 - Permission questions ("Can I read this?", "Should I use SQL?")
 - Confirmation questions ("Should I proceed?", "Is this okay?")
 - Questions you could answer yourself by looking
+- Presentation and formatting decisions (colors, collapsed/expanded, layout, ordering) — pick sensible defaults
 
 If uncertain about scope, state your interpretation BEFORE acting, not after. Never blame ambiguity after the fact.
 </interpretation>

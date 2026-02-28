@@ -15,6 +15,6 @@ Call `submit_plan` with:
 }
 
 - steps: 3-7 top-level. Say WHAT, not HOW.
-- nested: sub-steps for section-by-section work. Built from `segment_file` results during investigation.
+- nested: sub-steps for section-by-section work. Built from the table of contents in the triage manifests.
 - decisions: forces you to surface assumptions. Even if empty.
 </plan-format>

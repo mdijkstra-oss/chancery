@@ -145,7 +145,7 @@ func TestResolveManifest(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := ResolveManifest(tc.lines, reader, shared, nil)
+			got, err := ResolveManifest(tc.lines, reader, shared, "", nil)
 			if tc.wantErr {
 				if err == nil {
 					t.Error("expected error, got nil")
@@ -174,7 +174,7 @@ func TestResolveManifest(t *testing.T) {
 			{Include: "chat/style.md"},
 		}
 		skipChat := func(path string) bool { return strings.Contains(path, "chat/") }
-		got, err := ResolveManifest(lines, reader, shared, skipChat)
+		got, err := ResolveManifest(lines, reader, shared, "", skipChat)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -193,6 +193,39 @@ func TestResolveManifest(t *testing.T) {
 		}
 		if diff := cmp.Diff(wantSegments, got.Segments); diff != "" {
 			t.Errorf("segments mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("local dir takes precedence over shared", func(t *testing.T) {
+		merged := testReader(map[string]string{
+			"/shared/nabu/identity.md": "I am Nabu.",
+			"/shared/guide.md":         "Shared guide.",
+			"/local/guide.md":          "Local guide.",
+		})
+		lines := []Line{
+			{Include: "nabu/identity.md"},
+			{Literal: ""},
+			{Include: "guide.md"},
+		}
+		got, err := ResolveManifest(lines, merged, shared, "/local", nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		wantPrompt := "I am Nabu.\n\nLocal guide."
+		if diff := cmp.Diff(wantPrompt, got.Prompt); diff != "" {
+			t.Errorf("prompt mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("falls back to shared when not in local", func(t *testing.T) {
+		lines := []Line{{Include: "nabu/identity.md"}}
+		got, err := ResolveManifest(lines, reader, shared, "/nonexistent", nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		wantPrompt := "I am Nabu."
+		if diff := cmp.Diff(wantPrompt, got.Prompt); diff != "" {
+			t.Errorf("prompt mismatch (-want +got):\n%s", diff)
 		}
 	})
 }
@@ -257,9 +290,11 @@ func TestCompileRegistry(t *testing.T) {
 	}
 
 	agentFiles := map[string]string{
-		"agents/qual-coder/index.md": "[nabu/identity.md]\n[nabu/discipline.md]\n\nYou are an expert.",
-		"agents/qual-coder/plan.md":  "[nabu/identity.md]\n\nPlan the work.\n\n[chat/style.md]",
-		"agents/compacter/index.md":  "[nabu/identity.md]\n\nYou compact.",
+		"agents/qual-coder/index.md":    "[nabu/identity.md]\n[nabu/discipline.md]\n\nYou are an expert.",
+		"agents/qual-coder/plan.md":     "[nabu/identity.md]\n\nPlan the work.\n\n[chat/style.md]",
+		"agents/compacter/index.md":     "[nabu/identity.md]\n\nYou compact.",
+		"agents/advisor/index.md":       "[requirements.md]\n\nYou advise.",
+		"agents/advisor/requirements.md": "Plan well.",
 	}
 	for name, content := range agentFiles {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
@@ -268,6 +303,7 @@ func TestCompileRegistry(t *testing.T) {
 	configFiles := map[string]string{
 		"agents/qual-coder/config.json": `{"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"}`,
 		"agents/compacter/config.json":  `{"model": "gpt-5.2", "reasoning_effort": "medium"}`,
+		"agents/advisor/config.json":    `{"model": "gpt-5-mini", "reasoning_effort": "low"}`,
 	}
 	for name, content := range configFiles {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
@@ -298,6 +334,10 @@ func TestCompileRegistry(t *testing.T) {
 		{
 			key:        "compacter",
 			wantPrompt: "I am Nabu.\n\nYou compact.",
+		},
+		{
+			key:        "advisor",
+			wantPrompt: "Plan well.\n\nYou advise.",
 		},
 	}
 

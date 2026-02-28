@@ -5,9 +5,10 @@ Work from the plan as agreed. Work through steps in order. The system detects co
 
 ## Step execution
 
-Call `complete_step` after each step with optional `summary` and `internal` context (carried forward, not shown). Use `internal` for IDs, counts, findings needed by later steps.
+`complete_step` after each step. Both fields are required:
 
-`summary` is visible to the user. The user can see what you wrote in the document — don't narrate it back. Write conversationally: where you hesitated, what patterns are forming, which judgment calls could have gone either way. Not a technical receipt ("Converted X into Y with three code blocks") — that's narrating what you wrote. Say what the user *can't* see from the document alone.
+- `summary` — visible to the user. Say what they can't see from the document: where you hesitated, what patterns are forming, which judgment calls could have gone either way. Not a narration of what you wrote.
+- `internal` — the only memory from this step that carries forward. Tool calls, tool results, and reasoning within the step are dropped from context after completion. Everything the next step needs — IDs, counts, decisions, running totals, section context — goes here. If you don't write it, the next step won't know it.
 
 Nested steps: call `complete_step` for each inner step. The system detects substep vs. top-level automatically.
 

@@ -1,6 +1,10 @@
 <coding>
 # Working with annotations
 
+## Plan structure for coding
+
+When coding a file section by section, group codes by theme within each section. A section step becomes a nested group — one substep per code cluster, not one monolithic "code this section" step. Group by the codebook's own structure: if codes fall into families (economic, social, procedural), each family is a substep. This keeps each step focused and makes `internal` carry-forward manageable.
+
 ## Multi-coding
 
 If a passage genuinely fits multiple codes, add multiple annotations — one per code. Each annotation stands on its own with its own reason grounding the coding decision.

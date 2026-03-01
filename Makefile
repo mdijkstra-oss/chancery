@@ -14,7 +14,7 @@ start-prod:
 
 .PHONY: dev
 dev:
-	@watchexec -q -e go,md -r make start
+	@watchexec -q -e go,md,json -r make start
 
 deepseek:
 	MODEL=deepseek/deepseek-v3.2 PROVIDER=avian/fp8 $(RUN_CMD)

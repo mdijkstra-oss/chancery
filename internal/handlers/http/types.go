@@ -27,6 +27,7 @@ type ResponsesRequest struct {
 	Include           []string          `json:"include,omitempty"`
 	ToolChoice        *string           `json:"tool_choice,omitempty"`
 	Temperature       *float64          `json:"temperature,omitempty"`
+	ServiceTier       string            `json:"service_tier,omitempty"`
 	Stream            bool              `json:"stream"`
 	Store             bool              `json:"store"`
 	Reasoning         *ReasoningConfig  `json:"reasoning,omitempty"`

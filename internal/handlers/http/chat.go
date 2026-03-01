@@ -68,7 +68,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	if reasoningSummary == "" {
 		reasoningSummary = promptCfg.ReasoningSummary
 	}
-	apiReq := buildResponsesRequest(promptCfg.Model, fullPrompt, reasoningEffort, reasoningSummary, promptCfg.Verbosity, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
+	apiReq := buildResponsesRequest(promptCfg.Model, fullPrompt, reasoningEffort, reasoningSummary, promptCfg.Verbosity, promptCfg.ServiceTier, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
 
 	forceCompact := r.URL.Query().Get("compact") == "true"
 	tokens := estimateTokens(apiReq.Input)

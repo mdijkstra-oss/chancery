@@ -3,6 +3,7 @@
   "reasoning_effort": "medium",
   "reasoning_summary": "auto",
   "verbosity": "low",
+  "service_tier": "default",
   "compact_at": 200000,
   "pricing": {
     "input": 175,

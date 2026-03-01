@@ -64,12 +64,12 @@ func buildTextConfig(verbosity string, responseFormat json.RawMessage) *TextConf
 	return &TextConfig{Format: format, Verbosity: verbosity}
 }
 
-func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummary, verbosity string, tools []json.RawMessage, toolChoice string, temperature *float64, messages []json.RawMessage, responseFormat json.RawMessage) ResponsesRequest {
+func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummary, verbosity, serviceTier string, tools []json.RawMessage, toolChoice string, temperature *float64, messages []json.RawMessage, responseFormat json.RawMessage) ResponsesRequest {
 	req := ResponsesRequest{
 		Model:             model,
 		Input:             prependSystemMessage(systemPrompt, messages),
 		Tools:             tools,
-		Include:           []string{"reasoning.encrypted_content"},
+		ServiceTier:       serviceTier,
 		Stream:            true,
 		Store:             false,
 		ParallelToolCalls: true,
@@ -83,6 +83,7 @@ func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummar
 	}
 	if reasoningEffort != "" || reasoningSummary != "" {
 		req.Reasoning = &ReasoningConfig{Effort: reasoningEffort, Summary: reasoningSummary}
+		req.Include = []string{"reasoning.encrypted_content"}
 	}
 	if toolChoice != "" && len(tools) > 0 {
 		req.ToolChoice = &toolChoice

@@ -1,10 +1,11 @@
 {
-  "model": "gpt-5-mini",
+  "model": "gpt-4.1-nano",
   "reasoning_effort": "off",
   "verbosity": "medium",
+  "service_tier": "priority",
   "pricing": {
-    "input": 25,
-    "output": 200,
-    "cached_input": 2.5
+    "input": 20,
+    "output": 80,
+    "cached_input": 5
   }
 }

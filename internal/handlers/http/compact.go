@@ -6,34 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 )
 
 type compactedArgs struct {
-	Summary    string            `json:"summary"`
-	Directives map[string]string `json:"directives,omitempty"`
-}
-
-var directivePattern = regexp.MustCompile(`^<!--\s*(\w+):\s*(\w+)\s*-->$`)
-
-func extractDirectives(messages []json.RawMessage) map[string]string {
-	directives := map[string]string{}
-	for _, raw := range messages {
-		var msg InputMessage
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			continue
-		}
-		if msg.Role != "system" {
-			continue
-		}
-		match := directivePattern.FindStringSubmatch(msg.Content)
-		if match == nil {
-			continue
-		}
-		directives[match[1]] = match[2]
-	}
-	return directives
+	Summary string `json:"summary"`
 }
 
 func isCompactableMessage(raw json.RawMessage) bool {
@@ -111,8 +88,8 @@ func buildCompletedData(usage *UsageResponse) string {
 	return string(data)
 }
 
-func buildCompactedDoneData(summary string, directives map[string]string) string {
-	argsJSON, _ := json.Marshal(compactedArgs{Summary: summary, Directives: directives})
+func buildCompactedDoneData(summary string) string {
+	argsJSON, _ := json.Marshal(compactedArgs{Summary: summary})
 	item := map[string]interface{}{
 		"item": map[string]interface{}{
 			"type":      "function_call",
@@ -125,7 +102,7 @@ func buildCompactedDoneData(summary string, directives map[string]string) string
 	return string(data)
 }
 
-func streamCompaction(src io.Reader, w io.Writer, flusher http.Flusher, directives map[string]string) (*UsageResponse, error) {
+func streamCompaction(src io.Reader, w io.Writer, flusher http.Flusher) (*UsageResponse, error) {
 	writeSSEEvent(w, flusher, "response.output_item.added",
 		`{"item":{"type":"function_call","name":"compacted"}}`)
 
@@ -163,7 +140,7 @@ func streamCompaction(src io.Reader, w io.Writer, flusher http.Flusher, directiv
 		}
 	}
 
-	writeSSEEvent(w, flusher, "response.output_item.done", buildCompactedDoneData(summary.String(), directives))
+	writeSSEEvent(w, flusher, "response.output_item.done", buildCompactedDoneData(summary.String()))
 	writeSSEEvent(w, flusher, "response.completed", buildCompletedData(usage))
 
 	return usage, scanner.Err()

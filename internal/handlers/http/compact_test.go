@@ -7,49 +7,6 @@ import (
 	"testing"
 )
 
-func TestExtractDirectives(t *testing.T) {
-	cases := []struct {
-		name     string
-		messages []json.RawMessage
-		expected map[string]string
-	}{
-		{"no messages", nil, map[string]string{}},
-		{"no system messages", []json.RawMessage{
-			json.RawMessage(`{"role":"user","content":"hello"}`),
-		}, map[string]string{}},
-		{"single directive", []json.RawMessage{
-			json.RawMessage(`{"role":"system","content":"<!-- prompt: planning -->"}`),
-		}, map[string]string{"prompt": "planning"}},
-		{"multiple directives", []json.RawMessage{
-			json.RawMessage(`{"role":"system","content":"<!-- prompt: execution -->"}`),
-			json.RawMessage(`{"role":"user","content":"hi"}`),
-			json.RawMessage(`{"role":"system","content":"<!-- reasoning: high -->"}`),
-		}, map[string]string{"prompt": "execution", "reasoning": "high"}},
-		{"last value wins per key", []json.RawMessage{
-			json.RawMessage(`{"role":"system","content":"<!-- prompt: planning -->"}`),
-			json.RawMessage(`{"role":"system","content":"<!-- prompt: execution -->"}`),
-		}, map[string]string{"prompt": "execution"}},
-		{"non-directive system messages ignored", []json.RawMessage{
-			json.RawMessage(`{"role":"system","content":"You are a helpful assistant."}`),
-			json.RawMessage(`{"role":"system","content":"<!-- prompt: planning -->"}`),
-		}, map[string]string{"prompt": "planning"}},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := extractDirectives(tc.messages)
-			if len(got) != len(tc.expected) {
-				t.Fatalf("extractDirectives() = %v, want %v", got, tc.expected)
-			}
-			for k, v := range tc.expected {
-				if got[k] != v {
-					t.Errorf("extractDirectives()[%q] = %q, want %q", k, got[k], v)
-				}
-			}
-		})
-	}
-}
-
 func TestStripForCompaction(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -148,20 +105,17 @@ func TestShouldCompact(t *testing.T) {
 
 func TestBuildCompactedDoneData(t *testing.T) {
 	cases := []struct {
-		name       string
-		summary    string
-		directives map[string]string
+		name    string
+		summary string
 	}{
-		{"simple summary no directives", "The user discussed project setup.", nil},
-		{"summary with quotes", `User said "hello" and asked about "plans".`, nil},
-		{"summary with newlines", "Line one.\nLine two.\nLine three.", nil},
-		{"summary with directives", "Summary text.", map[string]string{"prompt": "planning", "reasoning": "high"}},
-		{"empty directives", "Summary.", map[string]string{}},
+		{"simple summary", "The user discussed project setup."},
+		{"summary with quotes", `User said "hello" and asked about "plans".`},
+		{"summary with newlines", "Line one.\nLine two.\nLine three."},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			data := buildCompactedDoneData(tc.summary, tc.directives)
+			data := buildCompactedDoneData(tc.summary)
 
 			var parsed struct {
 				Item struct {
@@ -189,13 +143,6 @@ func TestBuildCompactedDoneData(t *testing.T) {
 			if args.Summary != tc.summary {
 				t.Errorf("summary = %q, want %q", args.Summary, tc.summary)
 			}
-			if tc.directives != nil && len(tc.directives) > 0 {
-				for k, v := range tc.directives {
-					if args.Directives[k] != v {
-						t.Errorf("directives[%q] = %q, want %q", k, args.Directives[k], v)
-					}
-				}
-			}
 		})
 	}
 }
@@ -210,13 +157,12 @@ func TestStreamCompaction(t *testing.T) {
 	cases := []struct {
 		name            string
 		sseInput        string
-		directives      map[string]string
 		expectedSummary string
 		expectedEvents  []string
 		hasUsage        bool
 	}{
 		{
-			name: "single text delta no directives",
+			name: "single text delta",
 			sseInput: strings.Join([]string{
 				"event: response.output_text.delta",
 				`data: {"delta":"Hello world"}`,
@@ -225,13 +171,12 @@ func TestStreamCompaction(t *testing.T) {
 				`data: {"response":{"usage":{"input_tokens":100,"output_tokens":50,"total_tokens":150}}}`,
 				"",
 			}, "\n"),
-			directives:      nil,
 			expectedSummary: "Hello world",
 			expectedEvents:  []string{"response.output_item.added", "response.function_call_arguments.delta", "response.output_item.done", "response.completed"},
 			hasUsage:        true,
 		},
 		{
-			name: "multiple text deltas with directives",
+			name: "multiple text deltas",
 			sseInput: strings.Join([]string{
 				"event: response.output_text.delta",
 				`data: {"delta":"Part one. "}`,
@@ -243,7 +188,6 @@ func TestStreamCompaction(t *testing.T) {
 				`data: {"response":{}}`,
 				"",
 			}, "\n"),
-			directives:      map[string]string{"prompt": "planning", "reasoning": "high"},
 			expectedSummary: "Part one. Part two.",
 			expectedEvents:  []string{"response.output_item.added", "response.function_call_arguments.delta", "response.function_call_arguments.delta", "response.output_item.done", "response.completed"},
 			hasUsage:        false,
@@ -262,7 +206,7 @@ func TestStreamCompaction(t *testing.T) {
 			}
 			wf := writerFlusher{&buf, flusher}
 
-			usage, err := streamCompaction(src, wf.Buffer, wf.testFlusher, tc.directives)
+			usage, err := streamCompaction(src, wf.Buffer, wf.testFlusher)
 			if err != nil {
 				t.Fatalf("streamCompaction error: %v", err)
 			}
@@ -290,14 +234,6 @@ func TestStreamCompaction(t *testing.T) {
 			doneData := output[doneIdx:]
 			if !strings.Contains(doneData, `"name":"compacted"`) {
 				t.Error("done event missing compacted name")
-			}
-
-			if tc.directives != nil && len(tc.directives) > 0 {
-				for k, v := range tc.directives {
-					if !strings.Contains(doneData, k) || !strings.Contains(doneData, v) {
-						t.Errorf("directive %q:%q not found in done data", k, v)
-					}
-				}
 			}
 		})
 	}

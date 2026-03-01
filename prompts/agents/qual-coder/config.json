@@ -1,9 +1,9 @@
 {
   "model": "gpt-5.2",
-  "reasoning_effort": "low",
+  "reasoning_effort": "medium",
   "reasoning_summary": "auto",
   "verbosity": "low",
-  "compact_at": 350000,
+  "compact_at": 200000,
   "pricing": {
     "input": 175,
     "output": 1400,

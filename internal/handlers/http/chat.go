@@ -41,8 +41,6 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		return
 	}
 
-	directives := extractDirectives(req.Messages)
-
 	req.Messages = ExpandMessages(req.Messages, registry.Modes)
 
 	var reasoningEffort string
@@ -99,7 +97,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 			w.Header().Set("Cache-Control", "no-cache")
 			w.WriteHeader(http.StatusOK)
 			flusher := w.(http.Flusher)
-			usage, err := streamCompaction(resp.Body, w, flusher, directives)
+			usage, err := streamCompaction(resp.Body, w, flusher)
 			if err != nil {
 				slog.Error("compaction stream error", "error", err)
 				return

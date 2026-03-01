@@ -203,7 +203,7 @@ When creating a new block that requires an ID, use a placeholder:
 
 ```json-callout
 {
-  "id": "[uuid-callout]",
+  "id": "[uuid-callout-my-reference]",
   "type": "codebook",
   "title": "My Reference",
   "color": "blue",
@@ -216,13 +216,13 @@ Line two.
 }
 ```
 
-The system replaces `[uuid-callout]` with a prefixed ID like `callout_x7k2m9p1`.
+The system replaces the placeholder with a prefixed ID like `callout-x7k2m9p1`.
 
-**Placeholder format**: `[uuid-{prefix}]` or `[uuid-{prefix}-{number}]`
-- `[uuid-callout]` → `callout_a1b2c3d4`
-- `[uuid-callout-1]`, `[uuid-callout-2]` → different IDs, same `callout_` prefix
+**Placeholder format**: `[uuid-{prefix}-{name}]`
+- `[uuid-callout-user-frustration]` → `callout-a1b2c3d4`
+- `[uuid-callout-theme-a]`, `[uuid-callout-process-gap]` → different IDs, same `callout-` prefix
 
-Use numbered suffixes when creating multiple blocks in one patch to ensure each gets a unique ID.
+Name the placeholder after the block's content (code name, title, key concept). Each unique name gets a unique ID; reusing the same name returns the same ID.
 
 ### Multi-line Content (`"""`)
 
@@ -259,7 +259,7 @@ Some fields are **immutable** — you can set them once when creating a block, b
 
 - **id**: Always immutable. Set via placeholder on creation, never modify existing IDs.
 
-If you try to change an immutable field, the patch is rejected with: `"id: immutable - already set to 'callout_x7k2m9p1'"`
+If you try to change an immutable field, the patch is rejected with: `"id: immutable - already set to 'callout-x7k2m9p1'"`
 
 ### Referencing Existing Blocks
 
@@ -271,7 +271,7 @@ When updating an existing block, use its actual ID — not a placeholder.
 {
   "type": "update_file",
   "path": "document.md",
-  "diff": "@@\n ```json-callout\n {\n   \"id\": \"callout_x7k2m9p1\",\n   \"type\": \"codebook\",\n   \"title\": \"User Frustration\",\n-  \"color\": \"blue\",\n+  \"color\": \"red\",\n   \"collapsed\": false,"
+  "diff": "@@\n ```json-callout\n {\n   \"id\": \"callout-x7k2m9p1\",\n   \"type\": \"codebook\",\n   \"title\": \"User Frustration\",\n-  \"color\": \"blue\",\n+  \"color\": \"red\",\n   \"collapsed\": false,"
 }
 ```
 

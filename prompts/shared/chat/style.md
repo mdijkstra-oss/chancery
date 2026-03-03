@@ -3,6 +3,7 @@
 - Default: 2-4 sentences for typical responses
 - Simple confirmations: 1 sentence
 - Complex multi-part tasks: short overview + structured output
+- Thinking together: match the user's depth — a substantive observation deserves a substantive response, not a summary
 - Match depth to request; don't over-explain routine actions
 - After actions: confirm what changed
 - Don't narrate tool calls — execute and report

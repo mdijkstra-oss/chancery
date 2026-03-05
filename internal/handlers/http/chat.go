@@ -3,12 +3,14 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"hermes-logos/internal/prompts"
@@ -49,6 +51,18 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		reasoningEffort = promptCfg.ReasoningEffort
 	}
 
+	var model string
+	req.Messages, model = ExtractModel(req.Messages)
+	if model == "" {
+		model = promptCfg.Model
+	}
+
+	var verbosity string
+	req.Messages, verbosity = ExtractVerbosity(req.Messages)
+	if verbosity == "" {
+		verbosity = promptCfg.Verbosity
+	}
+
 	toolNames := ExtractToolNames(req.Tools)
 
 	toolPrompt, _, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
@@ -68,7 +82,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	if reasoningSummary == "" {
 		reasoningSummary = promptCfg.ReasoningSummary
 	}
-	apiReq := buildResponsesRequest(promptCfg.Model, fullPrompt, reasoningEffort, reasoningSummary, promptCfg.Verbosity, promptCfg.ServiceTier, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
+	apiReq := buildResponsesRequest(model, fullPrompt, reasoningEffort, reasoningSummary, verbosity, promptCfg.ServiceTier, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
 
 	forceCompact := r.URL.Query().Get("compact") == "true"
 	tokens := estimateTokens(apiReq.Input)
@@ -79,7 +93,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 			slog.Error("compacter agent not found in registry")
 		} else {
 			compactReq := buildCompactRequest(compacterCfg.Model, compacterAgent.Prompt, stripForCompaction(req.Messages))
-			resp, err := proxyRequest(r.Context(), compactReq, cfg)
+			resp, err := proxyWithRetry(r.Context(), compactReq, cfg)
 			if err != nil {
 				handleProxyError(w, err)
 				return
@@ -113,7 +127,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		inspectJSON(urlPath+" request", apiReq)
 	}
 
-	resp, err := proxyRequest(r.Context(), apiReq, cfg)
+	resp, err := proxyWithRetry(r.Context(), apiReq, cfg)
 	if err != nil {
 		handleProxyError(w, err)
 		return
@@ -139,6 +153,38 @@ func decodeRequest(r *http.Request) (ChatRequest, error) {
 	return req, nil
 }
 
+var (
+	errQuotaExhausted = errors.New("API quota exhausted")
+	errRateLimited    = errors.New("rate limit exceeded after retries")
+)
+
+const maxUpstreamRetries = 3
+
+type apiErrorBody struct {
+	Error struct {
+		Code string `json:"code"`
+	} `json:"error"`
+}
+
+func isQuotaError(body []byte) bool {
+	var parsed apiErrorBody
+	if json.Unmarshal(body, &parsed) != nil {
+		return false
+	}
+	switch parsed.Error.Code {
+	case "insufficient_quota", "billing_hard_limit_reached":
+		return true
+	}
+	return false
+}
+
+func retryDelay(retryAfter string, attempt int) time.Duration {
+	if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds > 0 {
+		return time.Duration(seconds) * time.Second
+	}
+	return time.Duration(1<<uint(attempt)) * time.Second
+}
+
 func proxyRequest(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*http.Response, error) {
 	proxyReq, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseURL+"/responses", jsonReader(apiReq))
 	if err != nil {
@@ -151,7 +197,51 @@ func proxyRequest(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*ht
 	return http.DefaultClient.Do(proxyReq)
 }
 
+func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*http.Response, error) {
+	for attempt := range maxUpstreamRetries {
+		resp, err := proxyRequest(ctx, apiReq, cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusTooManyRequests {
+			return resp, nil
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if isQuotaError(body) {
+			return nil, errQuotaExhausted
+		}
+
+		if attempt == maxUpstreamRetries-1 {
+			return nil, errRateLimited
+		}
+
+		delay := retryDelay(resp.Header.Get("Retry-After"), attempt)
+		slog.Warn("rate limited, retrying", "attempt", attempt+1, "delay", delay)
+
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	return nil, errRateLimited
+}
+
 func handleProxyError(w http.ResponseWriter, err error) {
+	if errors.Is(err, errQuotaExhausted) {
+		slog.Error("quota exhausted")
+		http.Error(w, "API quota exhausted", http.StatusPaymentRequired)
+		return
+	}
+	if errors.Is(err, errRateLimited) {
+		slog.Error("rate limited after retries")
+		http.Error(w, "Rate limited after retries", http.StatusTooManyRequests)
+		return
+	}
 	slog.Error("upstream request failed", "error", err)
 	http.Error(w, "upstream request failed", http.StatusBadGateway)
 }

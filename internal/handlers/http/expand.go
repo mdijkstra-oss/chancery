@@ -7,6 +7,8 @@ import (
 
 var modeMarker = regexp.MustCompile(`^<!--\s*prompt:\s*(\w+)\s*-->$`)
 var reasoningMarker = regexp.MustCompile(`^<!--\s*reasoning:\s*(\w+)\s*-->$`)
+var modelMarker = regexp.MustCompile(`^<!--\s*model:\s*([\w.\-]+)\s*-->$`)
+var verbosityMarker = regexp.MustCompile(`^<!--\s*verbosity:\s*(\w+)\s*-->$`)
 
 func ExpandMessages(messages []json.RawMessage, modes map[string]string) []json.RawMessage {
 	result := make([]json.RawMessage, len(messages))
@@ -16,7 +18,7 @@ func ExpandMessages(messages []json.RawMessage, modes map[string]string) []json.
 	return result
 }
 
-func isReasoningMarker(raw json.RawMessage) (string, bool) {
+func matchDirective(re *regexp.Regexp, raw json.RawMessage) (string, bool) {
 	var msg InputMessage
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		return "", false
@@ -24,27 +26,39 @@ func isReasoningMarker(raw json.RawMessage) (string, bool) {
 	if msg.Role != "system" {
 		return "", false
 	}
-	match := reasoningMarker.FindStringSubmatch(msg.Content)
+	match := re.FindStringSubmatch(msg.Content)
 	if match == nil {
 		return "", false
 	}
 	return match[1], true
 }
 
-func ExtractReasoningEffort(messages []json.RawMessage) ([]json.RawMessage, string) {
-	effort := ""
+func extractDirective(re *regexp.Regexp, messages []json.RawMessage) ([]json.RawMessage, string) {
+	value := ""
 	for i := len(messages) - 1; i >= 0; i-- {
-		if level, ok := isReasoningMarker(messages[i]); ok && effort == "" {
-			effort = level
+		if v, ok := matchDirective(re, messages[i]); ok && value == "" {
+			value = v
 		}
 	}
 	result := make([]json.RawMessage, 0, len(messages))
 	for _, raw := range messages {
-		if _, ok := isReasoningMarker(raw); !ok {
+		if _, ok := matchDirective(re, raw); !ok {
 			result = append(result, raw)
 		}
 	}
-	return result, effort
+	return result, value
+}
+
+func ExtractReasoningEffort(messages []json.RawMessage) ([]json.RawMessage, string) {
+	return extractDirective(reasoningMarker, messages)
+}
+
+func ExtractModel(messages []json.RawMessage) ([]json.RawMessage, string) {
+	return extractDirective(modelMarker, messages)
+}
+
+func ExtractVerbosity(messages []json.RawMessage) ([]json.RawMessage, string) {
+	return extractDirective(verbosityMarker, messages)
 }
 
 func expandMessage(raw json.RawMessage, modes map[string]string) json.RawMessage {

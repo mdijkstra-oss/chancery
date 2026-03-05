@@ -149,6 +149,60 @@ func TestExtractReasoningEffort(t *testing.T) {
 	}
 }
 
+func TestExtractVerbosity(t *testing.T) {
+	cases := []struct {
+		name          string
+		messages      []json.RawMessage
+		wantVerbosity string
+		wantMsgCount  int
+	}{
+		{
+			name:          "no markers",
+			messages:      []json.RawMessage{msg("user", "hello")},
+			wantVerbosity: "",
+			wantMsgCount:  1,
+		},
+		{
+			name:          "single marker",
+			messages:      []json.RawMessage{msg("system", "<!-- verbosity: medium -->")},
+			wantVerbosity: "medium",
+			wantMsgCount:  0,
+		},
+		{
+			name: "last marker wins",
+			messages: []json.RawMessage{
+				msg("system", "<!-- verbosity: low -->"),
+				msg("user", "hi"),
+				msg("system", "<!-- verbosity: medium -->"),
+			},
+			wantVerbosity: "medium",
+			wantMsgCount:  1,
+		},
+		{
+			name: "markers stripped other messages kept",
+			messages: []json.RawMessage{
+				msg("user", "hello"),
+				msg("system", "<!-- verbosity: low -->"),
+				msg("user", "go"),
+			},
+			wantVerbosity: "low",
+			wantMsgCount:  2,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotMessages, gotVerbosity := ExtractVerbosity(tc.messages)
+			if gotVerbosity != tc.wantVerbosity {
+				t.Errorf("verbosity: got %q, want %q", gotVerbosity, tc.wantVerbosity)
+			}
+			if len(gotMessages) != tc.wantMsgCount {
+				t.Errorf("message count: got %d, want %d", len(gotMessages), tc.wantMsgCount)
+			}
+		})
+	}
+}
+
 func rawSliceToStrings(raws []json.RawMessage) []string {
 	result := make([]string, len(raws))
 	for i, r := range raws {

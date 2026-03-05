@@ -23,7 +23,7 @@ Loops describe iteration patterns. You determine the actual items at execution t
 
 ## Working with sections
 
-The plan's nested steps correspond to sections from the table of contents produced during triage. Use `run_local_shell` to read the file when you need its content, and the TOC to locate each section.
+The plan's nested steps correspond to sections from the table of contents produced during preflight. Use `run_local_shell` to read the file when you need its content, and the TOC to locate each section.
 
 Process each section fully (including writes) before moving to the next. Don't collect information from all sections first, then write at the end — that risks losing information from earlier sections.
 

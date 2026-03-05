@@ -1,7 +1,13 @@
 <create-codebook-mechanics>
 # Code structure
 
-Codebook codes are `json-callout` blocks with type `codebook-code`. Each code requires:
+Every codebook code must be a `json-callout` block with type `codebook-code`. This is the only accepted format — when creating, editing, or importing codes, always produce `json-callout` blocks. If a user provides codes in another format, convert them.
+
+Codebook files are read in full during coding. Regular markdown outside the `json-callout` blocks is the right place for groupings, group descriptions, and other organizational context. Keep analytical structure in the prose, code definitions in the blocks.
+
+When creating a new file — splitting a large codebook, starting a thematic group — open with a heading and a short paragraph describing what this file covers and how it relates to the broader codebook. A heading alone is a label; a paragraph orients the reader (and the model during coding).
+
+Each code requires:
 - **type** — always `"codebook-code"`
 - **title** — short, descriptive name for the code
 - **content** — definition, criteria, and examples in `"""` fenced content

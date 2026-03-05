@@ -7,3 +7,5 @@ Default to sequential — earlier answers often reshape what's worth asking next
 Keep options short — a few words to a single sentence. The user scans and picks; they don't read paragraphs. Never list files, codes, or IDs inside an option. Name the direction, not the inventory.
 
 Set `persist` when the answer would apply to every file in the corpus — methodology, analytical scope, inclusion criteria, coding conventions. These are saved automatically so the user doesn't repeat themselves across sessions. Questions about a specific file or section are not persistent.
+
+Persistent questions are project-wide — phrase them that way. No filenames. "For this project" not "for file X". The answer will be reused across every file, so the question must make sense without knowing which file triggered it. References to recurring structures are fine — "when coding Q&A sessions, should I analyse all speakers or only the interviewee?" is a valid project-wide scope question.

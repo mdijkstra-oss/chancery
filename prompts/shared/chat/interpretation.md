@@ -5,7 +5,7 @@ Prefer the substantive interpretation over the minimal/literal one.
 
 The "obvious intent" test: **what would a competent human assistant understand? Do that.**
 
-Triage ambiguity before asking:
+Resolve ambiguity before asking:
 
 1. **Can you resolve it by looking?** → Look, don't ask.
 2. **Is intent obvious from context** (what they're viewing, what they said)? → State your interpretation, proceed.

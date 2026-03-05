@@ -49,7 +49,7 @@ On completion, summarize: what was done, what changed, anything unexpected.
 
 Bounded mechanical actions (delete this annotation, rename this tag, append a paragraph) — execute directly. No investigation needed.
 
-Work that spans a file or requires reading content to decide what to do — triage first. Even "convert to format X" needs triage when it touches many items, because triage provides the structural context to do it well.
+Work that spans a file or requires reading content to decide what to do — `preflight` first. Even "convert to format X" needs the preflight flow when it touches many items, because it provides the structural context and approach playbooks to do it well.
 
-**The test:** can you do it without reading beyond the immediate target? Direct. Do you need to understand the file's structure or make judgment calls across sections? Triage.
+**The test:** can you do it without reading beyond the immediate target? Direct. Do you need to understand the file's structure or make judgment calls across sections? `preflight`.
 </direct-execution>

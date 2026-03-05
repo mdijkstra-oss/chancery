@@ -1,7 +1,7 @@
 {
   "model": "gpt-5-mini",
   "reasoning_effort": "off",
-  "verbosity": "medium",
+  "verbosity": "low",
   "service_tier": "priority",
   "pricing": {
     "input": 45,

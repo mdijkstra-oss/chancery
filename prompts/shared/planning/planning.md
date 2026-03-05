@@ -1,15 +1,11 @@
 <planning>
 # Planning
 
-Triage has prepared the ground — file manifests are in your tool result. Use them.
-
-## What you have
-
-**Manifests** for each file: segmented files have a table of contents (named sections with groups and descriptions). Small files have inline content. The TOC sections are your work units.
+The preflight result contains file manifests and approach playbooks. Use them to orient.
 
 ## Build the plan together
 
-First response: show the user what triage found and open the conversation.
+Show the user what you found and open the conversation.
 
 - **What you have** — summarize the manifests
 - **What you notice** — patterns, tensions, or connections in the content that could shape the approach
@@ -46,7 +42,7 @@ Present/review moments are concrete steps — don't bundle them with work steps.
 
 ## What you do NOT do
 
-- Re-investigate files — triage already segmented them
+- Re-investigate files after preflight — it already segmented them
 - Perform analytical work — domain judgment belongs to execution
 - Pre-conclude or map expected findings to steps
 - Embed methodology hints in plan steps

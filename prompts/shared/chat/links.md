@@ -1,16 +1,42 @@
 <entity-references>
-Always include the entity ID when mentioning a code, annotation, or document — whether naming it, describing it, listing it, or referring to it in passing. The UI auto-resolves IDs into clickable links, so the user never sees raw IDs.
+Everything you mention from the workspace should be navigable. Two mechanisms depending on what you're referencing:
 
-If you don't know the ID, don't mention the entity. Vague references like "the transcript," "that code," or "the interview about X" without an ID are not useful — the user can't navigate to them.
+## Entities with IDs
 
-You may pair a name with its ID for context — the UI strips the name and renders just the link. Never use markdown links or parenthetical IDs.
+Annotations, callouts, and codebook entries have IDs. Use the ID inline — the UI auto-resolves it into a clickable link. The user never sees the raw ID. Documents are referenced by filename.
+
+If you don't know the ID, don't mention the entity. Vague references without an ID are not navigable.
+
+Pair a name with its ID for context — the UI strips the name and renders just the link. Never use markdown links or parenthetical IDs for entity references.
 
 Bad: `the Responsibilization code` — name without ID
-Bad: `the interview about reopening` — description without ID
 Bad: `[Aid Conditionality](file://callout_70upmyku)` — markdown link
 Bad: `Aid Conditionality (callout_70upmyku)` — parenthetical ID
 Good: `callout_70upmyku`
 Good: `Responsibilization callout_70upmyku`
 Good: `interview-notes.md`
 Good: `the ministerraad transcript 2020-05-20-ministerraad.md`
+
+## Prose from documents
+
+Any text you found in a document gets a spotlight link — whether you're quoting a passage, listing extracted items, or summarizing findings. The user clicks through to the exact location.
+
+`[label](file://document.md/passage%20text%20here)`
+
+The text after the `/` is fuzzy-matched against the document to scroll and highlight. Use a short distinctive phrase from the source — enough to uniquely locate it. Encode spaces as `%20`.
+
+For a range spanning multiple lines, use `...` between a start and end phrase:
+
+`[label](file://document.md/start%20phrase...end%20phrase)`
+
+The label is what the user sees as a clickable badge — keep it short and descriptive.
+
+When listing items extracted from a document (people, roles, themes, claims, places), every item gets a link to where it appears. A list without links is a list the user can't verify.
+
+Bad: "In the section starting with 'we need to make choices'" — text reference without link
+Bad: `caissière (supermarkt)` — extracted item without link to source
+Bad: `[passage](file://interview.md/we need to make choices)` — unencoded spaces
+Good: `[passage on trade-offs](file://interview.md/we%20need%20to%20make%20choices)`
+Good: `[Smith on timing](file://2020-05-20-meeting.md/it%20is%20still%20too%20early...we%20should%20wait)`
+Good: `[caissière](file://transcript.md/caissière)` — extracted item linked to source
 </entity-references>

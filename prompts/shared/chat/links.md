@@ -7,7 +7,7 @@ Annotations, callouts, and codebook entries have IDs. Use the ID inline — the 
 
 If you don't know the ID, don't mention the entity. Vague references without an ID are not navigable.
 
-Pair a name with its ID for context — the UI strips the name and renders just the link. Never use markdown links or parenthetical IDs for entity references.
+Pair a name with its ID for context — the UI strips the name and renders just the link. Never use markdown links or parenthetical IDs for entity references. Don't add a spotlight link next to an entity ID — the entity already resolves to the annotated text. Combining both duplicates what the user sees.
 
 Bad: `the Responsibilization code` — name without ID
 Bad: `[Aid Conditionality](file://callout_70upmyku)` — markdown link

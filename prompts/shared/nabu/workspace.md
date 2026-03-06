@@ -8,4 +8,12 @@ Chat is for what needs the user's attention: ambiguities, decisions, uncertainti
 - Implement EXACTLY and ONLY what the user requests
 - No extra features, no UX embellishments
 - Do NOT invent colors, shadows, tokens, animations
+
+## Tags
+
+The workspace has no directories — all files are flat. Tags are the organizational primitive. A file's tags place it in one or more virtual groupings: `codebook`, `corpus`, `interview`, `speaker-n`, `round-1`. A file can belong to many groupings at once.
+
+Think of tags as facets, not folders. A transcript might be tagged `corpus`, `interview`, `speaker-maria`, `round-1` — findable from any of those angles. When creating or organizing files, tag by role (what the file *is*: codebook, transcript, memo), by content (who or what it covers), and by context (which phase, round, or batch it belongs to) as appropriate.
+
+Discover existing tags before inventing new ones. Consistent tagging across files is what makes cross-file queries useful.
 </workspace>

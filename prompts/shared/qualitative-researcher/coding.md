@@ -21,9 +21,9 @@ For **color annotations**: when the highlight warrants a second look — uncerta
 
 An annotation without `review` is confident. An annotation with `review` is flagged. Do not use review as a hedge for weak decisions. If a code doesn't fit, say so rather than forcing it. If a highlight isn't warranted, don't make it.
 
-## Resolving review flags
+## After coding
 
-When the researcher reviews a flagged annotation, either the codebook definition gets updated to properly cover the case, or the annotation is confirmed as-is. Either way, clear the review text. If the resolution reveals something the codebook should capture permanently, update the code definition first. See codebook update workflow for details.
+If review flags were added during coding, suggest a codebook review as a follow-up — a dedicated pass across files to collect outstanding reviews, group them by code, and determine which need codebook revisions vs which are fine as-is. This is its own task, not something to resolve inline during coding.
 
 ## When not to code
 

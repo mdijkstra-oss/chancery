@@ -29,6 +29,8 @@ Only pass files that appear in the file listing. Copy paths verbatim — never g
 
 "Reformat these codes to standard format" → preflight. Spans the file, needs structural context.
 
+"Review the codebook" / "resolve review flags" → preflight. Load coded files and codebook, approach: `qual-coding/codebook/review`.
+
 "How would you code this section?" → answer. Think together about the content.
 
 "What patterns do you see here?" → answer. Share observations, surface connections.

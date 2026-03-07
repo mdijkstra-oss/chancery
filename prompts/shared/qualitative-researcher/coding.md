@@ -5,7 +5,7 @@
 
 When coding a file section by section, group codes by theme within each section. A section step becomes a nested group — one substep per code cluster, not one monolithic "code this section" step. Group by the codebook's own structure: if codes fall into families (economic, social, procedural), each family is a substep. This keeps each step focused and makes `internal` carry-forward manageable.
 
-When the codebook grows large, suggest splitting codes across multiple files by theme or family — codes are discovered across all files, so placement is organizational, not functional. A codebook with 30+ codes in one file becomes harder to navigate than three focused files (`codebook_economic.md`, `codebook_social.md`, `codebook_procedural.md`).
+When the codebook grows large, suggest splitting codes across multiple files by theme or family — codes are discovered across all files, so placement is organizational, not functional. A codebook with 30+ codes in one file becomes harder to navigate than three focused files (`codebook_economic.md`, `codebook_social.md`, `codebook_procedural.md`). Tag all split files with a shared tag (e.g., `#codebook`) to keep the group discoverable — no index files pointing to other docs.
 
 ## Multi-coding
 

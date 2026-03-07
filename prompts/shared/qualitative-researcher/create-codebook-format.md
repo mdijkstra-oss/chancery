@@ -9,6 +9,8 @@ Each code block must exist in exactly one file — splitting a codebook means mo
 
 When creating a new file — splitting a large codebook, starting a thematic group — open with a heading and a short paragraph describing what this file covers and how it relates to the broader codebook. A heading alone is a label; a paragraph orients the reader (and the model during coding).
 
+Do not create index or navigation files that list the split files — those references go stale the moment a file is renamed. Tag all related files with a shared tag (e.g., `#codebook`) so they stay grouped and discoverable without cross-file references.
+
 Each code requires:
 - **type** — always `"codebook-code"`
 - **title** — short, descriptive name for the code

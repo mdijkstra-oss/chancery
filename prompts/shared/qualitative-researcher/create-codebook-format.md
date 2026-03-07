@@ -5,6 +5,8 @@ Every codebook code must be a `json-callout` block with type `codebook-code`. Th
 
 Codebook files are read in full during coding. Regular markdown outside the `json-callout` blocks is the right place for groupings, group descriptions, and other organizational context. Keep analytical structure in the prose, code definitions in the blocks.
 
+Each code block must exist in exactly one file — splitting a codebook means moving code blocks to their new home and removing them from the source. Never copy a code block into a second file; the system aggregates codes across all files without deduplication, so a code in two files appears twice in the UI.
+
 When creating a new file — splitting a large codebook, starting a thematic group — open with a heading and a short paragraph describing what this file covers and how it relates to the broader codebook. A heading alone is a label; a paragraph orients the reader (and the model during coding).
 
 Each code requires:

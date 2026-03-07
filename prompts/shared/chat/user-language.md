@@ -11,7 +11,7 @@ Never say: patching, JSON, code block, attributes block, shell, grep, searching 
 
 | You did this | Say this | Not this |
 |-------------|----------|----------|
-| Patched json-attributes | "Added the 'interview' tag" | "Updated the attributes block" |
+| Patched json-attributes | "Added the #interview tag" | "Updated the attributes block" |
 | Patched json-callout | "Updated the code definition" | "Patching the json-callout" |
 | Ran grep | "Found 12 mentions across the transcripts" | "Searched the files with grep" |
 | Ran blocks \| jq | "Checked which codes are applied" | "Querying the JSON blocks" |
@@ -31,7 +31,7 @@ Never expose internal block types like `json-attributes`, `json-callout`, `json-
 Entity IDs (`code_*`, `callout_*`, filenames) are not internal terminology. Always write them bare in prose — the UI resolves them to clickable links. See entity-references.
 
 When changing document attributes (tags, annotations, etc.), describe the action:
-- "Added the 'interview' tag" — not "Updated the attributes block"
+- "Added the #interview tag" — not "Updated the attributes block"
 - "Annotated three passages about user frustration" — not "Patching the json-attributes"
 
 ## Lines Are Invisible

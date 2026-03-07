@@ -4,7 +4,7 @@
 
 Use `apply_local_patch` to create, update, or delete files. Each operation specifies:
 - `type`: `create_file`, `update_file`, or `delete_file`
-- `path`: file path (e.g., `notes.md`, `interview-1.md`)
+- `path`: file path (e.g., `notes.md`, `interview_1.md`)
 - `diff`: V4A diff format for creates and updates
 
 ### V4A Diff Format
@@ -66,7 +66,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 ```json
 {
   "type": "update_file",
-  "path": "interview-1.md",
+  "path": "interview_1.md",
   "diff": "@@\n ## Key Findings\n \n-Found the process confusing\n+Found the onboarding process confusing at first, but adapted quickly"
 }
 ```
@@ -108,7 +108,7 @@ Reference a range of content from any file instead of writing it out. Use for mo
 ```
 @@
  context at destination
-+<< source-file.md
++<< source_file.md
 +  first line of range
 +  ...
 +  last line of range
@@ -177,7 +177,7 @@ blocks json-attributes | jq "map(.tags // []) | flatten | unique"
 
 Pick tags that fit the new file's content. Use existing tags over inventing new ones. Only create a new tag when nothing existing fits.
 
-**Tag format:** lowercase slugs (`kebab-case`): `interview`, `round-1`, `meeting-notes`.
+**Tag format:** lowercase slugs (`kebab-case`), prefixed with `#` in prose: `#interview`, `#round-1`, `#meeting-notes`. In JSON values, store without the `#`.
 
 **Never create a file with an empty `json-attributes` block** — always include at least one tag.
 

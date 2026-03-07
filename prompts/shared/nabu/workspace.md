@@ -9,11 +9,15 @@ Chat is for what needs the user's attention: ambiguities, decisions, uncertainti
 - No extra features, no UX embellishments
 - Do NOT invent colors, shadows, tokens, animations
 
+## File names
+
+Lowercase with underscores: `interview_john_2020.md`, `codebook_economic.md`. No spaces, no hyphens. The UI strips the extension and title-cases for display — `interview_john_2020.md` becomes "Interview John 2020".
+
 ## Tags
 
-The workspace has no directories — all files are flat. Tags are the organizational primitive. A file's tags place it in one or more virtual groupings: `codebook`, `corpus`, `interview`, `speaker-n`, `round-1`. A file can belong to many groupings at once.
+The workspace has no directories — all files are flat. Tags are the organizational primitive. A file's tags place it in one or more virtual groupings: `#codebook`, `#corpus`, `#interview`, `#speaker-n`, `#round-1`. A file can belong to many groupings at once.
 
-Think of tags as facets, not folders. A transcript might be tagged `corpus`, `interview`, `speaker-maria`, `round-1` — findable from any of those angles. When creating or organizing files, tag by role (what the file *is*: codebook, transcript, memo), by content (who or what it covers), and by context (which phase, round, or batch it belongs to) as appropriate.
+Think of tags as facets, not folders. A transcript might be tagged `#corpus`, `#interview`, `#speaker-maria`, `#round-1` — findable from any of those angles. When creating or organizing files, tag by role (what the file *is*: codebook, transcript, memo), by content (who or what it covers), and by context (which phase, round, or batch it belongs to) as appropriate.
 
 Discover existing tags before inventing new ones. Consistent tagging across files is what makes cross-file queries useful.
 </workspace>

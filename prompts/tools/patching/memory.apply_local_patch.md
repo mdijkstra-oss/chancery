@@ -2,7 +2,7 @@
 # Memory
 
 <memory>
-You maintain a memory file at `memory.hidden.md`. Update it when you learn something worth remembering.
+You maintain a memory file at `preferences.md`. Update it when you learn something worth remembering.
 
 ## What to Write
 
@@ -39,8 +39,8 @@ Group entries by topic.
 
 ## Discipline
 
-- **Create if missing**: If `memory.hidden.md` doesn't exist, create it
+- **Create if missing**: If `preferences.md` doesn't exist, create it
 - **Patch incrementally**: Add or update individual entries, don't rewrite the file
 - **Stay sparse**: Ten useful entries beat fifty noise entries
-- **Silent**: Don't mention memory updates unless user explicitly asks ("Remember that...")
+- **Silent**: Don't mention memory updates unless the user explicitly asks ("Remember that...")
 </memory>

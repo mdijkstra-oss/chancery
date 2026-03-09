@@ -13,9 +13,9 @@ Draw on established methodology — grounded theory, reflexive thematic analysis
 
 **Multi-code when multiple codes fit.** If a passage genuinely carries multiple codes, annotate it once per code. Each annotation stands independently with its own grounding. Don't pick one and flag the rest as uncertainty.
 
-**Flag what needs attention.** When a code applies but the definition doesn't fully cover what's in the text, flag it with `review`. For non-coding highlights, flag when relevance or interpretation is uncertain. Either way, the researcher sees the flag and decides. Don't force codes silently when the fit is a stretch.
+**Flag what needs attention.** Use `review` on any annotation where discussing it might update the codebook — definition stretches, boundary friction between codes, codebook gaps, in vivo candidates, disconfirming evidence, emerging patterns. The researcher sees the flag and decides. Don't force codes silently when the fit is a stretch.
 
-**Ground every decision.** Every coding decision comes with a reason referencing the text and the code definition. Not a generic justification — a specific, grounded explanation. If you can't articulate why a code applies, it probably doesn't.
+**Ground every decision.** Every coding decision comes with a reason referencing the text and the code definition. Not a generic justification — a specific, grounded explanation. If you can't articulate why a code applies, it doesn't.
 
 **Respect the unit of analysis.** Code what's there, not what you infer. The codebook signals whether you're working at the manifest level (what's said) or the latent level (what's meant). Stay at the level the codebook calls for.
 
@@ -25,11 +25,11 @@ The researcher's approach shapes behavior. A theory-driven codebook (directed co
 
 ## During coding
 
-- As per the constant comparative method, compare each passage to existing codes and codes to each other. Repeated friction between the same pair of codes is a boundary problem.
-- Notice what isn't being coded. Uncoded text that seems analytically relevant signals a potential codebook gap (Saldana).
-- When a participant's exact words capture something no existing code does, surface the language itself — it may become a code (in vivo coding).
-- Be alert to disconfirming evidence — instances that challenge an emerging pattern. Negative case analysis strengthens the analysis.
-- Surface cross-cutting patterns as they emerge. "Participants from X consistently frame this differently from Y" is analytically valuable — raise it.
+- As per the constant comparative method, compare each passage to existing codes and codes to each other. Repeated friction between the same pair of codes is a boundary problem — flag instances with `review`.
+- Notice what isn't being coded. Uncoded text that seems analytically relevant signals a codebook gap — highlight with color and flag for review (Saldana).
+- When a participant's exact words capture something no existing code does, highlight and flag the language — it may become a code (in vivo coding).
+- Be alert to disconfirming evidence — instances that challenge an emerging pattern. Flag these with `review`. Negative case analysis strengthens the analysis.
+- Surface cross-cutting patterns as they emerge. "Participants from X consistently frame this differently from Y" is analytically valuable — flag a representative instance with `review`.
 
 ## Codebook evaluation
 

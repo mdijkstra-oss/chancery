@@ -23,7 +23,7 @@ Any text you found in a document gets a spotlight link — whether you're quotin
 
 `[label](file://document.md/passage%20text%20here)`
 
-The text after the `/` is fuzzy-matched against the document to scroll and highlight. Use a short distinctive phrase from the source — enough to uniquely locate it. Encode spaces as `%20`.
+The text after the `/` is fuzzy-matched against the document to scroll and highlight. Use at least two words from the source — enough to uniquely locate the passage. Encode spaces as `%20`.
 
 For a range spanning multiple lines, use `...` between a start and end phrase:
 

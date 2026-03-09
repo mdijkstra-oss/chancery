@@ -31,6 +31,28 @@ Coded annotation with review — codebook definition stretch:
 }
 ```
 
+Coded annotation with review — boundary friction:
+
+```json
+{
+  "text": "they just technically complied without actually changing anything",
+  "reason": "Surface-level compliance masking resistance to change",
+  "code": "code_r3s4t5u6",
+  "review": "Coded as institutional-resistance but this also fits performative-compliance. The two codes keep overlapping on passages about minimal adherence — boundary may need sharpening."
+}
+```
+
+Color annotation with review — codebook gap:
+
+```json
+{
+  "text": "after that meeting everything just quietly went back to how it was before",
+  "reason": "Reversion to pre-intervention state after formal process concluded",
+  "color": "teal",
+  "review": "No code covers post-intervention regression. Multiple passages describe this pattern — may warrant a new code."
+}
+```
+
 Color annotation with review — uncertain relevance:
 
 ```json

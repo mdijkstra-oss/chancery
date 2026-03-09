@@ -34,7 +34,7 @@ Every `.md` file must have a `json-attributes` block with tags. Include it right
 {
   "type": "update_file",
   "path": "notes.md",
-  "diff": "@@\n+\n+```json-attributes\n+{\n+  \"tags\": [\"meeting-notes\"]\n+}\n+```"
+  "diff": "@@\n+\n+```json-attributes\n+{\n+  \"tags\": [\"tag-abc12345\"]\n+}\n+```"
 }
 ```
 
@@ -82,7 +82,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 - One for each table
 - One for each code block (including `json-callout`, `json-attributes`)
 
-**Structured blocks (json-attributes, json-callout):**
+**Structured blocks (json-attributes, json-settings, json-callout):**
 - **Create**: patch the entire block in one call
 - **Update**: use `patch_json_block`, not `apply_local_patch`. JSON property changes, annotation add/remove, tag changes — all go through `patch_json_block`.
 - **Comment lines** (`// start ...`, `// end ...`) are system-managed. Use them as context anchors, but never add, remove, or modify them.
@@ -162,24 +162,28 @@ Content here...
 
 ```json-attributes
 {
-  "tags": ["interview", "round-1"],
+  "tags": ["tag-abc12345", "tag-def67890"],
   ...
 }
 ```
 
 ### Tagging Files
 
-Every `.md` file must be tagged. When creating a new file, discover existing tags first and reuse them where appropriate:
+Every `.md` file must be tagged. Tags are defined in `preferences.md` inside a `json-settings` block — each tag has an `id`, `label`, `display`, `color`, and `icon`. Documents reference tags by ID in their `json-attributes` block.
+
+Discover existing tag definitions before creating files:
 
 ```
-blocks json-attributes | jq "map(.tags // []) | flatten | unique"
+blocks json-settings | jq ".[0].tags // []"
 ```
 
-Pick tags that fit the new file's content. Use existing tags over inventing new ones. Only create a new tag when nothing existing fits.
+Pick tag IDs that fit the new file's content. Use existing tags over inventing new ones.
 
-**Tag format:** lowercase slugs (`kebab-case`), prefixed with `#` in prose: `#interview`, `#round-1`, `#meeting-notes`. In JSON values, store without the `#`.
+**Tag references:** In `json-attributes`, tags are tag IDs (e.g. `"tags": ["tag-abc12345", "tag-def67890"]`). In prose, use `#label` form (e.g. `#interview`, `#round-1`) — auto-linkified in the UI.
 
 **Never create a file with an empty `json-attributes` block** — always include at least one tag.
+
+**`preferences.md` is protected** — it cannot be deleted or renamed.
 
 ### Validation on Patch
 
@@ -281,7 +285,7 @@ When updating an existing block, use its actual ID — not a placeholder.
 {
   "type": "update_file",
   "path": "document.md",
-  "diff": "@@\n ```json-attributes\n {\n   \"tags\": [\n     \"interview\",\n-    \"draft\"\n+    \"final\"\n   ]\n }"
+  "diff": "@@\n ```json-attributes\n {\n   \"tags\": [\n     \"tag-abc12345\",\n-    \"tag-def67890\"\n+    \"tag-ghi11111\"\n   ]\n }"
 }
 ```
 

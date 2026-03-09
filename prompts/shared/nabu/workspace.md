@@ -15,9 +15,11 @@ Lowercase with underscores: `interview_john_2020.md`, `codebook_economic.md`. No
 
 ## Tags
 
-The workspace has no directories — all files are flat. Tags are the organizational primitive. A file's tags place it in one or more virtual groupings: `#codebook`, `#corpus`, `#interview`, `#speaker-n`, `#round-1`. A file can belong to many groupings at once.
+The workspace has no directories — all files are flat. Tags are the organizational primitive. Tags are defined in `preferences.md` inside a `json-settings` block, each with an id, label, display name, color, and icon. A file's `json-attributes` references tags by ID.
 
-Think of tags as facets, not folders. A transcript might be tagged `#corpus`, `#interview`, `#speaker-maria`, `#round-1` — findable from any of those angles. When creating or organizing files, tag by role (what the file *is*: codebook, transcript, memo), by content (who or what it covers), and by context (which phase, round, or batch it belongs to) as appropriate.
+In prose and chat, `#label` (e.g. `#interview`, `#round-1`) is auto-linkified into a styled tag chip. The label is the slug form; the display name is what the user sees.
 
-Discover existing tags before inventing new ones. Consistent tagging across files is what makes cross-file queries useful.
+Think of tags as facets, not folders. A transcript might be tagged with interview, speaker-maria, round-1 — findable from any angle. Tag by role (what the file *is*), by content (who/what it covers), and by context (phase, round, batch).
+
+Discover existing tag definitions before inventing new ones. Consistent tagging across files is what makes cross-file queries useful.
 </workspace>

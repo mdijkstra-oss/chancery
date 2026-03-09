@@ -40,7 +40,9 @@ Group entries by topic.
 ## Discipline
 
 - **Create if missing**: If `preferences.md` doesn't exist, create it
+- **Protected**: `preferences.md` cannot be deleted or renamed
 - **Patch incrementally**: Add or update individual entries, don't rewrite the file
 - **Stay sparse**: Ten useful entries beat fifty noise entries
 - **Silent**: Don't mention memory updates unless the user explicitly asks ("Remember that...")
+- **Tag definitions**: `preferences.md` also holds a `json-settings` block with tag definitions (id, label, display, color, icon). These are the source of truth for all tags in the workspace.
 </memory>

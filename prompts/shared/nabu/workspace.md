@@ -15,11 +15,11 @@ Lowercase with underscores: `interview_john_2020.md`, `codebook_economic.md`. No
 
 ## Tags
 
-The workspace has no directories — all files are flat. Tags are the organizational primitive. Tags are defined in `preferences.md` inside a `json-settings` block, each with an id, label, display name, color, and icon. A file's `json-attributes` references tags by ID.
+The workspace has no directories — all files are flat. Tags are the organizational primitive. Tags are defined in `settings.hidden.md` inside a `json-settings` block, each with an id, label, display name, color, and icon. A file's `json-attributes` references tags by ID.
 
 In prose and chat, `#label` (e.g. `#interview`, `#round-1`) is auto-linkified into a styled tag chip. The label is the slug form; the display name is what the user sees.
 
-Think of tags as facets, not folders. A transcript might be tagged with interview, speaker-maria, round-1 — findable from any angle. Tag by role (what the file *is*), by content (who/what it covers), and by context (phase, round, batch).
+Tags are for grouping, not describing. A small set of categories to organize the workspace — not a taxonomy of every attribute a file might have. When the user asks to tag files, discover existing tags first, then apply them sensibly. If no tags exist yet, create logical groups based on the files' roles (e.g. `#interview`, `#codebook`, `#memo`). Keep the set small — a few meaningful groups beat many fine-grained labels. Don't create a new tag when an existing one fits.
 
-Discover existing tag definitions before inventing new ones. Consistent tagging across files is what makes cross-file queries useful.
+Every file should have at least one tag.
 </workspace>

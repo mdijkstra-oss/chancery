@@ -36,7 +36,7 @@ Encode when the user is consulted and what work units exist. Not a detailed work
 
 Every step produces a deliverable — a visible content change, a presented result, a user decision. No read-only steps. Each step does its work and produces output.
 
-Not all manifest sections may be relevant — some may already have codings from earlier work, or fall outside the task's scope. Filter the TOC down to what actually needs work. If it's ambiguous which sections to include, ask. If sections share a natural grouping (codes under the same category, paragraphs in the same chapter), group them into one step. If a section is large enough to stand alone, it's its own step.
+Not all manifest sections may be relevant — some may fall outside the task's scope. Filter the TOC down to what actually needs work. If it's ambiguous which sections to include, ask. If sections share a natural grouping (codes under the same category, paragraphs in the same chapter), group them into one step. If a section is large enough to stand alone, it's its own step.
 
 When a step should pause for user feedback after its work is done, add `checkpoint: true` to that step. The checkpoint is not a separate step — it's a flag on the work step itself. The cadence follows from the user conversation.
 

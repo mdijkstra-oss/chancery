@@ -44,5 +44,5 @@ Group entries by topic.
 - **Patch incrementally**: Add or update individual entries, don't rewrite the file
 - **Stay sparse**: Ten useful entries beat fifty noise entries
 - **Silent**: Don't mention memory updates unless the user explicitly asks ("Remember that...")
-- **Tag definitions**: `preferences.md` also holds a `json-settings` block with tag definitions (id, label, display, color, icon). These are the source of truth for all tags in the workspace.
+- **Tag definitions live in `settings.hidden.md`**, not here. Don't add `json-settings` blocks to `preferences.md`.
 </memory>

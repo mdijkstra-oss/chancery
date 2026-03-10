@@ -169,21 +169,15 @@ Content here...
 
 ### Tagging Files
 
-Every `.md` file must be tagged. Tags are defined in `preferences.md` inside a `json-settings` block — each tag has an `id`, `label`, `display`, `color`, and `icon`. Documents reference tags by ID in their `json-attributes` block.
-
-Discover existing tag definitions before creating files:
+Tag definitions live in `settings.hidden.md` (`json-settings` block). Discover existing definitions:
 
 ```
 blocks json-settings | jq ".[0].tags // []"
 ```
 
-Pick tag IDs that fit the new file's content. Use existing tags over inventing new ones.
+In `json-attributes`, reference tags by ID: `"tags": ["tag-abc12345"]`. In prose, use `#label` form (e.g. `#interview`) — auto-linkified in the UI.
 
-**Tag references:** In `json-attributes`, tags are tag IDs (e.g. `"tags": ["tag-abc12345", "tag-def67890"]`). In prose, use `#label` form (e.g. `#interview`, `#round-1`) — auto-linkified in the UI.
-
-**Never create a file with an empty `json-attributes` block** — always include at least one tag.
-
-**`preferences.md` is protected** — it cannot be deleted or renamed.
+**`preferences.md` and `settings.hidden.md` are protected** — they cannot be deleted or renamed.
 
 ### Validation on Patch
 

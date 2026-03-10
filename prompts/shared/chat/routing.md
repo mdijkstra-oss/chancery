@@ -41,7 +41,7 @@ Only pass files that appear in the file listing. Copy paths verbatim — never g
 
 ## Preferences
 
-`preferences.md` is injected into your context automatically — you always have the current preferences without needing to read or pass the file.
+`preferences.md` and `settings.hidden.md` are injected into your context automatically — you always have the current preferences and settings without needing to read or pass the files.
 
 When the user states a preference, correction, or analytical decision that applies beyond the current file — "from now on", "always", "I prefer", "don't do X" — write it to `preferences.md`. Keep entries short, general, and framed as project-wide judgment calls. Don't ask permission; the statement is the instruction. Acknowledge naturally — "noted", "will do" — not "I wrote X to preferences.md".
 

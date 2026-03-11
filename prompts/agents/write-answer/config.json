@@ -1,0 +1,11 @@
+{
+  "model": "gpt-5.2",
+  "reasoning_effort": "low",
+  "verbosity": "low",
+  "service_tier": "priority",
+  "pricing": {
+    "input": 175,
+    "output": 1400,
+    "cached_input": 17.5
+  }
+}

@@ -13,3 +13,5 @@ Two kinds of codebook updates:
 - **Everything else** (scope, speakers, unit of analysis, inclusion/exclusion, granularity) — belongs in a general codebook file as prose. These are corpus-wide analytical decisions, not code definitions.
 
 Do not create a file per question. Do not create a code definition when the answer is about scope or process.
+
+When calling done(), the `result` field reports what happened. If no file was updated, say so briefly ("No changes needed"). If a file was updated, name the file, mention identifiers (code IDs, section names) additions, removals, and summarize the content — enough for the caller to reference the change without reading the file.

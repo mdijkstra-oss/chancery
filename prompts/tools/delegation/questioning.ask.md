@@ -12,8 +12,10 @@ Provide options when there are discrete choices. Omit options for open-ended que
 
 Set `scope` to signal what the answer affects:
 
-`local` — the answer applies to the current task only. A section-specific decision, a one-off clarification, a direction for this file. No file updates needed after the answer.
+`local` — the answer applies to the current task only. A section-specific decision, a one-off clarification, a direction for this file.
 
 `codebook` — the answer shapes how analysis is done. Code definitions, density, granularity, what to include or exclude, unit of analysis, what counts as codeable content. Project-level decisions that belong in the codebook — do not re-ask what the codebook already captures.
 
 `preferences` — a lasting decision that is not about how analysis is done. User name, preferred language, output format.
+
+The ask tool is a pure pause — it returns the user's answer and nothing else. It does not persist anything. For codebook and preferences scope, call `record_decision` once the discussion has converged to persist the outcome.

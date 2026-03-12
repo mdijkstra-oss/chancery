@@ -4,7 +4,7 @@
   "reasoning_summary": "auto",
   "verbosity": "low",
   "service_tier": "default",
-  "compact_at": 125000,
+  "compact_at": 300000,
   "pricing": {
     "input": 175,
     "output": 1400,

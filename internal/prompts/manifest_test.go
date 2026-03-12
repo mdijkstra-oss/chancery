@@ -278,14 +278,19 @@ func TestCompileRegistry(t *testing.T) {
 	promptsDir := filepath.Join(base, "prompts")
 
 	sharedFiles := map[string]string{
-		"shared/nabu/identity.md":       "I am Nabu.",
-		"shared/nabu/discipline.md":     "Be disciplined.",
-		"shared/chat/style.md":          "Be direct.",
-		"shared/planning/planning.md":   "Plan carefully.",
-		"shared/planning/template.md":   "Template here.",
-		"shared/execution/execution.md": "Execute the plan.",
+		"shared/nabu/identity.md":   "I am Nabu.",
+		"shared/nabu/discipline.md": "Be disciplined.",
+		"shared/chat/style.md":      "Be direct.",
+	}
+	modeIncludeFiles := map[string]string{
+		"modes/planning/planning.md":   "Plan carefully.",
+		"modes/planning/template.md":   "Template here.",
+		"modes/execution/execution.md": "Execute the plan.",
 	}
 	for name, content := range sharedFiles {
+		writeTestFile(t, filepath.Join(promptsDir, name), content)
+	}
+	for name, content := range modeIncludeFiles {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
 	}
 

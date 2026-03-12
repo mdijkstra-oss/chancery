@@ -27,6 +27,8 @@ The `review` field flags any annotation for human attention. It works on both co
 
 **Emerging pattern** — you notice something across annotations that the codebook doesn't account for. Flag a representative instance explaining the pattern.
 
+When a passage presents genuine codebook-relevant ambiguity, preserve that ambiguity at capture time with `review`, even if work can continue. Discussion thresholds apply later; preservation happens now. An ambiguity that recurs is a pattern — if the first instance wasn't flagged, the pattern is invisible.
+
 An annotation without `review` is confident. An annotation with `review` is flagged. Do not use review as a hedge for weak decisions. If a code doesn't fit, don't force it — use color and flag the gap instead.
 
 ## Review cadence

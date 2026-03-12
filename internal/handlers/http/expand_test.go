@@ -71,6 +71,37 @@ func TestExpandMessages(t *testing.T) {
 			messages: []json.RawMessage{msg("system", "<!--  prompt:  planning  -->")},
 			want:     []json.RawMessage{msg("system", "You are in planning mode.")},
 		},
+		{
+			name: "multiple markers last wins",
+			messages: []json.RawMessage{
+				msg("user", "Hello"),
+				msg("system", "<!-- prompt: planning -->"),
+				msg("user", "Now execute"),
+				msg("system", "<!-- prompt: execution -->"),
+			},
+			want: []json.RawMessage{
+				msg("user", "Hello"),
+				msg("user", "Now execute"),
+				msg("system", "You are in execution mode."),
+			},
+		},
+		{
+			name: "three markers last wins earlier dropped",
+			messages: []json.RawMessage{
+				msg("system", "<!-- prompt: execution -->"),
+				msg("user", "First"),
+				msg("system", "<!-- prompt: planning -->"),
+				msg("user", "Second"),
+				msg("system", "<!-- prompt: execution -->"),
+				msg("user", "Third"),
+			},
+			want: []json.RawMessage{
+				msg("user", "First"),
+				msg("user", "Second"),
+				msg("system", "You are in execution mode."),
+				msg("user", "Third"),
+			},
+		},
 	}
 
 	for _, tc := range cases {

@@ -11,9 +11,24 @@ var modelMarker = regexp.MustCompile(`^<!--\s*model:\s*([\w.\-]+)\s*-->$`)
 var verbosityMarker = regexp.MustCompile(`^<!--\s*verbosity:\s*(\w+)\s*-->$`)
 
 func ExpandMessages(messages []json.RawMessage, modes map[string]string) []json.RawMessage {
-	result := make([]json.RawMessage, len(messages))
+	lastIdx := -1
+	for i := len(messages) - 1; i >= 0; i-- {
+		if _, ok := matchDirective(modeMarker, messages[i]); ok {
+			lastIdx = i
+			break
+		}
+	}
+
+	result := make([]json.RawMessage, 0, len(messages))
 	for i, raw := range messages {
-		result[i] = expandMessage(raw, modes)
+		if _, ok := matchDirective(modeMarker, raw); ok && i != lastIdx {
+			continue
+		}
+		if i == lastIdx {
+			result = append(result, expandMessage(raw, modes))
+		} else {
+			result = append(result, raw)
+		}
 	}
 	return result
 }

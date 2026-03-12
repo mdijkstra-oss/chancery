@@ -1,10 +1,10 @@
 {
-  "model": "gpt-5.2",
+  "model": "gpt-5.4",
   "reasoning_effort": "none",
   "reasoning_summary": "auto",
   "verbosity": "low",
   "service_tier": "default",
-  "compact_at": 200000,
+  "compact_at": 125000,
   "pricing": {
     "input": 175,
     "output": 1400,

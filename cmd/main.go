@@ -26,8 +26,10 @@ func main() {
 		Inspect: cfg.Inspect,
 	}, registry)
 
+	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
+
 	r := chi.NewRouter()
-	httpHandlers.SetupRoutes(r, chatHandler, cfg.CorsOrigins)
+	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server starting", "port", cfg.Port)

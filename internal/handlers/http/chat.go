@@ -44,6 +44,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	}
 
 	req.Messages = ExpandMessages(req.Messages, registry.Modes)
+	req.Messages = ExpandApproaches(req.Messages, registry.Approaches.Entries)
 
 	var reasoningEffort string
 	req.Messages, reasoningEffort = ExtractReasoningEffort(req.Messages)

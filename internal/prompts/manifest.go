@@ -23,9 +23,10 @@ type CompiledAgent struct {
 }
 
 type Registry struct {
-	Agents  map[string]CompiledAgent
-	Configs map[string]PromptConfig
-	Modes   map[string]string
+	Agents     map[string]CompiledAgent
+	Configs    map[string]PromptConfig
+	Modes      map[string]string
+	Approaches ApproachRegistry
 }
 
 var includePattern = regexp.MustCompile(`^\[([^\]]+\.md)\]$`)
@@ -133,9 +134,10 @@ func CompileRegistry(promptsDir string) Registry {
 	sharedDir := filepath.Join(promptsDir, "shared")
 
 	registry := Registry{
-		Agents:  make(map[string]CompiledAgent),
-		Configs: make(map[string]PromptConfig),
-		Modes:   compileModes(promptsDir),
+		Agents:     make(map[string]CompiledAgent),
+		Configs:    make(map[string]PromptConfig),
+		Modes:      compileModes(promptsDir),
+		Approaches: compileApproaches(promptsDir),
 	}
 
 	filepath.Walk(agentsDir, func(path string, info os.FileInfo, err error) error {

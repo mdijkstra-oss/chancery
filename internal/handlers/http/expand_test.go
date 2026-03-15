@@ -5,10 +5,16 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"hermes-logos/internal/prompts"
 )
 
 func msg(role, content string) json.RawMessage {
 	b, _ := json.Marshal(InputMessage{Role: role, Content: content})
+	return b
+}
+
+func typedMsg(role, content string) json.RawMessage {
+	b, _ := json.Marshal(InputMessage{Type: "message", Role: role, Content: content})
 	return b
 }
 
@@ -229,6 +235,95 @@ func TestExtractVerbosity(t *testing.T) {
 			}
 			if len(gotMessages) != tc.wantMsgCount {
 				t.Errorf("message count: got %d, want %d", len(gotMessages), tc.wantMsgCount)
+			}
+		})
+	}
+}
+
+func TestExpandApproaches(t *testing.T) {
+	entries := map[string]prompts.Approach{
+		"index":       {Key: "index", Content: "## Root"},
+		"a/index":     {Key: "a/index", Content: "## A Index"},
+		"a/b/index":   {Key: "a/b/index", Content: "## A/B Index"},
+		"a/b/leaf":    {Key: "a/b/leaf", Content: "## Leaf content"},
+		"a/b/another": {Key: "a/b/another", Content: "## Another content"},
+	}
+
+	cases := []struct {
+		name     string
+		messages []json.RawMessage
+		want     []json.RawMessage
+	}{
+		{
+			name:     "single marker expanded with indexes",
+			messages: []json.RawMessage{msg("system", "<!-- approach: a/b/leaf -->")},
+			want: []json.RawMessage{
+				typedMsg("system", "[a/b/index]\n## A/B Index"),
+				typedMsg("system", "[a/index]\n## A Index"),
+				typedMsg("system", "[index]\n## Root"),
+				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
+			},
+		},
+		{
+			name: "multiple markers all expanded",
+			messages: []json.RawMessage{
+				msg("system", "<!-- approach: a/b/leaf -->"),
+				msg("user", "hello"),
+				msg("system", "<!-- approach: a/b/another -->"),
+			},
+			want: []json.RawMessage{
+				typedMsg("system", "[a/b/index]\n## A/B Index"),
+				typedMsg("system", "[a/index]\n## A Index"),
+				typedMsg("system", "[index]\n## Root"),
+				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
+				msg("user", "hello"),
+				typedMsg("system", "[a/b/another]\n## Another content"),
+			},
+		},
+		{
+			name:     "unknown key dropped known index kept",
+			messages: []json.RawMessage{msg("system", "<!-- approach: unknown/key -->")},
+			want: []json.RawMessage{
+				typedMsg("system", "[index]\n## Root"),
+			},
+		},
+		{
+			name: "no markers passthrough",
+			messages: []json.RawMessage{
+				msg("user", "hello"),
+				msg("system", "some system msg"),
+			},
+			want: []json.RawMessage{
+				msg("user", "hello"),
+				msg("system", "some system msg"),
+			},
+		},
+		{
+			name: "mixed modes and approaches both work",
+			messages: []json.RawMessage{
+				msg("system", "<!-- prompt: planning -->"),
+				msg("system", "<!-- approach: a/b/leaf -->"),
+			},
+			want: []json.RawMessage{
+				msg("system", "<!-- prompt: planning -->"),
+				typedMsg("system", "[a/b/index]\n## A/B Index"),
+				typedMsg("system", "[a/index]\n## A Index"),
+				typedMsg("system", "[index]\n## Root"),
+				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
+			},
+		},
+		{
+			name:     "non-system approach marker unchanged",
+			messages: []json.RawMessage{msg("user", "<!-- approach: a/b/leaf -->")},
+			want:     []json.RawMessage{msg("user", "<!-- approach: a/b/leaf -->")},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ExpandApproaches(tc.messages, entries)
+			if diff := cmp.Diff(rawSliceToStrings(tc.want), rawSliceToStrings(got)); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

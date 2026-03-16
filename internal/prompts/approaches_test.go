@@ -182,7 +182,7 @@ func writeFile(t *testing.T, dir, rel, content string) {
 
 func TestCompileApproaches(t *testing.T) {
 	dir := t.TempDir()
-	approachesDir := filepath.Join(dir, "approaches")
+	approachesDir := filepath.Join(dir, "modes", "approaches")
 
 	writeFile(t, approachesDir, "index.md", "## Root index\n")
 	writeFile(t, approachesDir, "topic/index.md", "## Topic index\n")

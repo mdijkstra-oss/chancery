@@ -92,7 +92,7 @@ func ResolveApproachKeys(requested []string) []string {
 }
 
 func compileApproaches(promptsDir string) ApproachRegistry {
-	approachesDir := filepath.Join(promptsDir, "approaches")
+	approachesDir := filepath.Join(promptsDir, "modes", "approaches")
 	entries := make(map[string]Approach)
 	var keys []string
 	descriptions := make(map[string]string)

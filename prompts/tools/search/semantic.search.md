@@ -50,4 +50,17 @@ A short 2-4 word label for the search: "Interview documents", "Frustration menti
 ### The `description` field
 
 A longer human-readable summary: "All documents tagged interview from the 2024 corpus", "Annotations mentioning frustration or dissatisfaction". This appears below the title for context.
+
+### The `highlights` field
+
+Terms to highlight in matched documents — the actual search targets the user is looking for. These are used to find and display occurrences within each matched file.
+
+For text searches: include the names, keywords, or phrases being searched for.
+- Searching for mentions of a person → `["Rutte"]`
+- Searching for frustration across documents → `["frustration", "dissatisfaction", "angry"]`
+- Searching for all speakers → `["Rutte", "Geert", "Timmermans"]` (list the actual names found)
+
+For structural queries where there's nothing textual to highlight, use an empty array:
+- "Documents with 3+ annotations" → `[]`
+- "Files tagged interview" → `[]`
 </search-semantic>

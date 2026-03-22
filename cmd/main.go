@@ -28,8 +28,13 @@ func main() {
 
 	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
 
+	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(httpHandlers.Config{
+		APIKey:  cfg.APIKey,
+		BaseURL: cfg.BaseURL,
+	})
+
 	r := chi.NewRouter()
-	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, cfg.CorsOrigins)
+	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, embeddingsHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server starting", "port", cfg.Port)

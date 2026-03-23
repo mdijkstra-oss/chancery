@@ -3,115 +3,80 @@
 
 ### Column contract
 
-Every query must SELECT a column named `file` (VARCHAR). Optionally include:
-- `id` (VARCHAR): a specific entity within the document (annotation, callout, etc.)
+Every query must SELECT `file` (VARCHAR). Optionally include:
+- `id` (VARCHAR): a specific entity within the document
 - `text` (VARCHAR): a text passage to display as a snippet
 
 Extra columns are returned but only `file`, `id`, and `text` drive the UI.
 
 ### The `files` table
 
-One row per paragraph-sized chunk. Columns: `file` (source document), `text` (passage content). This is the only table that supports `SEMANTIC()`.
+One row per paragraph-sized chunk. Columns: `file` (source document), `text` (passage content). Only table that supports `SEMANTIC()`.
 
 ### Choosing a matching strategy
 
 For concepts, topics, or meaning → `SEMANTIC()` on the `files` table.
-For a specific known term or exact substring → a single `ILIKE`. Max 3 per query.
+For a specific known term or exact substring → `ILIKE`. Up to 3 per query.
 For exact values (tags, codes, IDs) → `=`, `list_has()`, or `IN`.
 
-If you're tempted to write multiple ILIKEs to cover synonyms or variants, that's a `SEMANTIC()` query.
+If you're tempted to write multiple ILIKEs to cover synonyms, that's a `SEMANTIC()` query.
 
-### `SEMANTIC()` pseudo-function
+### `SEMANTIC()` function
 
-`SEMANTIC('text')` scores each row by similarity to the given text. Write it in the SELECT list — the system handles scoring, ranking, and limits automatically.
+`SEMANTIC()` takes a single description of what to find. Describe the passages you want — the system handles search strategy, scoring, ranking, and limits.
 
 ```sql
-SELECT f.file, f.text, SEMANTIC('political frustration')
+SELECT f.file, f.text, SEMANTIC('passages where engineers flag structural safety concerns')
 FROM files f
-```
-
-Combine with filters:
-```sql
-SELECT f.file, f.text, SEMANTIC('economic policy')
-FROM files f
-WHERE f.file IN (SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'interview'))
+WHERE f.file IN (SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'report'))
 ```
 
 Rules:
-- One `SEMANTIC()` per query
-- Only on the `files` table
-- No operators or `AS` after `SEMANTIC()`
-- No `SEMANTIC()` in `ORDER BY` — ranking is automatic
+- One `SEMANTIC()` per query, only on `files`
+- No `AS`, no `ORDER BY` — ranking is automatic
 
-### Writing SEMANTIC queries
+### Writing SEMANTIC descriptions
 
-Keep SEMANTIC queries short and precise — ideally under 10 words. The embedding model averages the entire string into one vector. Every extra word dilutes the signal.
+Describe the passages you want to find as if briefing a research assistant. Be specific about what the passages say, not just the topic.
 
-**Decompose the user's request** into filters and a semantic core:
+Good: `SEMANTIC('passages where defendants argue the court lacks jurisdiction')`
+Specific about what the text says.
+
+Weak: `SEMANTIC('jurisdiction')`
+Too vague — matches everything tangentially related.
+
+Include stance or direction when relevant:
+- `SEMANTIC('passages praising the new policy')` — not just `'new policy'`
+- `SEMANTIC('complaints about slow delivery')` — not just `'delivery'`
+
+Decompose user requests:
 - Document types, tags, metadata → WHERE clause
-- General context or setting → WHERE clause or omit entirely
-- The specific concept to find → SEMANTIC()
+- What the passages say → SEMANTIC()
 
-SEMANTIC should contain only the differentiating idea — the thing that separates matching passages from non-matching ones.
+### SEMANTIC vs description
 
-**Strip away:**
-- Terms that describe the corpus topic (if the corpus is about remote work, don't put "remote work" in SEMANTIC)
-- Terms that restate document type or structure ("interview files", "field reports")
-- Synonyms and elaborations you invented — use the user's core phrasing, not your expansion of it
+SEMANTIC describes what to search for. The `description` field in `search` calls is a label for the user. Don't mix them.
 
-**Do not** rephrase, pad, or add synonyms. The embedding model handles similarity — your job is to give it a clean target, not a thesaurus entry.
-
-**Examples:**
-
-User: "Interview files where people describe feeling always available while working from home"
-- "Interview files" → `WHERE list_has(a.tags, 'interview')`
-- "working from home" → corpus context, omit
-- Core concept → `SEMANTIC('feeling always available, unable to switch off')`
-
-Bad: `SEMANTIC('feeling always on while working from home, always available, unable to switch off, remote work blurs boundaries, pressure to stay online')`
-Why bad: "working from home", "remote work", "blurs boundaries", "pressure to stay online" are context and invented synonyms that dilute the core concept.
-
-User: "Field reports documenting habitat loss near river systems"
-- "Field reports" → tag/type filter
-- Core concept → `SEMANTIC('habitat loss near rivers')`
-
-Bad: `SEMANTIC('habitat loss near river systems, deforestation, biodiversity decline, ecological damage, environmental degradation')`
-Why bad: everything after the first phrase is synonyms you added.
-
-User: "Show me passages about productivity"
-- No filter needed
-- Core concept → `SEMANTIC('productivity')`
-
-Bad: `SEMANTIC('being more productive, getting more done, increased output, higher efficiency, better performance at work')`
-Why bad: one word was enough. Five restatements make it worse.
+User: "Find court filings where defendants challenged jurisdiction"
+→ `SEMANTIC('passages where defendants argue the court lacks jurisdiction or is the wrong venue')`
+→ title: "Jurisdiction challenges"
+→ description: "Court filings where defendants challenged the jurisdiction or venue of the court"
 
 ### Query examples
 
-Tag filter (file-only):
 ```sql
-SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'interview')
-```
+-- Tag filter
+SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'memo')
 
-Semantic search (file + text):
-```sql
-SELECT f.file, f.text, SEMANTIC('economic anxiety')
+-- Semantic search with filter
+SELECT f.file, f.text, SEMANTIC('passages describing soil or groundwater contamination from industrial waste')
 FROM files f
-```
+WHERE f.file IN (SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'environmental'))
 
-Semantic search with filter:
-```sql
-SELECT f.file, f.text, SEMANTIC('feeling isolated')
-FROM files f
-WHERE f.file IN (SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'interview'))
-```
+-- Keyword match
+SELECT a.file, a.id, a.text FROM attributes_annotations a WHERE a.text ILIKE '%asbestos%'
 
-Keyword match (file + id + text):
-```sql
-SELECT a.file, a.id, a.text FROM attributes_annotations a WHERE a.text ILIKE '%frustration%'
-```
-
-Entity by code (file + id):
-```sql
+-- Entity by code
 SELECT a.file, a.id FROM attributes_annotations a WHERE a.code = 'callout-abc123'
 ```
 
@@ -121,7 +86,6 @@ Max 50 rows.
 
 ### `query` vs `search`
 
-`query` returns results to you for reasoning: counting, aggregating, checking values, exploring data before deciding what to do. The user does not see query results.
-
-`search` creates a persistent results page the user can browse. Use it when the user asks to find, show, or explore. If the user should see the results, use `search`.
+`query` returns results to you for reasoning. The user does not see them.
+`search` creates a persistent results page the user can browse.
 </query-sql>

@@ -7,23 +7,23 @@ Do not use `search` for your own reasoning — use `query` for that.
 
 ### Before searching
 
-If the user's request is ambiguous about **scope**, briefly clarify before running the search. Scope questions include:
-- Which document types? ("All files" often means a specific subset — interviews, field reports, etc.)
+If the user's request is ambiguous about **scope**, use the `ask` tool to clarify. Scope questions include:
+- Which document types?
 - Which tags or categories?
 - Time period or subset of the corpus?
 
-Do not ask clarifying questions about **phrasing or meaning** — that's what SEMANTIC handles. If the user says "productivity stuff," search for it. Don't ask "do you mean efficiency, output, or performance?"
+Use multiple choice options when possible — faster for the user than typing.
 
-Keep clarification to one short question. Don't interrogate the user.
+Do not ask clarifying questions about **phrasing or meaning** — that's what SEMANTIC handles.
+
+Keep clarification to one question. Don't interrogate the user.
 
 ### Output order
 
 Write the SQL query first, then title and description. These are different modes of writing:
-- SQL / `SEMANTIC()` — a search target. Short keywords, not prose.
+- SQL / `SEMANTIC()` — describes what passages to find.
 - `title` — a short label.
-- `description` — a human-readable sentence. This is where elaboration and context belong.
-
-Do not let the descriptive mindset of title/description bleed into the SEMANTIC string.
+- `description` — a human-readable sentence for context.
 
 ### SQL format
 
@@ -31,18 +31,11 @@ Same SQL rules as `query`. Must SELECT `file`. Optionally `id` and/or `text`. Su
 
 ### The `title` field
 
-Short 2–4 word label that names the result set. Appears in the sidebar and entity links.
-
-Examples: "Interview documents", "Frustration mentions", "Habitat loss reports"
+Short 2–4 word label. Appears in the sidebar and entity links.
 
 ### The `description` field
 
 One sentence describing what was searched and how. Appears below the title for context.
-
-Examples:
-- "Documents tagged interview from the 2024 corpus"
-- "Passages expressing frustration or dissatisfaction with policy"
-- "Field reports mentioning habitat loss near river systems"
 
 ### When to use `search` vs `query`
 

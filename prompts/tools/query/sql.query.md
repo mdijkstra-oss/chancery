@@ -21,6 +21,13 @@ For exact values (tags, codes, IDs) → `=`, `list_has()`, or `IN`.
 
 If you're tempted to write multiple ILIKEs to cover synonyms, that's a `SEMANTIC()` query.
 
+Do not use `SEMANTIC()` when a simpler strategy works:
+- User names a specific term or phrase → `ILIKE '%asbestos%'`, not `SEMANTIC('asbestos')`
+- Filtering by tag, code, or metadata → `=`, `list_has()`, `IN`
+- Counting or checking existence → `query` with exact match
+
+Reserve `SEMANTIC()` for when the meaning matters more than the wording — when the corpus may express the idea in different words than the request uses.
+
 ### `SEMANTIC()` function
 
 `SEMANTIC()` takes a single description of what to find. Describe the passages you want — the system handles search strategy, scoring, ranking, and limits.

@@ -20,8 +20,9 @@ Keep clarification to one question. Don't interrogate the user.
 
 ### Output order
 
-Write the SQL query first, then title and description. These are different modes of writing:
+Write the SQL query first, then highlight, then title and description. These are different modes of writing:
 - SQL / `SEMANTIC()` — describes what passages to find.
+- `highlight` — describes what to extract and show from each result chunk.
 - `title` — a short label.
 - `description` — a human-readable sentence for context.
 
@@ -47,4 +48,6 @@ One sentence describing what was searched and how. Appears below the title for c
 | "How many…", "Is there a…", "Check if…" | `query` |
 | You need to inspect data before acting | `query` |
 | The user should see and browse results | `search` |
+
+`query` returns raw embedding-ranked results — you judge relevance. `search` filters results before showing them to the user.
 </search-semantic>

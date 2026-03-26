@@ -29,6 +29,8 @@ Write the SQL query first, then title and description. These are different modes
 
 Same SQL rules as `query`. Must SELECT `file`. Optionally `id` and/or `text`. Supports `SEMANTIC()`.
 
+SEMANTIC searches across all languages automatically — no need for language-specific queries or multiple searches.
+
 ### The `title` field
 
 Short 2–4 word label. Appears in the sidebar and entity links.

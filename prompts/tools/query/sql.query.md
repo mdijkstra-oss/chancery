@@ -32,6 +32,8 @@ Reserve `SEMANTIC()` for when the meaning matters more than the wording — when
 
 `SEMANTIC()` takes a single description of what to find. Describe the passages you want — the system handles search strategy, scoring, ranking, and limits.
 
+SEMANTIC automatically searches across all languages in the corpus. Write your description in the user's language — it finds matching passages regardless of what language they were written in.
+
 ```sql
 SELECT f.file, f.text, SEMANTIC('passages where engineers flag structural safety concerns')
 FROM files f

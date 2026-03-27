@@ -13,6 +13,7 @@ type Pricing struct {
 
 type PromptConfig struct {
 	Model            string  `json:"model"`
+	Dimensions       int     `json:"dimensions,omitempty"`
 	ReasoningEffort  string  `json:"reasoning_effort"`
 	ReasoningSummary string  `json:"reasoning_summary"`
 	Verbosity        string  `json:"verbosity"`

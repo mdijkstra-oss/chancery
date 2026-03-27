@@ -11,10 +11,21 @@ import (
 	"time"
 )
 
-const maxEmbeddingBatchSize = 1024
+const maxEmbeddingBatchSize = 512
+const maxEmbeddingBatchTokens = 200_000
 const maxEmbeddingRetries = 3
+const charsPerToken = 4
 
-type EmbeddingsRequest struct {
+type EmbeddingConfig struct {
+	Model      string
+	Dimensions int
+}
+
+type EmbeddingsClientRequest struct {
+	Input []string `json:"input"`
+}
+
+type embeddingsProxyRequest struct {
 	Input      []string `json:"input"`
 	Model      string   `json:"model"`
 	Dimensions int      `json:"dimensions"`
@@ -34,14 +45,14 @@ type EmbeddingsUsage struct {
 	TotalTokens int `json:"total_tokens"`
 }
 
-func NewEmbeddingsHandler(cfg Config) http.HandlerFunc {
+func NewEmbeddingsHandler(cfg Config, embCfg EmbeddingConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleEmbeddings(w, r, cfg)
+		handleEmbeddings(w, r, cfg, embCfg)
 	}
 }
 
-func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config) {
-	var req EmbeddingsRequest
+func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config, embCfg EmbeddingConfig) {
+	var req EmbeddingsClientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -57,7 +68,19 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config) {
 		return
 	}
 
-	resp, err := proxyEmbeddingsWithRetry(r.Context(), req, cfg)
+	estimatedTokens := estimateEmbeddingTokens(req.Input)
+	if estimatedTokens > maxEmbeddingBatchTokens {
+		http.Error(w, fmt.Sprintf("estimated tokens %d exceeds maximum %d", estimatedTokens, maxEmbeddingBatchTokens), http.StatusBadRequest)
+		return
+	}
+
+	proxyReq := embeddingsProxyRequest{
+		Input:      req.Input,
+		Model:      embCfg.Model,
+		Dimensions: embCfg.Dimensions,
+	}
+
+	resp, err := proxyEmbeddingsWithRetry(r.Context(), proxyReq, cfg)
 	if err != nil {
 		handleEmbeddingsProxyError(w, err)
 		return
@@ -92,7 +115,7 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config) {
 	w.Write(body)
 }
 
-func proxyEmbeddingsRequest(ctx context.Context, req EmbeddingsRequest, cfg Config) (*http.Response, error) {
+func proxyEmbeddingsRequest(ctx context.Context, req embeddingsProxyRequest, cfg Config) (*http.Response, error) {
 	proxyReq, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseURL+"/embeddings", jsonReader(req))
 	if err != nil {
 		return nil, err
@@ -104,7 +127,7 @@ func proxyEmbeddingsRequest(ctx context.Context, req EmbeddingsRequest, cfg Conf
 	return http.DefaultClient.Do(proxyReq)
 }
 
-func proxyEmbeddingsWithRetry(ctx context.Context, req EmbeddingsRequest, cfg Config) (*http.Response, error) {
+func proxyEmbeddingsWithRetry(ctx context.Context, req embeddingsProxyRequest, cfg Config) (*http.Response, error) {
 	for attempt := range maxEmbeddingRetries {
 		resp, err := proxyEmbeddingsRequest(ctx, req, cfg)
 		if err != nil {
@@ -136,6 +159,14 @@ func proxyEmbeddingsWithRetry(ctx context.Context, req EmbeddingsRequest, cfg Co
 		}
 	}
 	return nil, errRateLimited
+}
+
+func estimateEmbeddingTokens(input []string) int {
+	total := 0
+	for _, s := range input {
+		total += len(s)
+	}
+	return total / charsPerToken
 }
 
 func handleEmbeddingsProxyError(w http.ResponseWriter, err error) {

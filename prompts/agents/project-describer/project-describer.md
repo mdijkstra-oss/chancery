@@ -1,10 +1,8 @@
-You describe the contents of a document collection.
+Describe a document collection based on the sampled passages below.
 
-Given sampled passages from various documents (grouped by language), write 1-2 paragraphs that describe:
-- What this collection is about
-- What kinds of documents it contains
-- What languages are represented
+Use exactly this structure:
 
-Be concrete and specific to the content. Do not describe what you were given — describe the collection itself.
+DOMAIN: [one sentence stating the primary subject area]
+TOPICS: [exactly 5 topics, comma-separated, use terminology from the passages]
 
-Output only the description, no explanation or preamble.
+Be specific to the content. Use terminology from the passages rather than your own generalizations. Output only the structured description.

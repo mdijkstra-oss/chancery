@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -79,6 +80,9 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 
 	toolChoice := r.URL.Query().Get("tool_choice")
 	temperature := parseTemperature(r.URL.Query().Get("temperature"))
+	if temperature == nil {
+		temperature = promptCfg.Temperature
+	}
 	reasoningSummary := r.URL.Query().Get("reasoning_summary")
 	if reasoningSummary == "" {
 		reasoningSummary = promptCfg.ReasoningSummary
@@ -118,7 +122,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 				return
 			}
 			if usage != nil {
-				logUsage("compacter", usage, compacterCfg.Pricing, "", 0)
+				logUsage("compacter", usage, compacterCfg.Pricing, "", 0, extractRateLimitInfo(resp.Header))
 			}
 			return
 		}
@@ -154,36 +158,18 @@ func decodeRequest(r *http.Request) (ChatRequest, error) {
 	return req, nil
 }
 
-var (
-	errQuotaExhausted = errors.New("API quota exhausted")
-	errRateLimited    = errors.New("rate limit exceeded after retries")
-)
+var errRateLimited = errors.New("rate limit exceeded after retries")
 
 const maxUpstreamRetries = 3
 
-type apiErrorBody struct {
-	Error struct {
-		Code string `json:"code"`
-	} `json:"error"`
-}
-
-func isQuotaError(body []byte) bool {
-	var parsed apiErrorBody
-	if json.Unmarshal(body, &parsed) != nil {
-		return false
-	}
-	switch parsed.Error.Code {
-	case "insufficient_quota", "billing_hard_limit_reached":
-		return true
-	}
-	return false
-}
 
 func retryDelay(retryAfter string, attempt int) time.Duration {
 	if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds > 0 {
 		return time.Duration(seconds) * time.Second
 	}
-	return time.Duration(1<<uint(attempt)) * time.Second
+	base := time.Duration(1<<uint(attempt)) * time.Second
+	jitter := time.Duration(rand.Int64N(int64(time.Second)))
+	return base + jitter
 }
 
 func proxyRequest(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*http.Response, error) {
@@ -200,7 +186,12 @@ func proxyRequest(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*ht
 
 func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*http.Response, error) {
 	for attempt := range maxUpstreamRetries {
+		if err := acquireUpstream(ctx); err != nil {
+			return nil, err
+		}
 		resp, err := proxyRequest(ctx, apiReq, cfg)
+		releaseUpstream()
+
 		if err != nil {
 			return nil, err
 		}
@@ -209,12 +200,7 @@ func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*
 			return resp, nil
 		}
 
-		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-
-		if isQuotaError(body) {
-			return nil, errQuotaExhausted
-		}
 
 		if attempt == maxUpstreamRetries-1 {
 			return nil, errRateLimited
@@ -233,11 +219,6 @@ func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*
 }
 
 func handleProxyError(w http.ResponseWriter, err error) {
-	if errors.Is(err, errQuotaExhausted) {
-		slog.Error("quota exhausted")
-		http.Error(w, "API quota exhausted", http.StatusPaymentRequired)
-		return
-	}
 	if errors.Is(err, errRateLimited) {
 		slog.Error("rate limited after retries")
 		http.Error(w, "Rate limited after retries", http.StatusTooManyRequests)
@@ -258,6 +239,7 @@ func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
 }
 
 func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, pricing prompts.Pricing, reasoningEffort string, estimatedTokens int) {
+	rateLimit := extractRateLimitInfo(resp.Header)
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
@@ -267,7 +249,7 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endp
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, cfg, endpoint, pricing, reasoningEffort, estimatedTokens)
+	streamWithUsageLogging(resp.Body, w, flusher, cfg, endpoint, pricing, reasoningEffort, estimatedTokens, rateLimit)
 }
 
 func parseTemperature(s string) *float64 {

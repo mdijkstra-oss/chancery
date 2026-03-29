@@ -129,7 +129,12 @@ func proxyEmbeddingsRequest(ctx context.Context, req embeddingsProxyRequest, cfg
 
 func proxyEmbeddingsWithRetry(ctx context.Context, req embeddingsProxyRequest, cfg Config) (*http.Response, error) {
 	for attempt := range maxEmbeddingRetries {
+		if err := acquireUpstream(ctx); err != nil {
+			return nil, err
+		}
 		resp, err := proxyEmbeddingsRequest(ctx, req, cfg)
+		releaseUpstream()
+
 		if err != nil {
 			return nil, err
 		}
@@ -138,12 +143,7 @@ func proxyEmbeddingsWithRetry(ctx context.Context, req embeddingsProxyRequest, c
 			return resp, nil
 		}
 
-		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-
-		if isQuotaError(body) {
-			return nil, errQuotaExhausted
-		}
 
 		if attempt == maxEmbeddingRetries-1 {
 			return nil, errRateLimited
@@ -170,11 +170,6 @@ func estimateEmbeddingTokens(input []string) int {
 }
 
 func handleEmbeddingsProxyError(w http.ResponseWriter, err error) {
-	if errors.Is(err, errQuotaExhausted) {
-		slog.Error("embeddings quota exhausted")
-		http.Error(w, "API quota exhausted", http.StatusPaymentRequired)
-		return
-	}
 	if errors.Is(err, errRateLimited) {
 		slog.Error("embeddings rate limited after retries")
 		http.Error(w, "Rate limited after retries", http.StatusTooManyRequests)

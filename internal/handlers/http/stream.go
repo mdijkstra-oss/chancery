@@ -27,7 +27,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string, pricing prompts.Pricing, reasoningEffort string, estimatedTokens int) {
+func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string, pricing prompts.Pricing, reasoningEffort string, estimatedTokens int, rateLimit RateLimitInfo) {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var currentEvent string
@@ -63,7 +63,7 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 			inspectRawJSON(endpoint+" response", []byte(completedData))
 		}
 		if completedUsage != nil {
-			logUsage(endpoint, completedUsage, pricing, reasoningEffort, estimatedTokens)
+			logUsage(endpoint, completedUsage, pricing, reasoningEffort, estimatedTokens, rateLimit)
 		}
 		slog.Info("stream_complete", "lines_received", lineCount)
 	}

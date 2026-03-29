@@ -1,8 +1,15 @@
-Describe a document collection based on the sampled passages below.
+Classify this document.
 
-Use exactly this structure:
+Existing types: transcript, review
+Existing subjects: government press conference, video game analysis
 
-DOMAIN: [one sentence stating the primary subject area]
-TOPICS: [exactly 5 topics, comma-separated, use terminology from the passages]
+Output exactly two fields:
+type: [pick from existing types, or create new if none fit]
+subject: [pick from existing subjects, or create new if none fit]
 
-Be specific to the content. Use terminology from the passages rather than your own generalizations. Output only the structured description.
+Rules:
+- Always respond in English regardless of document language
+- Strongly prefer existing labels over creating new ones
+- Keep subject broad — think library section, not chapter title
+- No proper names or dates
+- Output only the two fields

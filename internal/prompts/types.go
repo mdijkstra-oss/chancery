@@ -12,12 +12,13 @@ type Pricing struct {
 }
 
 type PromptConfig struct {
-	Model            string  `json:"model"`
-	Dimensions       int     `json:"dimensions,omitempty"`
-	ReasoningEffort  string  `json:"reasoning_effort"`
-	ReasoningSummary string  `json:"reasoning_summary"`
-	Verbosity        string  `json:"verbosity"`
-	ServiceTier      string  `json:"service_tier,omitempty"`
-	Pricing          Pricing `json:"pricing"`
-	CompactAt        int     `json:"compact_at,omitempty"`
+	Model            string   `json:"model"`
+	Dimensions       int      `json:"dimensions,omitempty"`
+	ReasoningEffort  string   `json:"reasoning_effort"`
+	ReasoningSummary string   `json:"reasoning_summary"`
+	Verbosity        string   `json:"verbosity"`
+	ServiceTier      string   `json:"service_tier,omitempty"`
+	Temperature      *float64 `json:"temperature,omitempty"`
+	Pricing          Pricing  `json:"pricing"`
+	CompactAt        int      `json:"compact_at,omitempty"`
 }

@@ -87,6 +87,15 @@ SELECT a.file, a.id, a.text FROM attributes_annotations a WHERE a.text ILIKE '%a
 
 -- Entity by code
 SELECT a.file, a.id FROM attributes_annotations a WHERE a.code = 'callout-abc123'
+
+-- Codebook codes
+SELECT c.file, c.id, c.title FROM callout c WHERE c.type = 'codebook-code'
+
+-- All distinct tags
+SELECT DISTINCT unnest(a.tags) AS tag, a.file FROM attributes a
+
+-- Annotations on a file
+SELECT a.annotations, a.file FROM attributes a WHERE a.file = 'doc.md'
 ```
 
 ### Limits

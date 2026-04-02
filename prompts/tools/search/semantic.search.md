@@ -40,6 +40,10 @@ Short 2–4 word label. Appears in the sidebar and entity links.
 
 One sentence describing what was searched and how. Appears below the title for context.
 
+### Result samples
+
+Results returned to you are embedding-ranked, not pre-filtered. Judge relevance yourself.
+
 ### When to use `search` vs `query`
 
 | User intent | Tool |
@@ -49,5 +53,5 @@ One sentence describing what was searched and how. Appears below the title for c
 | You need to inspect data before acting | `query` |
 | The user should see and browse results | `search` |
 
-`query` returns raw embedding-ranked results — you judge relevance. `search` filters results before showing them to the user.
+`query` returns results for your reasoning only. `search` saves a persistent results page the user can browse.
 </search-semantic>

@@ -106,5 +106,5 @@ Max 50 rows.
 
 `query` returns raw results to you for reasoning. The user does not see them. For SEMANTIC queries, results are ranked by embedding similarity but not filtered — you judge relevance yourself. Expect noise among the top results; pick what matters and discard the rest.
 
-`search` creates a persistent results page the user can browse. Results go through an additional filtering step before display.
+`search` creates a persistent results page the user can browse.
 </query-sql>

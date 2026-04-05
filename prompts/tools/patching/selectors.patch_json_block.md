@@ -32,6 +32,6 @@ Batch related changes as multiple operations in one call.
 
 ### When to use which
 
-- `patch_json_block` — any change to a JSON block: adding/removing annotations, updating properties, modifying tags, changing colors. If the target is inside `json-attributes`, `json-settings`, or `json-callout`, use this tool.
+- `patch_json_block` — any change to a JSON block: adding/removing annotations, updating properties, modifying tags, changing colors. If the target is inside `json-attributes`, `json-settings`, `json-callout`, or `json-chart`, use this tool.
 - `apply_local_patch` — prose, markdown structure, multi-line `"""` content, or anything outside a JSON block. Never use `apply_local_patch` to rewrite a JSON block — that replaces the entire block and one mismatch fails the whole patch.
 </patch-json-block>

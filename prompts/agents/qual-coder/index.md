@@ -11,6 +11,7 @@
 [qualitative-researcher/create-codebook-format.md]
 [qualitative-researcher/update-codebook.md]
 [qualitative-researcher/update-codebook-format.md]
+[qualitative-researcher/charting.md]
 
 [chat/interpretation.md]
 [chat/style.md]

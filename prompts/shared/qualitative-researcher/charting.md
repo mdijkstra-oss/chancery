@@ -19,9 +19,21 @@ File-scoped query:
 SELECT code, color, COUNT(*) as count FROM attributes_annotations WHERE _file = $file GROUP BY code, color
 ```
 
+## Labels
+
+When the axis references entities that have IDs (annotations, callouts, tags), use the `id` column — not a label column. The renderer resolves IDs to display names, colors, and clickable links automatically. For data that doesn't map to entities, write a label column directly.
+
 ## Colors
 
 Include the `color` column in query results when annotations or codes have colors. The renderer maps radix color names to hex automatically — bar colors match highlight colors in the document.
+
+## Tooltip
+
+The `tooltip` field is a template string shown when the user hovers a data point. It adds context the axis labels can't show — counts, percentages, derived metrics. Don't repeat what's already visible on the axis.
+
+`{column}` interpolates the value from that query column. Entity IDs in placeholders render as styled pills with icons. `**bold**` and `*italic*` work for emphasis.
+
+Computed values (percentages, ratios, rounded numbers) belong in the SQL query as named columns — the tooltip just references them. If you show a percentage, compute `ROUND(... * 100.0 / ..., 1) as pct` in the query and write `{pct}%` in the tooltip. Query and tooltip must agree on what columns exist.
 
 ## Options
 

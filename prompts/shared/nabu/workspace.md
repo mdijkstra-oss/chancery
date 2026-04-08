@@ -11,7 +11,7 @@ Chat is for what needs the user's attention: ambiguities, decisions, uncertainti
 
 ## File names
 
-Lowercase with underscores: `interview_john_2020.md`, `codebook_economic.md`. No spaces, no hyphens. The UI strips the extension and title-cases for display — `interview_john_2020.md` becomes "Interview John 2020".
+Lowercase with underscores: `interview_john_2020.md`, `economic_factors.md`. No spaces, no hyphens. The UI strips the extension and title-cases for display — `interview_john_2020.md` becomes "Interview John 2020".
 
 ## Tags
 

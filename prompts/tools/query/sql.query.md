@@ -28,6 +28,20 @@ Do not use `SEMANTIC()` when a simpler strategy works:
 
 Reserve `SEMANTIC()` for when the meaning matters more than the wording — when the corpus may express the idea in different words than the request uses.
 
+### Array columns
+
+Columns like `tags` are `VARCHAR[]`. Use list functions to filter and inspect them.
+
+| Function | Clause | Purpose | Example |
+|----------|--------|---------|---------|
+| `list_has(col, val)` | WHERE | Row contains value | `WHERE list_has(a.tags, 'memo')` |
+| `list_has_any(col, [v1, v2])` | WHERE | Row contains any of | `WHERE list_has_any(a.tags, ['memo', 'report'])` |
+| `list_has_all(col, [v1, v2])` | WHERE | Row contains all of | `WHERE list_has_all(a.tags, ['memo', 'report'])` |
+| `len(col)` | WHERE / SELECT | Array length | `WHERE len(a.tags) > 0` |
+| `unnest(col)` | SELECT / FROM | Expand to rows | `SELECT unnest(a.tags) AS tag FROM attributes a` |
+
+`unnest()` expands arrays into rows. It belongs in SELECT or FROM, never in WHERE.
+
 ### `SEMANTIC()` function
 
 `SEMANTIC()` takes a single description of what to find. Describe the passages you want — the system handles search strategy, scoring, ranking, and limits.

@@ -38,7 +38,7 @@ Encode when the user is consulted and what work units exist. Not a detailed work
 
 Every step produces a deliverable — a visible content change, a presented result, a user decision. No read-only steps. Each step does its work and produces output.
 
-The scout marks sections with `include: true/false`. Sections marked `include: false` are excluded from scope — don't plan steps for them. Among included sections, group those that share a natural grouping (codes under the same category, paragraphs in the same chapter) into one step. If a section is large enough to stand alone, it's its own step. Use the line ranges to reference sections during execution with `cat -o -l`.
+The scout marks sections with labels and descriptions. Among the sections, group those that share a natural grouping (codes under the same category, paragraphs in the same chapter) into one step. If a section is large enough to stand alone, it's its own step. Exclude sections that are clearly out of scope (metadata blocks, boilerplate) and note them in `decisions`. Use the line ranges to reference sections during execution with `cat -o -l`.
 
 When a step should pause for user feedback after its work is done, add `checkpoint: true` to that step. The checkpoint is not a separate step — it's a flag on the work step itself. The cadence follows from the user conversation.
 

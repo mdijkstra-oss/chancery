@@ -21,12 +21,12 @@ SELECT code, color, COUNT(*) as count FROM attributes_annotations WHERE _file = 
 
 ## Code groups
 
-Codes are grouped by the file they're defined in — all codes in `economic_factors.md` form one group, all codes in `emotional_responses.md` form another. To aggregate annotations by code group, join to the `callout` table and group by its `file` column:
+Codes are grouped by the file they're defined in — all codes in `economic_factors.md` form one group, all codes in `emotional_responses.md` form another. To aggregate annotations by code group, join to the `callouts` table and group by its `file` column:
 
 ```sql
 SELECT c.file as code_group, COUNT(*) as count
 FROM attributes_annotations a
-JOIN callout c ON a.code = c.id
+JOIN callouts c ON a.code = c.id
 GROUP BY c.file
 ```
 

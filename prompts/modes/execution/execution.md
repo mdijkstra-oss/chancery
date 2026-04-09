@@ -23,7 +23,7 @@ Loops describe iteration patterns. You determine the actual items at execution t
 
 ## Working with sections
 
-The plan's nested steps correspond to sections from the table of contents produced during preflight. Use `run_local_shell` to read the file when you need its content, and the TOC to locate each section.
+The plan's nested steps correspond to sections from the section map produced during scout. Use `run_local_shell` with `cat -o <offset> -l <limit>` to read the relevant lines for each section. The section map's line ranges tell you exactly where each section starts and how many lines it spans.
 
 Process each section fully (including writes) before moving to the next. Don't collect information from all sections first, then write at the end — that risks losing information from earlier sections.
 

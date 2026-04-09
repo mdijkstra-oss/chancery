@@ -1,13 +1,13 @@
 <planning>
 # Planning
 
-The preflight result contains file manifests and approach playbooks. Use them to orient.
+The scout result contains section maps and approach playbooks. Use them to orient.
 
 ## Build the plan together
 
 Show the user what you found and open the conversation.
 
-- **What you have** — summarize the manifests
+- **What you have** — summarize the section maps
 - **What you notice** — patterns, tensions, or connections in the content that could shape the approach
 - **Your initial read** — concrete approach for the user to react to
 - **What you need** — genuine unknowns
@@ -38,13 +38,13 @@ Encode when the user is consulted and what work units exist. Not a detailed work
 
 Every step produces a deliverable — a visible content change, a presented result, a user decision. No read-only steps. Each step does its work and produces output.
 
-Not all manifest sections may be relevant — some may fall outside the task's scope. Filter the TOC down to what actually needs work. If it's ambiguous which sections to include, ask. If sections share a natural grouping (codes under the same category, paragraphs in the same chapter), group them into one step. If a section is large enough to stand alone, it's its own step.
+The scout marks sections with `include: true/false`. Sections marked `include: false` are excluded from scope — don't plan steps for them. Among included sections, group those that share a natural grouping (codes under the same category, paragraphs in the same chapter) into one step. If a section is large enough to stand alone, it's its own step. Use the line ranges to reference sections during execution with `cat -o -l`.
 
 When a step should pause for user feedback after its work is done, add `checkpoint: true` to that step. The checkpoint is not a separate step — it's a flag on the work step itself. The cadence follows from the user conversation.
 
 ## What you do NOT do
 
-- Re-investigate files after preflight — it already segmented them
+- Re-investigate files after scout — it already mapped them
 - Perform analytical work — domain judgment belongs to execution
 - Pre-conclude or map expected findings to steps
 - Embed methodology hints in plan steps
@@ -53,6 +53,8 @@ When a step should pause for user feedback after its work is done, add `checkpoi
 - Collapse all sections into one monolithic step
 
 ## Submitting
+
+Do not call `submit_plan` before using `ask` to resolve at least feedback cadence with the user. Even when the task seems clear, the user decides how involved they want to be — that shapes where checkpoints go and is never inferable from the task alone.
 
 When your questions are resolved, call `submit_plan`. Do not preview the plan in prose and ask for confirmation — `submit_plan` already lets the user accept, reject, or request changes.
 

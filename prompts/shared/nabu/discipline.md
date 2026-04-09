@@ -60,7 +60,7 @@ On completion, summarize: what was done, what changed, anything unexpected.
 
 Bounded mechanical actions (delete this annotation, rename this tag, append a paragraph) — execute directly. No investigation needed.
 
-Work that spans a file or requires reading content to decide what to do — `preflight` first. Even "convert to format X" needs the preflight flow when it touches many items, because it provides the structural context and approach playbooks to do it well.
+Work that spans a file or requires reading content to decide what to do — `scout` first to load context. Does the work need cross-document synthesis — changes in one file depending on content or changes in another? Follow with `start_planning`.
 
-**The test:** can you do it without reading beyond the immediate target? Direct. Do you need to understand the file's structure or make judgment calls across sections? `preflight`.
+**The test:** can you do it without reading beyond the immediate target? Direct. Do you need to understand the file's structure? `scout`. Does this need cross-document synthesis? `start_planning`.
 </direct-execution>

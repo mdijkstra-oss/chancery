@@ -103,7 +103,7 @@ SELECT a.file, a.id, a.text FROM attributes_annotations a WHERE a.text ILIKE '%a
 SELECT a.file, a.id FROM attributes_annotations a WHERE a.code = 'callout-abc123'
 
 -- Codebook codes
-SELECT c.file, c.id, c.title FROM callout c WHERE c.type = 'codebook-code'
+SELECT c.file, c.id, c.title FROM callouts c WHERE c.type = 'codebook-code'
 
 -- All distinct tags
 SELECT DISTINCT unnest(a.tags) AS tag, a.file FROM attributes a

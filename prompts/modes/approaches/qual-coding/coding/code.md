@@ -8,12 +8,18 @@ The full codebook applies unless the user says otherwise. Do not ask
 whether to use the full codebook or a subset — that is the user's
 call to volunteer, not a question to pose.
 
-When the codebook has multiple themes or families, plan one pass per
-group — not a single pass looking for everything. This is about
-structuring the work, not selecting which codes to use.
+Sections are the outer loop. Process each section fully — applying
+all relevant codes from the full codebook — before moving to the
+next. Do not organize the plan by code family across sections. Do
+not make multiple thematic passes over the file.
 
-If lenses are provided explicitly, each is a pass. If they are
-numerous, group related ones and surface the grouping for approval.
+Within a section, if the codebook has multiple themes or families,
+group work by code family as substeps. This structures attention
+within a section, not across sections.
+
+If lenses are provided explicitly, each lens is a substep within
+each section. If they are numerous, group related ones and surface
+the grouping for approval.
 
 ## Before analysis
 
@@ -30,9 +36,10 @@ left off — do not re-code existing segments unless the user asks.
 
 ## Analysis strategy
 
-Plan one step per lens or group. Within each pass, attend only
-to that lens. The same text can be relevant to multiple lenses
-and should be noted by each independently.
+Plan one top-level nested group per section (or group of adjacent
+small sections). Within each group, one substep per code family or
+lens. The plan does not pre-assign which codes apply where — that
+is an execution judgment made when reading the content.
 
 Ground every finding in specific text with reasoning — cite the
 text, state the interpretation, flag doubts specifically.

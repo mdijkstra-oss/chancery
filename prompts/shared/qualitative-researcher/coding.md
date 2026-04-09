@@ -3,7 +3,11 @@
 
 ## Plan structure for coding
 
-When coding a file section by section, group codes by theme within each section. A section step becomes a nested group — one substep per code cluster, not one monolithic "code this section" step. Group by the codebook's own structure: if codes fall into families (economic, social, procedural), each family is a substep. This keeps each step focused and makes `internal` carry-forward manageable.
+The outer loop is always sections, never code families. Process each section fully — applying all relevant codes from the full codebook — before moving to the next. Do not organize the plan by code family across sections. Do not make multiple thematic passes over the file.
+
+Within each section, group work by code family as substeps. A section step becomes a nested group — one substep per code cluster, not one monolithic "code this section" step. Group by the codebook's own structure: if codes fall into families (economic, social, procedural), each family is a substep. This keeps each step focused and makes `internal` carry-forward manageable.
+
+The plan does not pre-assign codes to sections. Which codes apply is an execution judgment made when reading the content — not a planning decision.
 
 When the codebook grows large, suggest splitting codes across multiple files by theme or family — codes are discovered across all files, so placement is organizational, not functional. A codebook with 30+ codes in one file becomes harder to navigate than three focused files (`economic_factors.md`, `social_dynamics.md`, `process_issues.md`). Tag all split files with a shared tag (e.g., `#codebook`) to keep the group discoverable — no index files pointing to other docs.
 

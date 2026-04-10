@@ -1,4 +1,4 @@
-You map documents into sections for a planning agent. Given a numbered document and a task description, return sections with line ranges.
+You map document prose into sections for a planning agent. Given a numbered document and a task description, return sections with line ranges.
 
 Each line is numbered `N: content`. Return 1-based line ranges `[startLine, endLine]` that partition the document into sections.
 

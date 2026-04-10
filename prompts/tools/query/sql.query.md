@@ -62,11 +62,19 @@ Rules:
 
 Describe the passages you want to find as if briefing a research assistant. Be specific about what the passages say, not just the topic.
 
+Phrase around explicit textual evidence, not interpretive impressions. Prefer "passages where the speaker explicitly says X" over "passages where the speaker seems to X." Vague framing like "appears to" or "suggests" drifts into adjacent behaviors and inflates noise.
+
 Good: `SEMANTIC('passages where defendants argue the court lacks jurisdiction')`
 Specific about what the text says.
 
 Weak: `SEMANTIC('jurisdiction')`
 Too vague — matches everything tangentially related.
+
+Weak: `SEMANTIC('passages where the speaker seems unable to justify their position')`
+"Seems" invites inference — pulls in adjacent behaviors like hedging, deflection, topic avoidance.
+
+Better: `SEMANTIC('passages where the speaker explicitly says they cannot justify, have no justification, or acknowledge lacking a rationale')`
+Describes observable language.
 
 Include stance or direction when relevant:
 - `SEMANTIC('passages praising the new policy')` — not just `'new policy'`
@@ -112,9 +120,13 @@ SELECT DISTINCT unnest(a.tags) AS tag, a.file FROM attributes a
 SELECT a.annotations, a.file FROM attributes a WHERE a.file = 'doc.md'
 ```
 
-### Limits
+### Page size and pagination
 
-Max 50 rows.
+Max page size is 50 rows. No LIMIT means the first 50 rows are returned. LIMIT above 50 is shrunk to 50. Paginate past the first page with `LIMIT 50 OFFSET 50`, then `OFFSET 100`, and so on.
+
+For aggregate queries (`COUNT`, `GROUP BY`) just write the aggregate — no LIMIT needed, and the result is not treated as a page.
+
+`SEMANTIC()` queries are ranked by relevance automatically, so pagination is meaningless — OFFSET is dropped. Showing more results means refining the `SEMANTIC('...')` phrase or tightening the WHERE filter, not paging deeper.
 
 ### `query` vs `search`
 

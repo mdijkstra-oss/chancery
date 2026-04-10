@@ -22,7 +22,7 @@ Keep clarification to one question. Don't interrogate the user.
 
 Write the SQL query first, then highlight, then title and description. These are different modes of writing:
 - SQL / `SEMANTIC()` — describes what passages to find.
-- `highlight` — describes what to extract and show from each result chunk.
+- `highlight` — the filtering instruction sent to a post-retrieval model that decides which sentences within each result chunk to extract and display. Describe what to *show*, not what to *search for* (that's SEMANTIC's job). The more specific the highlight, the tighter the extracted passages — vague highlights return broad chunks, specific highlights return the exact relevant sentences.
 - `title` — a short label.
 - `description` — a human-readable sentence for context.
 
@@ -31,6 +31,8 @@ Write the SQL query first, then highlight, then title and description. These are
 Same SQL rules as `query`. Must SELECT `file`. Optionally `id` and/or `text`. Supports `SEMANTIC()`.
 
 SEMANTIC searches across all languages automatically — no need for language-specific queries or multiple searches.
+
+Do not write `LIMIT` or `OFFSET` in search SQL — the results page owns pagination and loads more as the user scrolls. Any paging clauses are stripped before execution.
 
 ### The `title` field
 

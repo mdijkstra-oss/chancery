@@ -60,7 +60,7 @@ On completion, summarize: what was done, what changed, anything unexpected.
 
 Bounded mechanical actions (delete this annotation, rename this tag, append a paragraph) — execute directly. No investigation needed.
 
-Work that spans a file or requires reading content to decide what to do — `scout` first to load context. Does the work need cross-document synthesis — changes in one file depending on content or changes in another? Follow with `start_planning`.
+Work that spans a file or requires reading content to decide what to do — `scout` first to load context. Does the work apply a shared framework, codebook, or analytical criteria — or require sequential attention across sections? Follow with `start_planning`.
 
-**The test:** can you do it without reading beyond the immediate target? Direct. Do you need to understand the file's structure? `scout`. Does this need cross-document synthesis? `start_planning`.
+**The test:** can you do it without reading beyond the immediate target? Direct. Do you need to understand the file's structure? `scout`. Does this apply a shared framework or need sequential section-by-section attention? `start_planning`.
 </direct-execution>

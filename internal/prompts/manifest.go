@@ -135,7 +135,7 @@ func CompileRegistry(promptsDir string) Registry {
 
 	registry := Registry{
 		Agents:     make(map[string]CompiledAgent),
-		Configs:    make(map[string]PromptConfig),
+		Configs:    loadAgentsFile(promptsDir),
 		Modes:      compileModes(promptsDir),
 		Approaches: compileApproaches(promptsDir),
 	}
@@ -145,7 +145,6 @@ func CompileRegistry(promptsDir string) Registry {
 			panic(fmt.Sprintf("walk error at %s: %v", path, err))
 		}
 		if info.IsDir() {
-			loadConfigInto(registry.Configs, path, agentsDir)
 			return nil
 		}
 		if !strings.HasSuffix(info.Name(), ".md") {
@@ -165,7 +164,7 @@ func CompileRegistry(promptsDir string) Registry {
 		return nil
 	})
 
-	resolveAgentConfigs(registry, agentsDir)
+	resolveAgentConfigs(registry)
 	return registry
 }
 
@@ -210,31 +209,66 @@ func osReadFile(path string) (string, error) {
 	return string(data), nil
 }
 
-func loadConfigInto(configs map[string]PromptConfig, dir, agentsDir string) {
-	path := filepath.Join(dir, "config.json")
+func loadAgentsFile(promptsDir string) map[string]PromptConfig {
+	path := filepath.Join(promptsDir, "agents.json")
 	data, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		return
-	}
 	if err != nil {
-		panic(fmt.Sprintf("read config %s: %v", path, err))
+		panic(fmt.Sprintf("read agents.json: %v", err))
 	}
-	var cfg PromptConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		panic(fmt.Sprintf("parse config %s: %v", path, err))
+	var file agentsFile
+	if err := json.Unmarshal(data, &file); err != nil {
+		panic(fmt.Sprintf("parse agents.json: %v", err))
 	}
-	rel, err := filepath.Rel(agentsDir, dir)
-	if err != nil {
-		panic(fmt.Sprintf("rel path %s: %v", dir, err))
+	configs := make(map[string]PromptConfig, len(file.Agents))
+	for key, agent := range file.Agents {
+		model, ok := file.Models[agent.Model]
+		if !ok {
+			panic(fmt.Sprintf("agent %q references unknown model %q", key, agent.Model))
+		}
+		configs[key] = mergeConfig(agent.Model, model, agent)
 	}
-	key := filepath.ToSlash(rel)
-	if key == "." {
-		key = ""
-	}
-	configs[key] = cfg
+	return configs
 }
 
-func resolveAgentConfigs(registry Registry, agentsDir string) {
+func mergeConfig(modelName string, model modelEntry, agent agentEntry) PromptConfig {
+	cfg := PromptConfig{
+		Model:            modelName,
+		Dimensions:       model.Dimensions,
+		ReasoningEffort:  model.ReasoningEffort,
+		ReasoningSummary: model.ReasoningSummary,
+		Verbosity:        model.Verbosity,
+		ServiceTier:      model.ServiceTier,
+		CompactAt:        model.CompactAt,
+		Pricing:          model.Pricing,
+	}
+	if agent.ReasoningEffort != "" {
+		cfg.ReasoningEffort = agent.ReasoningEffort
+	}
+	if agent.ReasoningSummary != "" {
+		cfg.ReasoningSummary = agent.ReasoningSummary
+	}
+	if agent.Verbosity != "" {
+		cfg.Verbosity = agent.Verbosity
+	}
+	if agent.ServiceTier != "" {
+		cfg.ServiceTier = agent.ServiceTier
+	}
+	if agent.Temperature != nil {
+		cfg.Temperature = agent.Temperature
+	}
+	if agent.CompactAt != 0 {
+		cfg.CompactAt = agent.CompactAt
+	}
+	if agent.Dimensions != 0 {
+		cfg.Dimensions = agent.Dimensions
+	}
+	if agent.Pricing != nil {
+		cfg.Pricing = *agent.Pricing
+	}
+	return cfg
+}
+
+func resolveAgentConfigs(registry Registry) {
 	for agentKey := range registry.Agents {
 		if _, found := registry.Configs[agentKey]; found {
 			continue

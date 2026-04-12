@@ -1,9 +1,0 @@
-{
-  "model": "gpt-4o-mini",
-  "temperature": 0,
-  "pricing": {
-    "input": 0.15,
-    "output": 0.6,
-    "cached_input": 0.075
-  }
-}

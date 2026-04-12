@@ -34,11 +34,11 @@ Columns like `tags` are `VARCHAR[]`. Use list functions to filter and inspect th
 
 | Function | Clause | Purpose | Example |
 |----------|--------|---------|---------|
-| `list_has(col, val)` | WHERE | Row contains value | `WHERE list_has(a.tags, 'memo')` |
-| `list_has_any(col, [v1, v2])` | WHERE | Row contains any of | `WHERE list_has_any(a.tags, ['memo', 'report'])` |
-| `list_has_all(col, [v1, v2])` | WHERE | Row contains all of | `WHERE list_has_all(a.tags, ['memo', 'report'])` |
-| `len(col)` | WHERE / SELECT | Array length | `WHERE len(a.tags) > 0` |
-| `unnest(col)` | SELECT / FROM | Expand to rows | `SELECT unnest(a.tags) AS tag FROM attributes a` |
+| `list_has(col, val)` | WHERE | Row contains value | `WHERE list_has(attributes.tags, 'memo')` |
+| `list_has_any(col, [v1, v2])` | WHERE | Row contains any of | `WHERE list_has_any(attributes.tags, ['memo', 'report'])` |
+| `list_has_all(col, [v1, v2])` | WHERE | Row contains all of | `WHERE list_has_all(attributes.tags, ['memo', 'report'])` |
+| `len(col)` | WHERE / SELECT | Array length | `WHERE len(attributes.tags) > 0` |
+| `unnest(col)` | SELECT / FROM | Expand to rows | `SELECT unnest(attributes.tags) AS tag FROM attributes` |
 
 `unnest()` expands arrays into rows. It belongs in SELECT or FROM, never in WHERE.
 
@@ -49,9 +49,9 @@ Columns like `tags` are `VARCHAR[]`. Use list functions to filter and inspect th
 SEMANTIC automatically searches across all languages in the corpus. Write your description in the user's language — it finds matching passages regardless of what language they were written in.
 
 ```sql
-SELECT f.file, f.text, SEMANTIC('passages where engineers flag structural safety concerns')
-FROM files f
-WHERE f.file IN (SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'report'))
+SELECT files.file, files.text, SEMANTIC('passages where engineers flag structural safety concerns')
+FROM files
+WHERE files.file IN (SELECT DISTINCT attributes.file FROM attributes WHERE list_has(attributes.tags, 'report'))
 ```
 
 Rules:
@@ -97,27 +97,27 @@ User: "Find court filings where defendants challenged jurisdiction"
 
 ```sql
 -- Tag filter
-SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'memo')
+SELECT DISTINCT attributes.file FROM attributes WHERE list_has(attributes.tags, 'memo')
 
 -- Semantic search with filter
-SELECT f.file, f.text, SEMANTIC('passages describing soil or groundwater contamination from industrial waste')
-FROM files f
-WHERE f.file IN (SELECT DISTINCT a.file FROM attributes a WHERE list_has(a.tags, 'environmental'))
+SELECT files.file, files.text, SEMANTIC('passages describing soil or groundwater contamination from industrial waste')
+FROM files
+WHERE files.file IN (SELECT DISTINCT attributes.file FROM attributes WHERE list_has(attributes.tags, 'environmental'))
 
 -- Keyword match
-SELECT a.file, a.id, a.text FROM attributes_annotations a WHERE a.text ILIKE '%asbestos%'
+SELECT attributes_annotations.file, attributes_annotations.id, attributes_annotations.text FROM attributes_annotations WHERE attributes_annotations.text ILIKE '%asbestos%'
 
 -- Entity by code
-SELECT a.file, a.id FROM attributes_annotations a WHERE a.code = 'callout-abc123'
+SELECT attributes_annotations.file, attributes_annotations.id FROM attributes_annotations WHERE attributes_annotations.code = 'callout-abc123'
 
 -- Codebook codes
-SELECT c.file, c.id, c.title FROM callouts c WHERE c.type = 'codebook-code'
+SELECT callouts.file, callouts.id, callouts.title FROM callouts WHERE callouts.type = 'codebook-code'
 
 -- All distinct tags
-SELECT DISTINCT unnest(a.tags) AS tag, a.file FROM attributes a
+SELECT DISTINCT unnest(attributes.tags) AS tag, attributes.file FROM attributes
 
 -- Annotations on a file
-SELECT a.annotations, a.file FROM attributes a WHERE a.file = 'doc.md'
+SELECT attributes.annotations, attributes.file FROM attributes WHERE attributes.file = 'doc.md'
 ```
 
 ### Page size and pagination

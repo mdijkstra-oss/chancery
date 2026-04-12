@@ -22,3 +22,31 @@ type PromptConfig struct {
 	Pricing          Pricing  `json:"pricing"`
 	CompactAt        int      `json:"compact_at,omitempty"`
 }
+
+type agentsFile struct {
+	Models map[string]modelEntry `json:"models"`
+	Agents map[string]agentEntry `json:"agents"`
+}
+
+type modelEntry struct {
+	Type             string  `json:"type,omitempty"`
+	Dimensions       int     `json:"dimensions,omitempty"`
+	ReasoningEffort  string  `json:"reasoning_effort,omitempty"`
+	ReasoningSummary string  `json:"reasoning_summary,omitempty"`
+	Verbosity        string  `json:"verbosity,omitempty"`
+	ServiceTier      string  `json:"service_tier,omitempty"`
+	CompactAt        int     `json:"compact_at,omitempty"`
+	Pricing          Pricing `json:"pricing"`
+}
+
+type agentEntry struct {
+	Model            string   `json:"model"`
+	ReasoningEffort  string   `json:"reasoning_effort,omitempty"`
+	ReasoningSummary string   `json:"reasoning_summary,omitempty"`
+	Verbosity        string   `json:"verbosity,omitempty"`
+	ServiceTier      string   `json:"service_tier,omitempty"`
+	Temperature      *float64 `json:"temperature,omitempty"`
+	CompactAt        int      `json:"compact_at,omitempty"`
+	Dimensions       int      `json:"dimensions,omitempty"`
+	Pricing          *Pricing `json:"pricing,omitempty"`
+}

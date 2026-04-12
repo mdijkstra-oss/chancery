@@ -24,6 +24,7 @@ func NewChatHandler(cfg Config, registry prompts.Registry) http.HandlerFunc {
 }
 
 func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry prompts.Registry) {
+	ctx := r.Context()
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 
 	agent, ok := registry.Agents[urlPath]
@@ -47,23 +48,9 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	req.Messages = ExpandMessages(req.Messages, registry.Modes)
 	req.Messages = ExpandApproaches(req.Messages, registry.Approaches.Entries)
 
-	var reasoningEffort string
-	req.Messages, reasoningEffort = ExtractReasoningEffort(req.Messages)
-	if reasoningEffort == "" {
-		reasoningEffort = promptCfg.ReasoningEffort
-	}
-
-	var model string
-	req.Messages, model = ExtractModel(req.Messages)
-	if model == "" {
-		model = promptCfg.Model
-	}
-
-	var verbosity string
-	req.Messages, verbosity = ExtractVerbosity(req.Messages)
-	if verbosity == "" {
-		verbosity = promptCfg.Verbosity
-	}
+	model := promptCfg.Model
+	reasoningEffort := promptCfg.ReasoningEffort
+	verbosity := promptCfg.Verbosity
 
 	toolNames := ExtractToolNames(req.Tools)
 
@@ -89,26 +76,29 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	}
 	apiReq := buildResponsesRequest(model, fullPrompt, reasoningEffort, reasoningSummary, verbosity, promptCfg.ServiceTier, req.Tools, toolChoice, temperature, req.Messages, req.ResponseFormat)
 
+	trigger := deriveTrigger(req.Messages)
+
 	forceCompact := r.URL.Query().Get("compact") == "true"
 	tokens := estimateTokens(apiReq.Input)
 	if forceCompact || shouldCompact(promptCfg.CompactAt, tokens) {
 		compacterAgent, compacterOk := registry.Agents["compacter"]
 		compacterCfg, compacterCfgOk := registry.Configs["compacter"]
 		if !compacterOk || !compacterCfgOk {
-			slog.Error("compacter agent not found in registry", "component", "chat")
+			slog.ErrorContext(ctx, "compacter agent not found in registry", "component", "chat")
 		} else {
 			compactReq := buildCompactRequest(compacterCfg.Model, compacterAgent.Prompt, stripForCompaction(req.Messages))
-			resp, err := proxyWithRetry(r.Context(), compactReq, cfg)
+			start := time.Now()
+			resp, err := proxyWithRetry(ctx, compactReq, cfg)
 			if err != nil {
-				handleProxyError(w, err)
+				handleProxyError(ctx, w, err)
 				return
 			}
 			defer resp.Body.Close()
 			if isErrorResponse(resp) {
-				handleUpstreamError(w, resp)
+				handleUpstreamError(ctx, w, resp)
 				return
 			}
-			slog.Info("compaction started, context exceeds token limit", "component", "chat", slog.Group("data", slog.Int("tokens", tokens), slog.Int("compact_at", promptCfg.CompactAt)))
+			slog.InfoContext(ctx, "compaction started, context exceeds token limit", "component", "chat", slog.Group("data", slog.Int("tokens", tokens), slog.Int("compact_at", promptCfg.CompactAt)))
 			if cfg.Inspect {
 				inspectJSON("compacter request", compactReq)
 			}
@@ -116,11 +106,14 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 			w.Header().Set("Cache-Control", "no-cache")
 			w.WriteHeader(http.StatusOK)
 			flusher := w.(http.Flusher)
-			_, err = streamCompaction(resp.Body, w, flusher)
+			usage, err := streamCompaction(resp.Body, w, flusher)
 			if err != nil {
-				slog.Error("compaction stream failed", "component", "chat", "error", err)
+				slog.ErrorContext(ctx, "compaction stream failed", "component", "chat", "error", err)
 				return
 			}
+			durationMs := time.Since(start).Milliseconds()
+			rec := buildCallRecord("compacter", compacterCfg.Model, "", "", trigger, usage, compacterCfg.Pricing, durationMs)
+			logCallRecord(ctx, rec)
 			return
 		}
 	}
@@ -129,19 +122,23 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		inspectJSON(urlPath+" request", apiReq)
 	}
 
-	resp, err := proxyWithRetry(r.Context(), apiReq, cfg)
+	start := time.Now()
+	resp, err := proxyWithRetry(ctx, apiReq, cfg)
 	if err != nil {
-		handleProxyError(w, err)
+		handleProxyError(ctx, w, err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if isErrorResponse(resp) {
-		handleUpstreamError(w, resp)
+		handleUpstreamError(ctx, w, resp)
 		return
 	}
 
-	streamResponse(w, resp, cfg, urlPath)
+	usage := streamResponse(ctx, w, resp, cfg, urlPath)
+	durationMs := time.Since(start).Milliseconds()
+	rec := buildCallRecord(urlPath, model, reasoningEffort, promptCfg.ServiceTier, trigger, usage, promptCfg.Pricing, durationMs)
+	logCallRecord(ctx, rec)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {
@@ -158,7 +155,6 @@ func decodeRequest(r *http.Request) (ChatRequest, error) {
 var errRateLimited = errors.New("rate limit exceeded after retries")
 
 const maxUpstreamRetries = 3
-
 
 func retryDelay(retryAfter string, attempt int) time.Duration {
 	if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds > 0 {
@@ -204,7 +200,7 @@ func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*
 		}
 
 		delay := retryDelay(resp.Header.Get("Retry-After"), attempt)
-		slog.Warn("rate limited by upstream, retrying with backoff", "component", "chat", slog.Group("data", slog.Int("attempt", attempt+1), slog.Duration("delay", delay)))
+		slog.WarnContext(ctx, "rate limited by upstream, retrying with backoff", "component", "chat", slog.Group("data", slog.Int("attempt", attempt+1), slog.Duration("delay", delay)))
 
 		select {
 		case <-time.After(delay):
@@ -215,13 +211,13 @@ func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*
 	return nil, errRateLimited
 }
 
-func handleProxyError(w http.ResponseWriter, err error) {
+func handleProxyError(ctx context.Context, w http.ResponseWriter, err error) {
 	if errors.Is(err, errRateLimited) {
-		slog.Error("rate limit retries exhausted", "component", "chat")
+		slog.ErrorContext(ctx, "rate limit retries exhausted", "component", "chat")
 		http.Error(w, "Rate limited after retries", http.StatusTooManyRequests)
 		return
 	}
-	slog.Error("upstream request failed", "component", "chat", "error", err)
+	slog.ErrorContext(ctx, "upstream request failed", "component", "chat", "error", err)
 	http.Error(w, "upstream request failed", http.StatusBadGateway)
 }
 
@@ -229,23 +225,23 @@ func isErrorResponse(resp *http.Response) bool {
 	return resp.StatusCode >= 400
 }
 
-func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
+func handleUpstreamError(ctx context.Context, w http.ResponseWriter, resp *http.Response) {
 	body, _ := io.ReadAll(resp.Body)
-	slog.Error("upstream returned error response", "component", "chat", slog.Group("data", slog.Int("status", resp.StatusCode), slog.String("body", string(body))))
+	slog.ErrorContext(ctx, "upstream returned error response", "component", "chat", slog.Group("data", slog.Int("status", resp.StatusCode), slog.String("body", string(body))))
 	http.Error(w, string(body), resp.StatusCode)
 }
 
-func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string) {
+func streamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string) *UsageResponse {
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		io.Copy(w, resp.Body)
-		return
+		return nil
 	}
 
-	forwardStream(resp.Body, w, flusher, cfg, endpoint)
+	return forwardStream(ctx, resp.Body, w, flusher, cfg, endpoint)
 }
 
 func parseTemperature(s string) *float64 {

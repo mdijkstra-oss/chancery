@@ -3,11 +3,15 @@ package bootstrap
 import (
 	"log/slog"
 	"os"
+
+	"hermes-logos/internal/logging"
 )
 
-func SetupLogger(level slog.Level) {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+func SetupLogger(level slog.Level, environment string) {
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,
-	}))
+	})
+	contextHandler := logging.NewContextHandler(jsonHandler)
+	logger := slog.New(contextHandler).With("environment", environment)
 	slog.SetDefault(logger)
 }

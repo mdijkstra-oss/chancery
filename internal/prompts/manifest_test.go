@@ -305,14 +305,18 @@ func TestCompileRegistry(t *testing.T) {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
 	}
 
-	configFiles := map[string]string{
-		"agents/qual-coder/config.json": `{"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"}`,
-		"agents/compacter/config.json":  `{"model": "gpt-5.2", "reasoning_effort": "medium"}`,
-		"agents/advisor/config.json":    `{"model": "gpt-5-mini", "reasoning_effort": "low"}`,
-	}
-	for name, content := range configFiles {
-		writeTestFile(t, filepath.Join(promptsDir, name), content)
-	}
+	agentsJSON := `{
+		"models": {
+			"gpt-5.2": {"pricing": {"input": 0, "output": 0, "cached_input": 0}},
+			"gpt-5-mini": {"pricing": {"input": 0, "output": 0, "cached_input": 0}}
+		},
+		"agents": {
+			"qual-coder": {"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"},
+			"compacter": {"model": "gpt-5.2", "reasoning_effort": "medium"},
+			"advisor": {"model": "gpt-5-mini", "reasoning_effort": "low"}
+		}
+	}`
+	writeTestFile(t, filepath.Join(promptsDir, "agents.json"), agentsJSON)
 
 	modeFiles := map[string]string{
 		"modes/planning.md":  "Planning intro.\n\n[planning/planning.md]\n[planning/template.md]",
@@ -451,6 +455,94 @@ func TestParseToolRequirement(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMergeConfig(t *testing.T) {
+	cases := []struct {
+		name      string
+		modelName string
+		model     modelEntry
+		agent     agentEntry
+		want      PromptConfig
+	}{
+		{
+			name:      "model defaults only",
+			modelName: "gpt-5-mini",
+			model:     modelEntry{Pricing: Pricing{Input: 25, Output: 200, CachedInput: 2.5}},
+			agent:     agentEntry{Model: "gpt-5-mini"},
+			want:      PromptConfig{Model: "gpt-5-mini", Pricing: Pricing{Input: 25, Output: 200, CachedInput: 2.5}},
+		},
+		{
+			name:      "agent overrides reasoning",
+			modelName: "gpt-5-mini",
+			model:     modelEntry{ReasoningEffort: "off", Pricing: Pricing{Input: 25}},
+			agent:     agentEntry{Model: "gpt-5-mini", ReasoningEffort: "low"},
+			want:      PromptConfig{Model: "gpt-5-mini", ReasoningEffort: "low", Pricing: Pricing{Input: 25}},
+		},
+		{
+			name:      "agent overrides pricing",
+			modelName: "gpt-5-mini",
+			model:     modelEntry{Pricing: Pricing{Input: 25, Output: 200, CachedInput: 2.5}},
+			agent:     agentEntry{Model: "gpt-5-mini", Pricing: &Pricing{Input: 45, Output: 360, CachedInput: 4.5}},
+			want:      PromptConfig{Model: "gpt-5-mini", Pricing: Pricing{Input: 45, Output: 360, CachedInput: 4.5}},
+		},
+		{
+			name:      "embedding model with dimensions",
+			modelName: "text-embedding-3-large",
+			model:     modelEntry{Type: "embedding", Dimensions: 1024},
+			agent:     agentEntry{Model: "text-embedding-3-large"},
+			want:      PromptConfig{Model: "text-embedding-3-large", Dimensions: 1024},
+		},
+		{
+			name:      "agent overrides compact_at",
+			modelName: "gpt-5.4",
+			model:     modelEntry{CompactAt: 200000, Pricing: Pricing{Input: 175}},
+			agent:     agentEntry{Model: "gpt-5.4", CompactAt: 300000},
+			want:      PromptConfig{Model: "gpt-5.4", CompactAt: 300000, Pricing: Pricing{Input: 175}},
+		},
+		{
+			name:      "temperature from agent",
+			modelName: "gpt-4o-mini",
+			model:     modelEntry{Pricing: Pricing{Input: 0.15}},
+			agent:     agentEntry{Model: "gpt-4o-mini", Temperature: float64Ptr(0)},
+			want:      PromptConfig{Model: "gpt-4o-mini", Temperature: float64Ptr(0), Pricing: Pricing{Input: 0.15}},
+		},
+		{
+			name:      "all model fields inherited",
+			modelName: "gpt-5.4",
+			model: modelEntry{
+				ReasoningEffort:  "none",
+				ReasoningSummary: "auto",
+				Verbosity:        "low",
+				ServiceTier:      "default",
+				CompactAt:        300000,
+				Pricing:          Pricing{Input: 175, Output: 1400, CachedInput: 17.5},
+			},
+			agent: agentEntry{Model: "gpt-5.4"},
+			want: PromptConfig{
+				Model:            "gpt-5.4",
+				ReasoningEffort:  "none",
+				ReasoningSummary: "auto",
+				Verbosity:        "low",
+				ServiceTier:      "default",
+				CompactAt:        300000,
+				Pricing:          Pricing{Input: 175, Output: 1400, CachedInput: 17.5},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := mergeConfig(tc.modelName, tc.model, tc.agent)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func float64Ptr(v float64) *float64 {
+	return &v
 }
 
 func registryKeys(m map[string]CompiledAgent) []string {

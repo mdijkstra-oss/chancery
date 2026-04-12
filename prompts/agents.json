@@ -1,0 +1,73 @@
+{
+  "models": {
+    "gpt-5-mini": {
+      "pricing": { "input": 25, "output": 200, "cached_input": 2.5 }
+    },
+    "gpt-5.4": {
+      "pricing": { "input": 175, "output": 1400, "cached_input": 17.5 }
+    },
+    "gpt-5.2": {
+      "pricing": { "input": 175, "output": 1400, "cached_input": 17.5 }
+    },
+    "gpt-5.4-nano": {
+      "pricing": { "input": 0.2, "output": 1.25, "cached_input": 0.02 }
+    },
+    "gpt-4o-mini": {
+      "pricing": { "input": 0.15, "output": 0.6, "cached_input": 0.075 }
+    },
+    "text-embedding-3-large": {
+      "type": "embedding",
+      "dimensions": 1024,
+      "pricing": { "input": 0.13, "output": 0, "cached_input": 0 }
+    }
+  },
+  "agents": {
+    "qual-coder": {
+      "model": "gpt-5.4",
+      "reasoning_effort": "none",
+      "reasoning_summary": "auto",
+      "verbosity": "low",
+      "service_tier": "default",
+      "compact_at": 300000
+    },
+    "scout-mapper": {
+      "model": "gpt-5-mini",
+      "reasoning_effort": "off",
+      "verbosity": "low",
+      "service_tier": "priority",
+      "pricing": { "input": 45, "output": 360, "cached_input": 4.5 }
+    },
+    "semantic-filter": {
+      "model": "gpt-5-mini",
+      "reasoning_effort": "low",
+      "service_tier": "priority"
+    },
+    "write-answer": {
+      "model": "gpt-5.2",
+      "reasoning_effort": "low",
+      "verbosity": "low",
+      "service_tier": "priority"
+    },
+    "compacter": {
+      "model": "gpt-5-mini",
+      "reasoning_effort": "off",
+      "verbosity": "low"
+    },
+    "commit-agent": {
+      "model": "gpt-5-mini",
+      "reasoning_effort": "off",
+      "verbosity": "low"
+    },
+    "hyde-generator": {
+      "model": "gpt-5.4-nano",
+      "service_tier": "priority"
+    },
+    "topic-assigner": {
+      "model": "gpt-4o-mini",
+      "temperature": 0
+    },
+    "embeddings": {
+      "model": "text-embedding-3-large"
+    }
+  }
+}

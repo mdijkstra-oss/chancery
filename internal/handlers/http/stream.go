@@ -25,7 +25,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func forwardStream(src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string) {
+func forwardStream(ctx context.Context, src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string) *UsageResponse {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var currentEvent string
@@ -53,13 +53,15 @@ func forwardStream(src io.Reader, dst io.Writer, flusher http.Flusher, cfg Confi
 	}
 
 	if err := scanner.Err(); err != nil && isUnexpectedStreamError(err) {
-		slog.Error("stream read error", "component", "stream", "error", err)
-	} else {
-		if cfg.Inspect && completedData != "" {
-			inspectRawJSON(endpoint+" response", []byte(completedData))
-		}
-		slog.Info("stream completed", "component", "stream", slog.Group("data", slog.Int("lines", lineCount)))
+		slog.ErrorContext(ctx, "stream read error", "component", "stream", "error", err)
+		return nil
 	}
+
+	if cfg.Inspect && completedData != "" {
+		inspectRawJSON(endpoint+" response", []byte(completedData))
+	}
+	slog.DebugContext(ctx, "stream completed", "component", "stream", slog.Group("data", slog.Int("lines", lineCount)))
+	return extractCompletedUsage(completedData)
 }
 
 func extractTextDelta(data string) string {

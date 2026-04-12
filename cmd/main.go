@@ -15,7 +15,7 @@ import (
 
 func main() {
 	cfg := config.Load()
-	bootstrap.SetupLogger(cfg.LogLevel)
+	bootstrap.SetupLogger(cfg.LogLevel, cfg.Environment)
 
 	registry := prompts.CompileRegistry(prompts.PromptsDir)
 	slog.Info("prompts compiled", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
@@ -35,6 +35,7 @@ func main() {
 	}, httpHandlers.EmbeddingConfig{
 		Model:      embCfg.Model,
 		Dimensions: embCfg.Dimensions,
+		Pricing:    embCfg.Pricing,
 	})
 
 	r := chi.NewRouter()

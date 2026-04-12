@@ -38,7 +38,7 @@ func showInBat(label string, data []byte, lang string) {
 		return
 	}
 
-	slog.Info("inspect file written", "component", "inspect", slog.Group("data", slog.String("label", label), slog.String("path", path)))
+	slog.Debug("inspect file written", "component", "inspect", slog.Group("data", slog.String("label", label), slog.String("path", path)))
 
 	cmd := exec.Command("bat", "--language", lang, "--paging", "never", "--file-name", label, path)
 	cmd.Stdin = os.Stdin
@@ -46,6 +46,6 @@ func showInBat(label string, data []byte, lang string) {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		slog.Error("bat command failed", "component", "inspect", "error", err, slog.Group("data", slog.String("label", label)))
+		slog.Warn("bat command failed", "component", "inspect", "error", err, slog.Group("data", slog.String("label", label)))
 	}
 }

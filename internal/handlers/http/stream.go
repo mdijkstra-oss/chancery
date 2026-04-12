@@ -9,8 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-
-	"hermes-logos/internal/prompts"
 )
 
 func isUnexpectedStreamError(err error) bool {
@@ -27,12 +25,11 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string, pricing prompts.Pricing, reasoningEffort string, estimatedTokens int, rateLimit RateLimitInfo) {
+func forwardStream(src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string) {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var currentEvent string
 	var completedData string
-	var completedUsage *UsageResponse
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -52,20 +49,16 @@ func streamWithUsageLogging(src io.Reader, dst io.Writer, flusher http.Flusher, 
 
 		if currentEvent == "response.completed" {
 			completedData = data
-			completedUsage = extractCompletedUsage(data)
 		}
 	}
 
 	if err := scanner.Err(); err != nil && isUnexpectedStreamError(err) {
-		slog.Error("stream read error", "error", err)
+		slog.Error("stream read error", "component", "stream", "error", err)
 	} else {
 		if cfg.Inspect && completedData != "" {
 			inspectRawJSON(endpoint+" response", []byte(completedData))
 		}
-		if completedUsage != nil {
-			logUsage(endpoint, completedUsage, pricing, reasoningEffort, estimatedTokens, rateLimit)
-		}
-		slog.Info("stream_complete", "lines_received", lineCount)
+		slog.Info("stream completed", "component", "stream", slog.Group("data", slog.Int("lines", lineCount)))
 	}
 }
 

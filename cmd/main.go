@@ -18,7 +18,7 @@ func main() {
 	bootstrap.SetupLogger(cfg.LogLevel)
 
 	registry := prompts.CompileRegistry(prompts.PromptsDir)
-	slog.Info("prompts compiled", "agents", len(registry.Agents))
+	slog.Info("prompts compiled", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
 
 	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
 		APIKey:  cfg.APIKey,
@@ -41,6 +41,6 @@ func main() {
 	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, embeddingsHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
-	slog.Info("server starting", "port", cfg.Port)
+	slog.Info("server starting", "component", "startup", slog.Group("data", slog.String("port", cfg.Port)))
 	log.Fatal(http.ListenAndServe(addr, r))
 }

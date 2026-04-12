@@ -94,21 +94,21 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config, embCfg
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		slog.Error("embeddings read error", "error", err)
+		slog.Error("failed to read upstream response body", "component", "embeddings", "error", err)
 		http.Error(w, "failed to read upstream response", http.StatusBadGateway)
 		return
 	}
 
 	var embResp EmbeddingsResponse
 	if err := json.Unmarshal(body, &embResp); err != nil {
-		slog.Error("embeddings parse error", "error", err)
+		slog.Error("failed to parse upstream response", "component", "embeddings", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(body)
 		return
 	}
 
-	slog.Info("embeddings", "input_count", len(req.Input), "total_tokens", embResp.Usage.TotalTokens)
+	slog.Info("embeddings completed", "component", "embeddings", slog.Group("data", slog.Int("input_count", len(req.Input)), slog.Int("total_tokens", embResp.Usage.TotalTokens)))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -150,7 +150,7 @@ func proxyEmbeddingsWithRetry(ctx context.Context, req embeddingsProxyRequest, c
 		}
 
 		delay := retryDelay(resp.Header.Get("Retry-After"), attempt)
-		slog.Warn("embeddings rate limited, retrying", "attempt", attempt+1, "delay", delay)
+		slog.Warn("rate limited by upstream, retrying with backoff", "component", "embeddings", slog.Group("data", slog.Int("attempt", attempt+1), slog.Duration("delay", delay)))
 
 		select {
 		case <-time.After(delay):
@@ -171,10 +171,10 @@ func estimateEmbeddingTokens(input []string) int {
 
 func handleEmbeddingsProxyError(w http.ResponseWriter, err error) {
 	if errors.Is(err, errRateLimited) {
-		slog.Error("embeddings rate limited after retries")
+		slog.Error("rate limit retries exhausted", "component", "embeddings")
 		http.Error(w, "Rate limited after retries", http.StatusTooManyRequests)
 		return
 	}
-	slog.Error("embeddings upstream request failed", "error", err)
+	slog.Error("upstream request failed", "component", "embeddings", "error", err)
 	http.Error(w, "upstream request failed", http.StatusBadGateway)
 }

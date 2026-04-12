@@ -13,7 +13,7 @@ import (
 func inspectJSON(label string, v any) {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
-		slog.Error("inspect marshal failed", "label", label, "error", err)
+		slog.Error("failed to marshal inspect payload", "component", "inspect", "error", err, slog.Group("data", slog.String("label", label)))
 		return
 	}
 	showInBat(label, data, "json")
@@ -34,11 +34,11 @@ func showInBat(label string, data []byte, lang string) {
 	safeLabel = strings.ReplaceAll(safeLabel, " ", "-")
 	path := filepath.Join(os.TempDir(), fmt.Sprintf("hermes-%s.json", safeLabel))
 	if err := os.WriteFile(path, data, 0644); err != nil {
-		slog.Error("inspect write failed", "label", label, "error", err)
+		slog.Error("failed to write inspect file", "component", "inspect", "error", err, slog.Group("data", slog.String("label", label)))
 		return
 	}
 
-	slog.Info("inspect", "label", label, "path", path)
+	slog.Info("inspect file written", "component", "inspect", slog.Group("data", slog.String("label", label), slog.String("path", path)))
 
 	cmd := exec.Command("bat", "--language", lang, "--paging", "never", "--file-name", label, path)
 	cmd.Stdin = os.Stdin
@@ -46,6 +46,6 @@ func showInBat(label string, data []byte, lang string) {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		slog.Error("inspect bat failed", "label", label, "error", err)
+		slog.Error("bat command failed", "component", "inspect", "error", err, slog.Group("data", slog.String("label", label)))
 	}
 }

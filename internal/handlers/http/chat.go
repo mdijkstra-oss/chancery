@@ -95,7 +95,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		compacterAgent, compacterOk := registry.Agents["compacter"]
 		compacterCfg, compacterCfgOk := registry.Configs["compacter"]
 		if !compacterOk || !compacterCfgOk {
-			slog.Error("compacter agent not found in registry")
+			slog.Error("compacter agent not found in registry", "component", "chat")
 		} else {
 			compactReq := buildCompactRequest(compacterCfg.Model, compacterAgent.Prompt, stripForCompaction(req.Messages))
 			resp, err := proxyWithRetry(r.Context(), compactReq, cfg)
@@ -108,7 +108,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 				handleUpstreamError(w, resp)
 				return
 			}
-			slog.Info("compacting", "tokens", tokens, "compact_at", promptCfg.CompactAt)
+			slog.Info("compaction started, context exceeds token limit", "component", "chat", slog.Group("data", slog.Int("tokens", tokens), slog.Int("compact_at", promptCfg.CompactAt)))
 			if cfg.Inspect {
 				inspectJSON("compacter request", compactReq)
 			}
@@ -116,13 +116,10 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 			w.Header().Set("Cache-Control", "no-cache")
 			w.WriteHeader(http.StatusOK)
 			flusher := w.(http.Flusher)
-			usage, err := streamCompaction(resp.Body, w, flusher)
+			_, err = streamCompaction(resp.Body, w, flusher)
 			if err != nil {
-				slog.Error("compaction stream error", "error", err)
+				slog.Error("compaction stream failed", "component", "chat", "error", err)
 				return
-			}
-			if usage != nil {
-				logUsage("compacter", usage, compacterCfg.Pricing, "", 0, extractRateLimitInfo(resp.Header))
 			}
 			return
 		}
@@ -144,7 +141,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 		return
 	}
 
-	streamResponse(w, resp, cfg, urlPath, promptCfg.Pricing, reasoningEffort, tokens)
+	streamResponse(w, resp, cfg, urlPath)
 }
 
 func decodeRequest(r *http.Request) (ChatRequest, error) {
@@ -207,7 +204,7 @@ func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*
 		}
 
 		delay := retryDelay(resp.Header.Get("Retry-After"), attempt)
-		slog.Warn("rate limited, retrying", "attempt", attempt+1, "delay", delay)
+		slog.Warn("rate limited by upstream, retrying with backoff", "component", "chat", slog.Group("data", slog.Int("attempt", attempt+1), slog.Duration("delay", delay)))
 
 		select {
 		case <-time.After(delay):
@@ -220,11 +217,11 @@ func proxyWithRetry(ctx context.Context, apiReq ResponsesRequest, cfg Config) (*
 
 func handleProxyError(w http.ResponseWriter, err error) {
 	if errors.Is(err, errRateLimited) {
-		slog.Error("rate limited after retries")
+		slog.Error("rate limit retries exhausted", "component", "chat")
 		http.Error(w, "Rate limited after retries", http.StatusTooManyRequests)
 		return
 	}
-	slog.Error("upstream request failed", "error", err)
+	slog.Error("upstream request failed", "component", "chat", "error", err)
 	http.Error(w, "upstream request failed", http.StatusBadGateway)
 }
 
@@ -234,12 +231,11 @@ func isErrorResponse(resp *http.Response) bool {
 
 func handleUpstreamError(w http.ResponseWriter, resp *http.Response) {
 	body, _ := io.ReadAll(resp.Body)
-	slog.Error("upstream error", "status", resp.StatusCode, "body", string(body))
+	slog.Error("upstream returned error response", "component", "chat", slog.Group("data", slog.Int("status", resp.StatusCode), slog.String("body", string(body))))
 	http.Error(w, string(body), resp.StatusCode)
 }
 
-func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string, pricing prompts.Pricing, reasoningEffort string, estimatedTokens int) {
-	rateLimit := extractRateLimitInfo(resp.Header)
+func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endpoint string) {
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 
@@ -249,7 +245,7 @@ func streamResponse(w http.ResponseWriter, resp *http.Response, cfg Config, endp
 		return
 	}
 
-	streamWithUsageLogging(resp.Body, w, flusher, cfg, endpoint, pricing, reasoningEffort, estimatedTokens, rateLimit)
+	forwardStream(resp.Body, w, flusher, cfg, endpoint)
 }
 
 func parseTemperature(s string) *float64 {

@@ -28,6 +28,6 @@ func releaseUpstream() {
 	select {
 	case upstream <- struct{}{}:
 	default:
-		slog.Error("throttle: release without acquire")
+		slog.Error("throttle released without matching acquire", "component", "throttle")
 	}
 }

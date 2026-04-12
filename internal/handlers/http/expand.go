@@ -171,7 +171,7 @@ func ExpandApproaches(messages []json.RawMessage, entries map[string]prompts.App
 		}
 		key, _ := matchDirective(approachMarker, raw)
 		if _, ok := entries[key]; !ok {
-			slog.Warn("unknown approach key", "key", key)
+			slog.Warn("approach key not found in registry", "component", "expand", slog.Group("data", slog.String("key", key)))
 		}
 		result = appendApproachContent(result, key, entries)
 	}

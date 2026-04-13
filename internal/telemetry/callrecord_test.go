@@ -1,4 +1,4 @@
-package http
+package telemetry
 
 import (
 	"encoding/json"
@@ -6,14 +6,15 @@ import (
 	"testing"
 
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/protocol"
 )
 
 func TestComputeCosts(t *testing.T) {
 	cases := []struct {
-		name                                     string
-		input, cached, output                    int
-		pricing                                  prompts.Pricing
-		wantInput, wantCached, wantOutput        float64
+		name                                  string
+		input, cached, output                 int
+		pricing                               prompts.Pricing
+		wantInput, wantCached, wantOutput     float64
 	}{
 		{
 			"zero tokens",
@@ -135,9 +136,9 @@ func TestDeriveTrigger(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := deriveTrigger(tc.messages)
+			got := DeriveTrigger(tc.messages)
 			if got != tc.want {
-				t.Errorf("deriveTrigger() = %q, want %q", got, tc.want)
+				t.Errorf("DeriveTrigger() = %q, want %q", got, tc.want)
 			}
 		})
 	}
@@ -145,16 +146,16 @@ func TestDeriveTrigger(t *testing.T) {
 
 func TestBuildCallRecord(t *testing.T) {
 	pricing := prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18}
-	usage := &UsageResponse{
+	usage := &protocol.UsageResponse{
 		InputTokens:  10000,
 		OutputTokens: 2000,
 		TotalTokens:  12000,
-		InputTokensDetails: &PromptTokensDetails{
+		InputTokensDetails: &protocol.PromptTokensDetails{
 			CachedTokens: 6000,
 		},
 	}
 
-	rec := buildCallRecord("qual-coder", "gpt-5.2", "low", "priority", "shell", usage, pricing, 1234)
+	rec := BuildCallRecord("qual-coder", "gpt-5.2", "low", "priority", "shell", usage, pricing, 1234)
 
 	if rec.Endpoint != "qual-coder" {
 		t.Errorf("Endpoint = %q, want %q", rec.Endpoint, "qual-coder")
@@ -193,19 +194,19 @@ func TestBuildCallRecord(t *testing.T) {
 
 func TestBuildCallRecordWithReasoning(t *testing.T) {
 	pricing := prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18}
-	usage := &UsageResponse{
+	usage := &protocol.UsageResponse{
 		InputTokens:  10000,
 		OutputTokens: 5000,
 		TotalTokens:  15000,
-		InputTokensDetails: &PromptTokensDetails{
+		InputTokensDetails: &protocol.PromptTokensDetails{
 			CachedTokens: 4000,
 		},
-		OutputTokensDetails: &OutputTokensDetails{
+		OutputTokensDetails: &protocol.OutputTokensDetails{
 			ReasoningTokens: 3000,
 		},
 	}
 
-	rec := buildCallRecord("qual-coder", "gpt-5.2", "low", "priority", "user_message", usage, pricing, 2000)
+	rec := BuildCallRecord("qual-coder", "gpt-5.2", "low", "priority", "user_message", usage, pricing, 2000)
 
 	if rec.ReasoningTokens != 3000 {
 		t.Errorf("ReasoningTokens = %d, want %d", rec.ReasoningTokens, 3000)
@@ -225,7 +226,7 @@ func TestBuildCallRecordWithReasoning(t *testing.T) {
 
 func TestBuildCallRecordNilUsage(t *testing.T) {
 	pricing := prompts.Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.03}
-	rec := buildCallRecord("compacter", "gpt-5-mini", "", "", "user_message", nil, pricing, 500)
+	rec := BuildCallRecord("compacter", "gpt-5-mini", "", "", "user_message", nil, pricing, 500)
 
 	if rec.InputTokens != 0 {
 		t.Errorf("InputTokens = %d, want 0", rec.InputTokens)
@@ -237,7 +238,7 @@ func TestBuildCallRecordNilUsage(t *testing.T) {
 
 func TestBuildEmbeddingCallRecord(t *testing.T) {
 	pricing := prompts.Pricing{Input: 0.13, Output: 0, CachedInput: 0}
-	rec := buildEmbeddingCallRecord("text-embedding-3-large", 5000, 10, pricing, 300)
+	rec := BuildEmbeddingCallRecord("text-embedding-3-large", 5000, 10, pricing, 300)
 
 	if rec.Endpoint != "embeddings" {
 		t.Errorf("Endpoint = %q, want %q", rec.Endpoint, "embeddings")

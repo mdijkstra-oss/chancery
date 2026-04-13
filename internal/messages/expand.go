@@ -1,4 +1,4 @@
-package http
+package messages
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/protocol"
 )
 
 var approachMarker = regexp.MustCompile(`^<!--\s*approach:\s*([\w/\-]+)\s*-->$`)
@@ -35,7 +36,7 @@ func ExpandMessages(messages []json.RawMessage, modes map[string]string) []json.
 }
 
 func matchDirective(re *regexp.Regexp, raw json.RawMessage) (string, bool) {
-	var msg InputMessage
+	var msg protocol.InputMessage
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		return "", false
 	}
@@ -50,7 +51,7 @@ func matchDirective(re *regexp.Regexp, raw json.RawMessage) (string, bool) {
 }
 
 func expandMessage(raw json.RawMessage, modes map[string]string) json.RawMessage {
-	var msg InputMessage
+	var msg protocol.InputMessage
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		return raw
 	}
@@ -74,7 +75,7 @@ func expandMessage(raw json.RawMessage, modes map[string]string) json.RawMessage
 }
 
 func marshalSystemMessage(content string) json.RawMessage {
-	b, _ := json.Marshal(InputMessage{Type: "message", Role: "system", Content: content})
+	b, _ := json.Marshal(protocol.InputMessage{Type: "message", Role: "system", Content: content})
 	return b
 }
 

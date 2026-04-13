@@ -371,7 +371,7 @@ func TestCompileRegistry(t *testing.T) {
 		})
 	}
 
-	testProvider := ProviderConfig{Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "test-key-123"}
+	testProvider := ProviderConfig{Key: "openai", Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "test-key-123"}
 
 	configCases := []struct {
 		key  string
@@ -677,7 +677,7 @@ func TestResolveProviders(t *testing.T) {
 
 	entries := map[string]ProviderEntry{
 		"openai": {Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKeyEnv: "TEST_OPENAI_KEY"},
-		"gemini": {Protocol: ProtocolChat, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", APIKeyEnv: "TEST_GEMINI_KEY"},
+		"gemini": {Protocol: ProtocolGemini, BaseURL: "https://generativelanguage.googleapis.com/v1beta", APIKeyEnv: "TEST_GEMINI_KEY"},
 	}
 
 	got := resolveProviders(entries)
@@ -688,11 +688,11 @@ func TestResolveProviders(t *testing.T) {
 	}{
 		{
 			key:  "openai",
-			want: ProviderConfig{Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "sk-openai"},
+			want: ProviderConfig{Key: "openai", Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "sk-openai"},
 		},
 		{
 			key:  "gemini",
-			want: ProviderConfig{Protocol: ProtocolChat, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", APIKey: "sk-gemini"},
+			want: ProviderConfig{Key: "gemini", Protocol: ProtocolGemini, BaseURL: "https://generativelanguage.googleapis.com/v1beta", APIKey: "sk-gemini"},
 		},
 	}
 

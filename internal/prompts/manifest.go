@@ -23,10 +23,11 @@ type CompiledAgent struct {
 }
 
 type Registry struct {
-	Agents     map[string]CompiledAgent
-	Configs    map[string]PromptConfig
-	Modes      map[string]string
-	Approaches ApproachRegistry
+	Agents       map[string]CompiledAgent
+	Configs      map[string]PromptConfig
+	Modes        map[string]string
+	Approaches   ApproachRegistry
+	ProviderKeys []string
 }
 
 var includePattern = regexp.MustCompile(`^\[([^\]]+\.md)\]$`)
@@ -133,11 +134,13 @@ func CompileRegistry(promptsDir string) Registry {
 	agentsDir := filepath.Join(promptsDir, "agents")
 	sharedDir := filepath.Join(promptsDir, "shared")
 
+	configs, providerKeys := loadAgentsFile(promptsDir)
 	registry := Registry{
-		Agents:     make(map[string]CompiledAgent),
-		Configs:    loadAgentsFile(promptsDir),
-		Modes:      compileModes(promptsDir),
-		Approaches: compileApproaches(promptsDir),
+		Agents:       make(map[string]CompiledAgent),
+		Configs:      configs,
+		Modes:        compileModes(promptsDir),
+		Approaches:   compileApproaches(promptsDir),
+		ProviderKeys: providerKeys,
 	}
 
 	filepath.Walk(agentsDir, func(path string, info os.FileInfo, err error) error {
@@ -209,7 +212,7 @@ func osReadFile(path string) (string, error) {
 	return string(data), nil
 }
 
-func loadAgentsFile(promptsDir string) map[string]PromptConfig {
+func loadAgentsFile(promptsDir string) (map[string]PromptConfig, []string) {
 	path := filepath.Join(promptsDir, "agents.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -223,6 +226,10 @@ func loadAgentsFile(promptsDir string) map[string]PromptConfig {
 		panic("agents.json: providers section is required")
 	}
 	providers := resolveProviders(file.Providers)
+	providerKeys := make([]string, 0, len(providers))
+	for key := range providers {
+		providerKeys = append(providerKeys, key)
+	}
 	resolved := resolveModels(file.Models)
 	configs := make(map[string]PromptConfig, len(file.Agents))
 	for key, agent := range file.Agents {
@@ -239,7 +246,7 @@ func loadAgentsFile(promptsDir string) map[string]PromptConfig {
 		}
 		configs[key] = mergeConfig(model, agent, provider)
 	}
-	return configs
+	return configs, providerKeys
 }
 
 const maxModelDepth = 5
@@ -303,6 +310,9 @@ func overlayModel(base, child modelEntry) modelEntry {
 	if child.ServiceTier != "" {
 		result.ServiceTier = child.ServiceTier
 	}
+	if child.LegacyThinking {
+		result.LegacyThinking = child.LegacyThinking
+	}
 	if child.CompactAt != 0 {
 		result.CompactAt = child.CompactAt
 	}
@@ -324,6 +334,7 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 		ReasoningSummary: model.ReasoningSummary,
 		Verbosity:        model.Verbosity,
 		ServiceTier:      model.ServiceTier,
+		LegacyThinking:  model.LegacyThinking,
 		CompactAt:        model.CompactAt,
 		Pricing:          model.Pricing,
 		Provider:         provider,
@@ -354,7 +365,7 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 
 func validateProtocol(p Protocol) {
 	switch p {
-	case ProtocolResponses, ProtocolChat:
+	case ProtocolResponses, ProtocolGemini:
 	default:
 		panic(fmt.Sprintf("unknown protocol: %q", p))
 	}
@@ -372,6 +383,7 @@ func resolveProviders(entries map[string]ProviderEntry) map[string]ProviderConfi
 			panic(fmt.Sprintf("provider %q: env var %q is empty", key, entry.APIKeyEnv))
 		}
 		providers[key] = ProviderConfig{
+			Key:      key,
 			Protocol: entry.Protocol,
 			BaseURL:  entry.BaseURL,
 			APIKey:   apiKey,

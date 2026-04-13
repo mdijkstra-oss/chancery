@@ -4,6 +4,11 @@
       "protocol": "responses",
       "base_url": "https://api.openai.com/v1",
       "api_key_env": "OPENAI_API_KEY"
+    },
+    "gemini": {
+      "protocol": "gemini",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "api_key_env": "GEMINI_API_KEY"
     }
   },
   "models": {
@@ -58,40 +63,63 @@
       "type": "embedding",
       "dimensions": 1024,
       "pricing": { "input": 0.13, "output": 0, "cached_input": 0 }
+    },
+    "gemini-3.1-pro-preview": {
+      "provider": "gemini",
+      "name": "gemini-3.1-pro-preview",
+      "pricing": { "input": 2.00, "output": 12.00, "cached_input": 0.20 },
+      "reasoning_effort": "minimal"
+    },
+    "gemini-3-flash-preview": {
+      "provider": "gemini",
+      "name": "gemini-3-flash-preview",
+      "pricing": { "input": 0.50, "output": 3.00, "cached_input": 0.05 },
+      "reasoning_effort": "minimal"
+    },
+    "gemini-3.1-flash-lite-preview": {
+      "provider": "gemini",
+      "name": "gemini-3.1-flash-lite-preview",
+      "pricing": { "input": 0.25, "output": 1.50, "cached_input": 0.025 },
+      "reasoning_effort": "minimal"
+    },
+    "gemini-2.5-flash-lite": {
+      "provider": "gemini",
+      "name": "gemini-2.5-flash-lite",
+      "legacy_thinking": true,
+      "pricing": { "input": 0.10, "output": 0.40, "cached_input": 0.01 },
+      "reasoning_effort": "minimal"
     }
   },
   "agents": {
     "qual-coder": {
-      "model": "gpt-5.4",
-      "reasoning_effort": "low",
+      "model": "gemini-3.1-pro-preview",
+      "reasoning_effort": "medium",
       "service_tier": "default",
-      "compact_at": 300000
+      "compact_at": 500000
     },
     "scout-mapper": {
-      "model": "gpt-5-mini-prio",
-      "reasoning_effort": "off"
+      "model": "gemini-3-flash-preview"
     },
     "semantic-filter": {
-      "model": "gpt-5-mini-prio",
-      "reasoning_effort": "low"
+      "model": "gemini-3-flash-preview"
     },
     "write-answer": {
-      "model": "gpt-5.2-prio",
-      "reasoning_effort": "low"
+      "model": "gemini-3-flash-preview",
+      "reasoning_effort": "medium"
     },
     "compacter": {
-      "model": "gpt-5-mini",
-      "reasoning_effort": "off"
+      "model": "gemini-3-flash-preview"
     },
     "commit-agent": {
       "model": "gpt-5-mini",
       "reasoning_effort": "off"
     },
     "hyde-generator": {
-      "model": "gpt-5.4-nano-prio"
+      "model": "gemini-2.5-flash-lite",
+      "temperature": 0
     },
     "topic-assigner": {
-      "model": "gpt-4o-mini",
+      "model": "gemini-2.5-flash-lite",
       "temperature": 0
     },
     "embeddings": {
@@ -99,6 +127,7 @@
     }
   },
   "_pricing": [
+    "OPENAI",
     "$ per 1M tokens                | Std In | Std Cache | Std Out | Pri In | Pri Cache | Pri Out",
     "gpt-5.4                        |   2.50 |      0.25 |   15.00 |   5.00 |      0.50 |   30.00",
     "gpt-5.4-mini                   |   0.75 |     0.075 |    4.50 |   1.50 |      0.15 |    9.00",
@@ -112,6 +141,12 @@
     "gpt-4o                         |   2.50 |      1.25 |   10.00 |   4.25 |     2.125 |   17.00",
     "gpt-4o-mini                    |   0.15 |     0.075 |    0.60 |   0.25 |     0.125 |    1.00",
     "o4-mini                        |   1.10 |     0.275 |    4.40 |   2.00 |      0.50 |    8.00",
-    "o3                             |   2.00 |      0.50 |    8.00 |   3.50 |     0.875 |   14.00"
+    "o3                             |   2.00 |      0.50 |    8.00 |   3.50 |     0.875 |   14.00",
+    "GOOGLE",
+    "$ per 1M tokens                |     In |    Cache |     Out | GPT equivalent    | IQ",
+    "gemini-3.1-pro-preview         |   2.00 |     0.20 |   12.00 | gpt-5.4           | 57",
+    "gemini-3-flash-preview         |   0.50 |     0.05 |    3.00 | gpt-5.4 mini      | 46",
+    "gemini-3.1-flash-lite-preview  |   0.25 |    0.025 |    1.50 | gpt-5.4 nano      | 34",
+    "gemini-2.5-flash-lite          |   0.10 |     0.01 |    0.40 | gpt-4o-mini       |  —"
   ]
 }

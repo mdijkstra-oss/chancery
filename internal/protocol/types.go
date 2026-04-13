@@ -1,4 +1,4 @@
-package http
+package protocol
 
 import "encoding/json"
 
@@ -53,18 +53,4 @@ type UsageResponse struct {
 	TotalTokens         int                   `json:"total_tokens"`
 	InputTokensDetails  *PromptTokensDetails  `json:"input_tokens_details,omitempty"`
 	OutputTokensDetails *OutputTokensDetails  `json:"output_tokens_details,omitempty"`
-}
-
-type ResponseCompletedEvent struct {
-	Type     string         `json:"type"`
-	Response ResponseObject `json:"response"`
-}
-
-type ResponseObject struct {
-	Usage *UsageResponse `json:"usage,omitempty"`
-}
-
-type TextDeltaEvent struct {
-	Type  string `json:"type"`
-	Delta string `json:"delta"`
 }

@@ -21,19 +21,10 @@ func main() {
 	slog.Info("prompts compiled", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
 
 	chatHandler := httpHandlers.NewChatHandler(cfg.Inspect, registry)
-
 	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
 
-	embCfg := registry.Configs["embeddings"]
-	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(httpHandlers.EmbeddingConfig{
-		Provider:   embCfg.Provider,
-		Model:      embCfg.Model,
-		Dimensions: embCfg.Dimensions,
-		Pricing:    embCfg.Pricing,
-	})
-
 	r := chi.NewRouter()
-	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, embeddingsHandler, cfg.CorsOrigins)
+	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server starting", "component", "startup", slog.Group("data", slog.String("port", cfg.Port)))

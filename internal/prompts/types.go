@@ -4,7 +4,7 @@ type Protocol string
 
 const (
 	ProtocolResponses Protocol = "responses"
-	ProtocolChat      Protocol = "chat"
+	ProtocolGemini Protocol = "gemini"
 )
 
 type Segment struct {
@@ -25,6 +25,7 @@ type ProviderEntry struct {
 }
 
 type ProviderConfig struct {
+	Key      string
 	Protocol Protocol
 	BaseURL  string
 	APIKey   string
@@ -37,6 +38,7 @@ type PromptConfig struct {
 	ReasoningSummary string         `json:"reasoning_summary"`
 	Verbosity        string         `json:"verbosity"`
 	ServiceTier      string         `json:"service_tier,omitempty"`
+	LegacyThinking  bool           `json:"legacy_thinking,omitempty"`
 	Temperature      *float64       `json:"temperature,omitempty"`
 	Pricing          Pricing        `json:"pricing"`
 	CompactAt        int            `json:"compact_at,omitempty"`
@@ -59,6 +61,7 @@ type modelEntry struct {
 	ReasoningSummary string  `json:"reasoning_summary,omitempty"`
 	Verbosity        string  `json:"verbosity,omitempty"`
 	ServiceTier      string  `json:"service_tier,omitempty"`
+	LegacyThinking  bool    `json:"legacy_thinking,omitempty"`
 	CompactAt        int     `json:"compact_at,omitempty"`
 	Pricing          Pricing `json:"pricing"`
 }

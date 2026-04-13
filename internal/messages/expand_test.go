@@ -1,4 +1,4 @@
-package http
+package messages
 
 import (
 	"encoding/json"
@@ -6,15 +6,16 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/protocol"
 )
 
 func msg(role, content string) json.RawMessage {
-	b, _ := json.Marshal(InputMessage{Role: role, Content: content})
+	b, _ := json.Marshal(protocol.InputMessage{Role: role, Content: content})
 	return b
 }
 
 func typedMsg(role, content string) json.RawMessage {
-	b, _ := json.Marshal(InputMessage{Type: "message", Role: role, Content: content})
+	b, _ := json.Marshal(protocol.InputMessage{Type: "message", Role: role, Content: content})
 	return b
 }
 

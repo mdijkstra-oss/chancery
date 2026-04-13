@@ -1,9 +1,55 @@
-package http
+package protocol
 
-import (
-	"encoding/json"
-	"io"
-)
+import "encoding/json"
+
+type RequestParams struct {
+	Model            string
+	SystemPrompt     string
+	ReasoningEffort  string
+	ReasoningSummary string
+	Verbosity        string
+	ServiceTier      string
+	ToolChoice       string
+	LegacyThinking  bool
+	Temperature      *float64
+	Tools            []json.RawMessage
+	Messages         []json.RawMessage
+	ResponseFormat   json.RawMessage
+}
+
+func BuildResponsesRequestFromParams(p RequestParams) ResponsesRequest {
+	return buildResponsesRequest(
+		p.Model, p.SystemPrompt,
+		p.ReasoningEffort, p.ReasoningSummary,
+		p.Verbosity, p.ServiceTier,
+		p.Tools, p.ToolChoice, p.Temperature,
+		StripExtraContent(p.Messages), p.ResponseFormat,
+	)
+}
+
+func StripExtraContent(messages []json.RawMessage) []json.RawMessage {
+	result := make([]json.RawMessage, len(messages))
+	for i, raw := range messages {
+		result[i] = stripField(raw, "extra_content")
+	}
+	return result
+}
+
+func stripField(raw json.RawMessage, field string) json.RawMessage {
+	var obj map[string]json.RawMessage
+	if json.Unmarshal(raw, &obj) != nil {
+		return raw
+	}
+	if _, ok := obj[field]; !ok {
+		return raw
+	}
+	delete(obj, field)
+	cleaned, err := json.Marshal(obj)
+	if err != nil {
+		return raw
+	}
+	return cleaned
+}
 
 func prependSystemMessage(systemPrompt string, messages []json.RawMessage) []json.RawMessage {
 	sysMsg := InputMessage{Type: "message", Role: "system", Content: systemPrompt}
@@ -29,23 +75,28 @@ type jsonSchemaInner struct {
 	Strict bool            `json:"strict"`
 }
 
+func extractJSONSchemaInner(responseFormat json.RawMessage) *jsonSchemaInner {
+	var outer chatResponseFormat
+	if json.Unmarshal(responseFormat, &outer) != nil || outer.Type != "json_schema" || outer.JSONSchema == nil {
+		return nil
+	}
+	var inner jsonSchemaInner
+	if json.Unmarshal(outer.JSONSchema, &inner) != nil {
+		return nil
+	}
+	return &inner
+}
+
 func toTextFormat(responseFormat json.RawMessage) json.RawMessage {
 	if responseFormat == nil {
 		return nil
 	}
-	var chatFmt chatResponseFormat
-	if err := json.Unmarshal(responseFormat, &chatFmt); err != nil {
-		return nil
-	}
-	if chatFmt.Type != "json_schema" || chatFmt.JSONSchema == nil {
+	inner := extractJSONSchemaInner(responseFormat)
+	if inner == nil {
 		return responseFormat
 	}
-	var inner jsonSchemaInner
-	if err := json.Unmarshal(chatFmt.JSONSchema, &inner); err != nil {
-		return nil
-	}
 	result, err := json.Marshal(textFormat{
-		Type:   chatFmt.Type,
+		Type:   "json_schema",
 		Name:   inner.Name,
 		Schema: inner.Schema,
 		Strict: inner.Strict,
@@ -86,14 +137,4 @@ func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummar
 		req.ToolChoice = &toolChoice
 	}
 	return req
-}
-
-func encodeJSON(v any, pw *io.PipeWriter) {
-	pw.CloseWithError(json.NewEncoder(pw).Encode(v))
-}
-
-func jsonReader(v any) io.Reader {
-	pr, pw := io.Pipe()
-	go encodeJSON(v, pw)
-	return pr
 }

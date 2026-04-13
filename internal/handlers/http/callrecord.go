@@ -1,12 +1,19 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
+	"time"
 
+	"hermes-logos/internal/logging"
 	"hermes-logos/internal/prompts"
 )
+
+var axiomToken = "xaat-f8e2e9bf-7dd2-4237-8293-890f799b2101"
+var axiomDataset = "mummu"
 
 type CallRecord struct {
 	Endpoint          string
@@ -17,9 +24,12 @@ type CallRecord struct {
 	InputTokens       int
 	CachedInputTokens int
 	OutputTokens      int
+	ReasoningTokens   int
 	InputCost         float64
 	CachedInputCost   float64
 	OutputCost        float64
+	ReasoningCost     float64
+	TotalCost         float64
 	DurationMs        int64
 	InputCount        int
 }
@@ -94,6 +104,21 @@ func cachedTokensFromUsage(usage *UsageResponse) int {
 	return usage.InputTokensDetails.CachedTokens
 }
 
+func reasoningTokensFromUsage(usage *UsageResponse) int {
+	if usage == nil || usage.OutputTokensDetails == nil {
+		return 0
+	}
+	return usage.OutputTokensDetails.ReasoningTokens
+}
+
+func reasoningCost(reasoningTokens int, pricing prompts.Pricing) float64 {
+	return float64(reasoningTokens) * pricing.Output / 1_000_000
+}
+
+func totalCost(inputCost, cachedCost, outputCost, rCost float64) float64 {
+	return inputCost + cachedCost + outputCost + rCost
+}
+
 func buildCallRecord(endpoint, model, reasoning, serviceTier, trigger string, usage *UsageResponse, pricing prompts.Pricing, durationMs int64) CallRecord {
 	inputTokens := 0
 	outputTokens := 0
@@ -102,7 +127,10 @@ func buildCallRecord(endpoint, model, reasoning, serviceTier, trigger string, us
 		outputTokens = usage.OutputTokens
 	}
 	cached := cachedTokensFromUsage(usage)
-	inputCost, cachedCost, outputCost := computeCosts(inputTokens, cached, outputTokens, pricing)
+	rTokens := reasoningTokensFromUsage(usage)
+	textOutputTokens := outputTokens - rTokens
+	inputCost, cachedCost, outputCost := computeCosts(inputTokens, cached, textOutputTokens, pricing)
+	rCost := reasoningCost(rTokens, pricing)
 	return CallRecord{
 		Endpoint:          endpoint,
 		Model:             model,
@@ -111,10 +139,13 @@ func buildCallRecord(endpoint, model, reasoning, serviceTier, trigger string, us
 		Trigger:           trigger,
 		InputTokens:       inputTokens,
 		CachedInputTokens: cached,
-		OutputTokens:      outputTokens,
+		OutputTokens:      textOutputTokens,
+		ReasoningTokens:   rTokens,
 		InputCost:         inputCost,
 		CachedInputCost:   cachedCost,
 		OutputCost:        outputCost,
+		ReasoningCost:     rCost,
+		TotalCost:         totalCost(inputCost, cachedCost, outputCost, rCost),
 		DurationMs:        durationMs,
 	}
 }
@@ -126,6 +157,7 @@ func buildEmbeddingCallRecord(model string, totalTokens, inputCount int, pricing
 		Model:       model,
 		InputTokens: totalTokens,
 		InputCost:   inputCost,
+		TotalCost:   inputCost,
 		DurationMs:  durationMs,
 		InputCount:  inputCount,
 	}
@@ -143,11 +175,102 @@ func logCallRecord(ctx context.Context, rec CallRecord) {
 			slog.Int("input_tokens", rec.InputTokens),
 			slog.Int("cached_input_tokens", rec.CachedInputTokens),
 			slog.Int("output_tokens", rec.OutputTokens),
+			slog.Int("reasoning_tokens", rec.ReasoningTokens),
 			slog.Float64("input_cost", rec.InputCost),
 			slog.Float64("cached_input_cost", rec.CachedInputCost),
 			slog.Float64("output_cost", rec.OutputCost),
+			slog.Float64("reasoning_cost", rec.ReasoningCost),
+			slog.Float64("total_cost", rec.TotalCost),
 			slog.Int64("duration_ms", rec.DurationMs),
 			slog.Int("input_count", rec.InputCount),
 		),
 	)
+	if axiomToken != "" && axiomDataset != "" {
+		go sendToAxiom(ctx, rec)
+	}
+}
+
+type axiomEvent struct {
+	Time              string  `json:"_time"`
+	Endpoint          string  `json:"endpoint"`
+	Model             string  `json:"model"`
+	Reasoning         string  `json:"reasoning,omitempty"`
+	ServiceTier       string  `json:"service_tier,omitempty"`
+	Trigger           string  `json:"trigger,omitempty"`
+	InputTokens       int     `json:"input_tokens"`
+	CachedInputTokens int     `json:"cached_input_tokens"`
+	OutputTokens      int     `json:"output_tokens"`
+	ReasoningTokens   int     `json:"reasoning_tokens"`
+	InputCost         float64 `json:"input_cost"`
+	CachedInputCost   float64 `json:"cached_input_cost"`
+	OutputCost        float64 `json:"output_cost"`
+	ReasoningCost     float64 `json:"reasoning_cost"`
+	TotalCost         float64 `json:"total_cost"`
+	DurationMs        int64   `json:"duration_ms"`
+	InputCount        int     `json:"input_count,omitempty"`
+	RequestID         string  `json:"request_id,omitempty"`
+	SessionID         string  `json:"session_id,omitempty"`
+	ProjectID         string  `json:"project_id,omitempty"`
+}
+
+func buildAxiomEvent(ctx context.Context, rec CallRecord) axiomEvent {
+	ev := axiomEvent{
+		Time:              time.Now().UTC().Format(time.RFC3339Nano),
+		Endpoint:          rec.Endpoint,
+		Model:             rec.Model,
+		Reasoning:         rec.Reasoning,
+		ServiceTier:       rec.ServiceTier,
+		Trigger:           rec.Trigger,
+		InputTokens:       rec.InputTokens,
+		CachedInputTokens: rec.CachedInputTokens,
+		OutputTokens:      rec.OutputTokens,
+		ReasoningTokens:   rec.ReasoningTokens,
+		InputCost:         rec.InputCost,
+		CachedInputCost:   rec.CachedInputCost,
+		OutputCost:        rec.OutputCost,
+		ReasoningCost:     rec.ReasoningCost,
+		TotalCost:         rec.TotalCost,
+		DurationMs:        rec.DurationMs,
+		InputCount:        rec.InputCount,
+	}
+	for _, attr := range logging.AttrsFromContext(ctx) {
+		switch attr.Key {
+		case "request_id":
+			ev.RequestID = attr.Value.String()
+		case "session_id":
+			ev.SessionID = attr.Value.String()
+		case "project_id":
+			ev.ProjectID = attr.Value.String()
+		}
+	}
+	return ev
+}
+
+func sendToAxiom(ctx context.Context, rec CallRecord) {
+	ev := buildAxiomEvent(ctx, rec)
+	body, err := json.Marshal([]axiomEvent{ev})
+	if err != nil {
+		slog.Error("failed to marshal axiom event", "component", "usage", "error", err)
+		return
+	}
+
+	url := "https://api.axiom.co/v1/datasets/" + axiomDataset + "/ingest"
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		slog.Error("failed to create axiom request", "component", "usage", "error", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+axiomToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error("failed to send to axiom", "component", "usage", "error", err)
+		return
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		slog.Warn("axiom ingest returned error", "component", "usage", slog.Group("data", slog.Int("status", resp.StatusCode)))
+	}
 }

@@ -78,10 +78,7 @@ func buildResponsesRequest(model, systemPrompt, reasoningEffort, reasoningSummar
 	if temperature != nil {
 		req.Temperature = temperature
 	}
-	if reasoningEffort == "off" {
-		reasoningEffort = ""
-	}
-	if reasoningEffort != "" || reasoningSummary != "" {
+	if reasoningEffort != "" && reasoningEffort != "off" {
 		req.Reasoning = &ReasoningConfig{Effort: reasoningEffort, Summary: reasoningSummary}
 		req.Include = []string{"reasoning.encrypted_content"}
 	}

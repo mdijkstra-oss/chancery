@@ -1,21 +1,47 @@
 {
   "models": {
-    "gpt-5-mini": {
-      "pricing": { "input": 25, "output": 200, "cached_input": 2.5 }
-    },
     "gpt-5.4": {
-      "pricing": { "input": 175, "output": 1400, "cached_input": 17.5 }
+      "name": "gpt-5.4",
+      "pricing": { "input": 2.50, "output": 15.00, "cached_input": 0.25 },
+      "verbosity": "low",
+      "reasoning_summary": "concise"
     },
     "gpt-5.2": {
-      "pricing": { "input": 175, "output": 1400, "cached_input": 17.5 }
+      "name": "gpt-5.2",
+      "pricing": { "input": 1.75, "output": 14.00, "cached_input": 0.175 },
+      "verbosity": "low",
+      "reasoning_summary": "concise"
+    },
+    "gpt-5.2-prio": {
+      "extends": "gpt-5.2",
+      "service_tier": "priority",
+      "pricing": { "input": 3.50, "output": 28.00, "cached_input": 0.35 }
+    },
+    "gpt-5-mini": {
+      "name": "gpt-5-mini",
+      "pricing": { "input": 0.25, "output": 2.00, "cached_input": 0.025 },
+      "verbosity": "low",
+      "reasoning_summary": "concise"
+    },
+    "gpt-5-mini-prio": {
+      "extends": "gpt-5-mini",
+      "service_tier": "priority",
+      "pricing": { "input": 0.45, "output": 3.60, "cached_input": 0.045 }
     },
     "gpt-5.4-nano": {
-      "pricing": { "input": 0.2, "output": 1.25, "cached_input": 0.02 }
+      "name": "gpt-5.4-nano",
+      "pricing": { "input": 0.20, "output": 1.25, "cached_input": 0.02 }
+    },
+    "gpt-5.4-nano-prio": {
+      "extends": "gpt-5.4-nano",
+      "service_tier": "priority"
     },
     "gpt-4o-mini": {
-      "pricing": { "input": 0.15, "output": 0.6, "cached_input": 0.075 }
+      "name": "gpt-4o-mini",
+      "pricing": { "input": 0.15, "output": 0.60, "cached_input": 0.075 }
     },
     "text-embedding-3-large": {
+      "name": "text-embedding-3-large",
       "type": "embedding",
       "dimensions": 1024,
       "pricing": { "input": 0.13, "output": 0, "cached_input": 0 }
@@ -24,43 +50,32 @@
   "agents": {
     "qual-coder": {
       "model": "gpt-5.4",
-      "reasoning_effort": "none",
-      "reasoning_summary": "auto",
-      "verbosity": "low",
+      "reasoning_effort": "low",
       "service_tier": "default",
       "compact_at": 300000
     },
     "scout-mapper": {
-      "model": "gpt-5-mini",
-      "reasoning_effort": "off",
-      "verbosity": "low",
-      "service_tier": "priority",
-      "pricing": { "input": 45, "output": 360, "cached_input": 4.5 }
+      "model": "gpt-5-mini-prio",
+      "reasoning_effort": "off"
     },
     "semantic-filter": {
-      "model": "gpt-5-mini",
-      "reasoning_effort": "low",
-      "service_tier": "priority"
+      "model": "gpt-5-mini-prio",
+      "reasoning_effort": "low"
     },
     "write-answer": {
-      "model": "gpt-5.2",
-      "reasoning_effort": "low",
-      "verbosity": "low",
-      "service_tier": "priority"
+      "model": "gpt-5.2-prio",
+      "reasoning_effort": "low"
     },
     "compacter": {
       "model": "gpt-5-mini",
-      "reasoning_effort": "off",
-      "verbosity": "low"
+      "reasoning_effort": "off"
     },
     "commit-agent": {
       "model": "gpt-5-mini",
-      "reasoning_effort": "off",
-      "verbosity": "low"
+      "reasoning_effort": "off"
     },
     "hyde-generator": {
-      "model": "gpt-5.4-nano",
-      "service_tier": "priority"
+      "model": "gpt-5.4-nano-prio"
     },
     "topic-assigner": {
       "model": "gpt-4o-mini",
@@ -69,5 +84,21 @@
     "embeddings": {
       "model": "text-embedding-3-large"
     }
-  }
+  },
+  "_pricing": [
+    "$ per 1M tokens                | Std In | Std Cache | Std Out | Pri In | Pri Cache | Pri Out",
+    "gpt-5.4                        |   2.50 |      0.25 |   15.00 |   5.00 |      0.50 |   30.00",
+    "gpt-5.4-mini                   |   0.75 |     0.075 |    4.50 |   1.50 |      0.15 |    9.00",
+    "gpt-5.2                        |   1.75 |     0.175 |   14.00 |   3.50 |      0.35 |   28.00",
+    "gpt-5.1                        |   1.25 |     0.125 |   10.00 |   2.50 |      0.25 |   20.00",
+    "gpt-5                          |   1.25 |     0.125 |   10.00 |   2.50 |      0.25 |   20.00",
+    "gpt-5-mini                     |   0.25 |     0.025 |    2.00 |   0.45 |     0.045 |    3.60",
+    "gpt-4.1                        |   2.00 |      0.50 |    8.00 |   3.50 |     0.875 |   14.00",
+    "gpt-4.1-mini                   |   0.40 |      0.10 |    1.60 |   0.70 |     0.175 |    2.80",
+    "gpt-4.1-nano                   |   0.10 |     0.025 |    0.40 |   0.20 |      0.05 |    0.80",
+    "gpt-4o                         |   2.50 |      1.25 |   10.00 |   4.25 |     2.125 |   17.00",
+    "gpt-4o-mini                    |   0.15 |     0.075 |    0.60 |   0.25 |     0.125 |    1.00",
+    "o4-mini                        |   1.10 |     0.275 |    4.40 |   2.00 |      0.50 |    8.00",
+    "o3                             |   2.00 |      0.50 |    8.00 |   3.50 |     0.875 |   14.00"
+  ]
 }

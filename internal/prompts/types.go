@@ -29,6 +29,8 @@ type agentsFile struct {
 }
 
 type modelEntry struct {
+	Extends          string  `json:"extends,omitempty"`
+	Name             string  `json:"name,omitempty"`
 	Type             string  `json:"type,omitempty"`
 	Dimensions       int     `json:"dimensions,omitempty"`
 	ReasoningEffort  string  `json:"reasoning_effort,omitempty"`
@@ -48,5 +50,4 @@ type agentEntry struct {
 	Temperature      *float64 `json:"temperature,omitempty"`
 	CompactAt        int      `json:"compact_at,omitempty"`
 	Dimensions       int      `json:"dimensions,omitempty"`
-	Pricing          *Pricing `json:"pricing,omitempty"`
 }

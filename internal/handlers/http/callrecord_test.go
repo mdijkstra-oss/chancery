@@ -18,26 +18,26 @@ func TestComputeCosts(t *testing.T) {
 		{
 			"zero tokens",
 			0, 0, 0,
-			prompts.Pricing{Input: 175, Output: 1400, CachedInput: 17.5},
+			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
 			0, 0, 0,
 		},
 		{
 			"all uncached",
 			1000, 0, 500,
-			prompts.Pricing{Input: 175, Output: 1400, CachedInput: 17.5},
-			0.175, 0, 0.7,
+			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
+			0.00175, 0, 0.007,
 		},
 		{
 			"all cached",
 			1000, 1000, 500,
-			prompts.Pricing{Input: 175, Output: 1400, CachedInput: 17.5},
-			0, 0.0175, 0.7,
+			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
+			0, 0.00018, 0.007,
 		},
 		{
 			"mixed cached and uncached",
 			10000, 6000, 2000,
-			prompts.Pricing{Input: 175, Output: 1400, CachedInput: 17.5},
-			0.7, 0.105, 2.8,
+			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
+			0.007, 0.00108, 0.028,
 		},
 		{
 			"embedding pricing",
@@ -144,7 +144,7 @@ func TestDeriveTrigger(t *testing.T) {
 }
 
 func TestBuildCallRecord(t *testing.T) {
-	pricing := prompts.Pricing{Input: 175, Output: 1400, CachedInput: 17.5}
+	pricing := prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18}
 	usage := &UsageResponse{
 		InputTokens:  10000,
 		OutputTokens: 2000,
@@ -154,7 +154,7 @@ func TestBuildCallRecord(t *testing.T) {
 		},
 	}
 
-	rec := buildCallRecord("qual-coder", "gpt-5.4", "low", "priority", "shell", usage, pricing, 1234)
+	rec := buildCallRecord("qual-coder", "gpt-5.2", "low", "priority", "shell", usage, pricing, 1234)
 
 	if rec.Endpoint != "qual-coder" {
 		t.Errorf("Endpoint = %q, want %q", rec.Endpoint, "qual-coder")
@@ -174,19 +174,57 @@ func TestBuildCallRecord(t *testing.T) {
 	if rec.Trigger != "shell" {
 		t.Errorf("Trigger = %q, want %q", rec.Trigger, "shell")
 	}
-	if !approxEqual(rec.InputCost, 0.7) {
-		t.Errorf("InputCost = %f, want %f", rec.InputCost, 0.7)
+	if !approxEqual(rec.InputCost, 0.007) {
+		t.Errorf("InputCost = %f, want %f", rec.InputCost, 0.007)
 	}
-	if !approxEqual(rec.CachedInputCost, 0.105) {
-		t.Errorf("CachedInputCost = %f, want %f", rec.CachedInputCost, 0.105)
+	if !approxEqual(rec.CachedInputCost, 0.00108) {
+		t.Errorf("CachedInputCost = %f, want %f", rec.CachedInputCost, 0.00108)
 	}
-	if !approxEqual(rec.OutputCost, 2.8) {
-		t.Errorf("OutputCost = %f, want %f", rec.OutputCost, 2.8)
+	if !approxEqual(rec.OutputCost, 0.028) {
+		t.Errorf("OutputCost = %f, want %f", rec.OutputCost, 0.028)
+	}
+	if rec.ReasoningTokens != 0 {
+		t.Errorf("ReasoningTokens = %d, want 0", rec.ReasoningTokens)
+	}
+	if rec.ReasoningCost != 0 {
+		t.Errorf("ReasoningCost = %f, want 0", rec.ReasoningCost)
+	}
+}
+
+func TestBuildCallRecordWithReasoning(t *testing.T) {
+	pricing := prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18}
+	usage := &UsageResponse{
+		InputTokens:  10000,
+		OutputTokens: 5000,
+		TotalTokens:  15000,
+		InputTokensDetails: &PromptTokensDetails{
+			CachedTokens: 4000,
+		},
+		OutputTokensDetails: &OutputTokensDetails{
+			ReasoningTokens: 3000,
+		},
+	}
+
+	rec := buildCallRecord("qual-coder", "gpt-5.2", "low", "priority", "user_message", usage, pricing, 2000)
+
+	if rec.ReasoningTokens != 3000 {
+		t.Errorf("ReasoningTokens = %d, want %d", rec.ReasoningTokens, 3000)
+	}
+	wantReasoningCost := 3000.0 * 14.00 / 1_000_000
+	if !approxEqual(rec.ReasoningCost, wantReasoningCost) {
+		t.Errorf("ReasoningCost = %f, want %f", rec.ReasoningCost, wantReasoningCost)
+	}
+	if rec.OutputTokens != 2000 {
+		t.Errorf("OutputTokens = %d, want %d (5000 total - 3000 reasoning)", rec.OutputTokens, 2000)
+	}
+	wantOutputCost := 2000.0 * 14.00 / 1_000_000
+	if !approxEqual(rec.OutputCost, wantOutputCost) {
+		t.Errorf("OutputCost = %f, want %f", rec.OutputCost, wantOutputCost)
 	}
 }
 
 func TestBuildCallRecordNilUsage(t *testing.T) {
-	pricing := prompts.Pricing{Input: 175, Output: 1400, CachedInput: 17.5}
+	pricing := prompts.Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.03}
 	rec := buildCallRecord("compacter", "gpt-5-mini", "", "", "user_message", nil, pricing, 500)
 
 	if rec.InputTokens != 0 {

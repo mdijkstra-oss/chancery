@@ -219,20 +219,92 @@ func loadAgentsFile(promptsDir string) map[string]PromptConfig {
 	if err := json.Unmarshal(data, &file); err != nil {
 		panic(fmt.Sprintf("parse agents.json: %v", err))
 	}
+	resolved := resolveModels(file.Models)
 	configs := make(map[string]PromptConfig, len(file.Agents))
 	for key, agent := range file.Agents {
-		model, ok := file.Models[agent.Model]
+		model, ok := resolved[agent.Model]
 		if !ok {
 			panic(fmt.Sprintf("agent %q references unknown model %q", key, agent.Model))
 		}
-		configs[key] = mergeConfig(agent.Model, model, agent)
+		configs[key] = mergeConfig(model, agent)
 	}
 	return configs
 }
 
-func mergeConfig(modelName string, model modelEntry, agent agentEntry) PromptConfig {
+const maxModelDepth = 5
+
+func resolveModels(models map[string]modelEntry) map[string]modelEntry {
+	resolved := make(map[string]modelEntry, len(models))
+	for key := range models {
+		resolved[key] = resolveModel(key, models)
+	}
+	return resolved
+}
+
+func resolveModel(key string, models map[string]modelEntry) modelEntry {
+	current := key
+	var chain []modelEntry
+	for range maxModelDepth + 1 {
+		entry, ok := models[current]
+		if !ok {
+			panic(fmt.Sprintf("model %q references unknown model %q", key, current))
+		}
+		chain = append(chain, entry)
+		if entry.Extends == "" {
+			break
+		}
+		current = entry.Extends
+	}
+	if chain[len(chain)-1].Extends != "" {
+		panic(fmt.Sprintf("model %q extends chain exceeds %d steps", key, maxModelDepth))
+	}
+	result := chain[len(chain)-1]
+	for i := len(chain) - 2; i >= 0; i-- {
+		result = overlayModel(result, chain[i])
+	}
+	return result
+}
+
+func overlayModel(base, child modelEntry) modelEntry {
+	result := base
+	result.Extends = ""
+	if child.Name != "" {
+		result.Name = child.Name
+	}
+	if child.Type != "" {
+		result.Type = child.Type
+	}
+	if child.Dimensions != 0 {
+		result.Dimensions = child.Dimensions
+	}
+	if child.ReasoningEffort != "" {
+		result.ReasoningEffort = child.ReasoningEffort
+	}
+	if child.ReasoningSummary != "" {
+		result.ReasoningSummary = child.ReasoningSummary
+	}
+	if child.Verbosity != "" {
+		result.Verbosity = child.Verbosity
+	}
+	if child.ServiceTier != "" {
+		result.ServiceTier = child.ServiceTier
+	}
+	if child.CompactAt != 0 {
+		result.CompactAt = child.CompactAt
+	}
+	if hasPricing(child.Pricing) {
+		result.Pricing = child.Pricing
+	}
+	return result
+}
+
+func hasPricing(p Pricing) bool {
+	return p.Input != 0 || p.Output != 0 || p.CachedInput != 0
+}
+
+func mergeConfig(model modelEntry, agent agentEntry) PromptConfig {
 	cfg := PromptConfig{
-		Model:            modelName,
+		Model:            model.Name,
 		Dimensions:       model.Dimensions,
 		ReasoningEffort:  model.ReasoningEffort,
 		ReasoningSummary: model.ReasoningSummary,
@@ -261,9 +333,6 @@ func mergeConfig(modelName string, model modelEntry, agent agentEntry) PromptCon
 	}
 	if agent.Dimensions != 0 {
 		cfg.Dimensions = agent.Dimensions
-	}
-	if agent.Pricing != nil {
-		cfg.Pricing = *agent.Pricing
 	}
 	return cfg
 }

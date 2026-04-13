@@ -49,11 +49,16 @@ type PromptTokensDetails struct {
 	CachedTokens int `json:"cached_tokens"`
 }
 
+type OutputTokensDetails struct {
+	ReasoningTokens int `json:"reasoning_tokens"`
+}
+
 type UsageResponse struct {
-	InputTokens        int                  `json:"input_tokens"`
-	OutputTokens       int                  `json:"output_tokens"`
-	TotalTokens        int                  `json:"total_tokens"`
-	InputTokensDetails *PromptTokensDetails `json:"input_tokens_details,omitempty"`
+	InputTokens         int                   `json:"input_tokens"`
+	OutputTokens        int                   `json:"output_tokens"`
+	TotalTokens         int                   `json:"total_tokens"`
+	InputTokensDetails  *PromptTokensDetails  `json:"input_tokens_details,omitempty"`
+	OutputTokensDetails *OutputTokensDetails  `json:"output_tokens_details,omitempty"`
 }
 
 type ResponseCompletedEvent struct {

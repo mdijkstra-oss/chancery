@@ -48,8 +48,18 @@ func handleChat(w http.ResponseWriter, r *http.Request, cfg Config, registry pro
 	req.Messages = ExpandMessages(req.Messages, registry.Modes)
 	req.Messages = ExpandApproaches(req.Messages, registry.Approaches.Entries)
 
-	model := promptCfg.Model
-	reasoningEffort := promptCfg.ReasoningEffort
+	var reasoningEffort string
+	req.Messages, reasoningEffort = ExtractReasoningEffort(req.Messages)
+	if reasoningEffort == "" {
+		reasoningEffort = promptCfg.ReasoningEffort
+	}
+
+	var model string
+	req.Messages, model = ExtractModel(req.Messages)
+	if model == "" {
+		model = promptCfg.Model
+	}
+
 	verbosity := promptCfg.Verbosity
 
 	toolNames := ExtractToolNames(req.Tools)

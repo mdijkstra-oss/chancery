@@ -10,6 +10,8 @@ import (
 
 var approachMarker = regexp.MustCompile(`^<!--\s*approach:\s*([\w/\-]+)\s*-->$`)
 var modeMarker = regexp.MustCompile(`^<!--\s*prompt:\s*(\w+)\s*-->$`)
+var reasoningMarker = regexp.MustCompile(`^<!--\s*reasoning:\s*(\w+)\s*-->$`)
+var modelMarker = regexp.MustCompile(`^<!--\s*model:\s*([\w.\-]+)\s*-->$`)
 
 func ExpandMessages(messages []json.RawMessage, modes map[string]string) []json.RawMessage {
 	lastIdx := -1
@@ -49,6 +51,29 @@ func matchDirective(re *regexp.Regexp, raw json.RawMessage) (string, bool) {
 	return match[1], true
 }
 
+func extractDirective(re *regexp.Regexp, messages []json.RawMessage) ([]json.RawMessage, string) {
+	value := ""
+	for i := len(messages) - 1; i >= 0; i-- {
+		if v, ok := matchDirective(re, messages[i]); ok && value == "" {
+			value = v
+		}
+	}
+	result := make([]json.RawMessage, 0, len(messages))
+	for _, raw := range messages {
+		if _, ok := matchDirective(re, raw); !ok {
+			result = append(result, raw)
+		}
+	}
+	return result, value
+}
+
+func ExtractReasoningEffort(messages []json.RawMessage) ([]json.RawMessage, string) {
+	return extractDirective(reasoningMarker, messages)
+}
+
+func ExtractModel(messages []json.RawMessage) ([]json.RawMessage, string) {
+	return extractDirective(modelMarker, messages)
+}
 
 func expandMessage(raw json.RawMessage, modes map[string]string) json.RawMessage {
 	var msg InputMessage

@@ -305,10 +305,19 @@ func TestCompileRegistry(t *testing.T) {
 		writeTestFile(t, filepath.Join(promptsDir, name), content)
 	}
 
+	t.Setenv("TEST_API_KEY", "test-key-123")
+
 	agentsJSON := `{
+		"providers": {
+			"openai": {
+				"protocol": "responses",
+				"base_url": "https://api.openai.com/v1",
+				"api_key_env": "TEST_API_KEY"
+			}
+		},
 		"models": {
-			"gpt-5.2": {"name": "gpt-5.2", "pricing": {"input": 0, "output": 0, "cached_input": 0}},
-			"gpt-5-mini": {"name": "gpt-5-mini", "pricing": {"input": 0, "output": 0, "cached_input": 0}}
+			"gpt-5.2": {"provider": "openai", "name": "gpt-5.2", "pricing": {"input": 0, "output": 0, "cached_input": 0}},
+			"gpt-5-mini": {"provider": "openai", "name": "gpt-5-mini", "pricing": {"input": 0, "output": 0, "cached_input": 0}}
 		},
 		"agents": {
 			"qual-coder": {"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"},
@@ -362,21 +371,23 @@ func TestCompileRegistry(t *testing.T) {
 		})
 	}
 
+	testProvider := ProviderConfig{Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "test-key-123"}
+
 	configCases := []struct {
 		key  string
 		want PromptConfig
 	}{
 		{
 			key:  "qual-coder",
-			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high", Verbosity: "low"},
+			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high", Verbosity: "low", Provider: testProvider},
 		},
 		{
 			key:  "qual-coder/plan",
-			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high", Verbosity: "low"},
+			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "high", Verbosity: "low", Provider: testProvider},
 		},
 		{
 			key:  "compacter",
-			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "medium"},
+			want: PromptConfig{Model: "gpt-5.2", ReasoningEffort: "medium", Provider: testProvider},
 		},
 	}
 
@@ -458,47 +469,56 @@ func TestParseToolRequirement(t *testing.T) {
 }
 
 func TestMergeConfig(t *testing.T) {
+	prov := ProviderConfig{Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "k"}
+
 	cases := []struct {
-		name  string
-		model modelEntry
-		agent agentEntry
-		want  PromptConfig
+		name     string
+		model    modelEntry
+		agent    agentEntry
+		provider ProviderConfig
+		want     PromptConfig
 	}{
 		{
-			name:  "model defaults only",
-			model: modelEntry{Name: "gpt-5-mini", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}},
-			agent: agentEntry{Model: "gpt-5-mini"},
-			want:  PromptConfig{Model: "gpt-5-mini", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}},
+			name:     "model defaults only",
+			model:    modelEntry{Name: "gpt-5-mini", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}},
+			agent:    agentEntry{Model: "gpt-5-mini"},
+			provider: prov,
+			want:     PromptConfig{Model: "gpt-5-mini", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}, Provider: prov},
 		},
 		{
-			name:  "agent overrides reasoning",
-			model: modelEntry{Name: "gpt-5-mini", ReasoningEffort: "off", Pricing: Pricing{Input: 0.25}},
-			agent: agentEntry{Model: "gpt-5-mini", ReasoningEffort: "low"},
-			want:  PromptConfig{Model: "gpt-5-mini", ReasoningEffort: "low", Pricing: Pricing{Input: 0.25}},
+			name:     "agent overrides reasoning",
+			model:    modelEntry{Name: "gpt-5-mini", ReasoningEffort: "off", Pricing: Pricing{Input: 0.25}},
+			agent:    agentEntry{Model: "gpt-5-mini", ReasoningEffort: "low"},
+			provider: prov,
+			want:     PromptConfig{Model: "gpt-5-mini", ReasoningEffort: "low", Pricing: Pricing{Input: 0.25}, Provider: prov},
 		},
 		{
-			name:  "priority variant carries own pricing and tier",
-			model: modelEntry{Name: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.45, Output: 3.60, CachedInput: 0.045}},
-			agent: agentEntry{Model: "gpt-5-mini-prio"},
-			want:  PromptConfig{Model: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.45, Output: 3.60, CachedInput: 0.045}},
+			name:     "priority variant carries own pricing and tier",
+			model:    modelEntry{Name: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.45, Output: 3.60, CachedInput: 0.045}},
+			agent:    agentEntry{Model: "gpt-5-mini-prio"},
+			provider: prov,
+			want:     PromptConfig{Model: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.45, Output: 3.60, CachedInput: 0.045}, Provider: prov},
 		},
 		{
-			name:  "embedding model with dimensions",
-			model: modelEntry{Name: "text-embedding-3-large", Type: "embedding", Dimensions: 1024},
-			agent: agentEntry{Model: "text-embedding-3-large"},
-			want:  PromptConfig{Model: "text-embedding-3-large", Dimensions: 1024},
+			name:     "embedding model with dimensions",
+			model:    modelEntry{Name: "text-embedding-3-large", Type: "embedding", Dimensions: 1024},
+			agent:    agentEntry{Model: "text-embedding-3-large"},
+			provider: prov,
+			want:     PromptConfig{Model: "text-embedding-3-large", Dimensions: 1024, Provider: prov},
 		},
 		{
-			name:  "agent overrides compact_at",
-			model: modelEntry{Name: "gpt-5.4", CompactAt: 200000, Pricing: Pricing{Input: 2.50}},
-			agent: agentEntry{Model: "gpt-5.4", CompactAt: 300000},
-			want:  PromptConfig{Model: "gpt-5.4", CompactAt: 300000, Pricing: Pricing{Input: 2.50}},
+			name:     "agent overrides compact_at",
+			model:    modelEntry{Name: "gpt-5.4", CompactAt: 200000, Pricing: Pricing{Input: 2.50}},
+			agent:    agentEntry{Model: "gpt-5.4", CompactAt: 300000},
+			provider: prov,
+			want:     PromptConfig{Model: "gpt-5.4", CompactAt: 300000, Pricing: Pricing{Input: 2.50}, Provider: prov},
 		},
 		{
-			name:  "temperature from agent",
-			model: modelEntry{Name: "gpt-4o-mini", Pricing: Pricing{Input: 0.15}},
-			agent: agentEntry{Model: "gpt-4o-mini", Temperature: float64Ptr(0)},
-			want:  PromptConfig{Model: "gpt-4o-mini", Temperature: float64Ptr(0), Pricing: Pricing{Input: 0.15}},
+			name:     "temperature from agent",
+			model:    modelEntry{Name: "gpt-4o-mini", Pricing: Pricing{Input: 0.15}},
+			agent:    agentEntry{Model: "gpt-4o-mini", Temperature: float64Ptr(0)},
+			provider: prov,
+			want:     PromptConfig{Model: "gpt-4o-mini", Temperature: float64Ptr(0), Pricing: Pricing{Input: 0.15}, Provider: prov},
 		},
 		{
 			name: "all model fields inherited",
@@ -511,7 +531,8 @@ func TestMergeConfig(t *testing.T) {
 				CompactAt:        300000,
 				Pricing:          Pricing{Input: 2.50, Output: 15.00, CachedInput: 0.25},
 			},
-			agent: agentEntry{Model: "gpt-5.4"},
+			agent:    agentEntry{Model: "gpt-5.4"},
+			provider: prov,
 			want: PromptConfig{
 				Model:            "gpt-5.4",
 				ReasoningEffort:  "none",
@@ -520,19 +541,21 @@ func TestMergeConfig(t *testing.T) {
 				ServiceTier:      "default",
 				CompactAt:        300000,
 				Pricing:          Pricing{Input: 2.50, Output: 15.00, CachedInput: 0.25},
+				Provider:         prov,
 			},
 		},
 		{
-			name:  "agent overrides model service_tier",
-			model: modelEntry{Name: "gpt-5.4", Pricing: Pricing{Input: 2.50}},
-			agent: agentEntry{Model: "gpt-5.4", ServiceTier: "default"},
-			want:  PromptConfig{Model: "gpt-5.4", ServiceTier: "default", Pricing: Pricing{Input: 2.50}},
+			name:     "agent overrides model service_tier",
+			model:    modelEntry{Name: "gpt-5.4", Pricing: Pricing{Input: 2.50}},
+			agent:    agentEntry{Model: "gpt-5.4", ServiceTier: "default"},
+			provider: prov,
+			want:     PromptConfig{Model: "gpt-5.4", ServiceTier: "default", Pricing: Pricing{Input: 2.50}, Provider: prov},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := mergeConfig(tc.model, tc.agent)
+			got := mergeConfig(tc.model, tc.agent, tc.provider)
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
@@ -541,7 +564,7 @@ func TestMergeConfig(t *testing.T) {
 }
 
 func TestResolveModel(t *testing.T) {
-	base := modelEntry{Name: "gpt-5-mini", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}}
+	base := modelEntry{Provider: "openai", Name: "gpt-5-mini", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}}
 	prio := modelEntry{Extends: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.45, Output: 3.60, CachedInput: 0.045}}
 
 	cases := []struct {
@@ -560,7 +583,7 @@ func TestResolveModel(t *testing.T) {
 			name:   "single extends inherits name and overrides fields",
 			key:    "gpt-5-mini-prio",
 			models: map[string]modelEntry{"gpt-5-mini": base, "gpt-5-mini-prio": prio},
-			want:   modelEntry{Name: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.45, Output: 3.60, CachedInput: 0.045}},
+			want:   modelEntry{Provider: "openai", Name: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.45, Output: 3.60, CachedInput: 0.045}},
 		},
 		{
 			name: "extends inherits pricing when child has none",
@@ -569,17 +592,26 @@ func TestResolveModel(t *testing.T) {
 				"gpt-5-mini":      base,
 				"gpt-5-mini-prio": {Extends: "gpt-5-mini", ServiceTier: "priority"},
 			},
-			want: modelEntry{Name: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}},
+			want: modelEntry{Provider: "openai", Name: "gpt-5-mini", ServiceTier: "priority", Pricing: Pricing{Input: 0.25, Output: 2.00, CachedInput: 0.025}},
 		},
 		{
 			name: "two-level chain",
 			key:  "c",
 			models: map[string]modelEntry{
-				"a": {Name: "base-model", Pricing: Pricing{Input: 1.00}},
+				"a": {Provider: "openai", Name: "base-model", Pricing: Pricing{Input: 1.00}},
 				"b": {Extends: "a", ServiceTier: "priority"},
 				"c": {Extends: "b", Pricing: Pricing{Input: 9.99, Output: 9.99, CachedInput: 9.99}},
 			},
-			want: modelEntry{Name: "base-model", ServiceTier: "priority", Pricing: Pricing{Input: 9.99, Output: 9.99, CachedInput: 9.99}},
+			want: modelEntry{Provider: "openai", Name: "base-model", ServiceTier: "priority", Pricing: Pricing{Input: 9.99, Output: 9.99, CachedInput: 9.99}},
+		},
+		{
+			name: "child overrides provider",
+			key:  "b",
+			models: map[string]modelEntry{
+				"a": {Provider: "openai", Name: "base-model", Pricing: Pricing{Input: 1.00}},
+				"b": {Extends: "a", Provider: "gemini"},
+			},
+			want: modelEntry{Provider: "gemini", Name: "base-model", Pricing: Pricing{Input: 1.00}},
 		},
 	}
 
@@ -635,6 +667,78 @@ func TestResolveModelPanics(t *testing.T) {
 				}
 			}()
 			resolveModel(tc.key, tc.models)
+		})
+	}
+}
+
+func TestResolveProviders(t *testing.T) {
+	t.Setenv("TEST_OPENAI_KEY", "sk-openai")
+	t.Setenv("TEST_GEMINI_KEY", "sk-gemini")
+
+	entries := map[string]ProviderEntry{
+		"openai": {Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKeyEnv: "TEST_OPENAI_KEY"},
+		"gemini": {Protocol: ProtocolChat, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", APIKeyEnv: "TEST_GEMINI_KEY"},
+	}
+
+	got := resolveProviders(entries)
+
+	cases := []struct {
+		key  string
+		want ProviderConfig
+	}{
+		{
+			key:  "openai",
+			want: ProviderConfig{Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "sk-openai"},
+		},
+		{
+			key:  "gemini",
+			want: ProviderConfig{Protocol: ProtocolChat, BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", APIKey: "sk-gemini"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.key, func(t *testing.T) {
+			if diff := cmp.Diff(tc.want, got[tc.key]); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestResolveProvidersPanics(t *testing.T) {
+	cases := []struct {
+		name    string
+		entries map[string]ProviderEntry
+		envKey  string
+		envVal  string
+	}{
+		{
+			name:    "unknown protocol",
+			entries: map[string]ProviderEntry{"bad": {Protocol: "grpc", BaseURL: "http://x", APIKeyEnv: "K"}},
+			envKey:  "K",
+			envVal:  "v",
+		},
+		{
+			name:    "empty api_key_env",
+			entries: map[string]ProviderEntry{"bad": {Protocol: ProtocolResponses, BaseURL: "http://x", APIKeyEnv: ""}},
+		},
+		{
+			name:    "env var not set",
+			entries: map[string]ProviderEntry{"bad": {Protocol: ProtocolResponses, BaseURL: "http://x", APIKeyEnv: "UNSET_VAR_12345"}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.envKey != "" {
+				t.Setenv(tc.envKey, tc.envVal)
+			}
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("expected panic, got none")
+				}
+			}()
+			resolveProviders(tc.entries)
 		})
 	}
 }

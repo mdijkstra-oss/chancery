@@ -1,12 +1,21 @@
 {
+  "providers": {
+    "openai": {
+      "protocol": "responses",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY"
+    }
+  },
   "models": {
     "gpt-5.4": {
+      "provider": "openai",
       "name": "gpt-5.4",
       "pricing": { "input": 2.50, "output": 15.00, "cached_input": 0.25 },
       "verbosity": "low",
       "reasoning_summary": "concise"
     },
     "gpt-5.2": {
+      "provider": "openai",
       "name": "gpt-5.2",
       "pricing": { "input": 1.75, "output": 14.00, "cached_input": 0.175 },
       "verbosity": "low",
@@ -18,6 +27,7 @@
       "pricing": { "input": 3.50, "output": 28.00, "cached_input": 0.35 }
     },
     "gpt-5-mini": {
+      "provider": "openai",
       "name": "gpt-5-mini",
       "pricing": { "input": 0.25, "output": 2.00, "cached_input": 0.025 },
       "verbosity": "low",
@@ -29,6 +39,7 @@
       "pricing": { "input": 0.45, "output": 3.60, "cached_input": 0.045 }
     },
     "gpt-5.4-nano": {
+      "provider": "openai",
       "name": "gpt-5.4-nano",
       "pricing": { "input": 0.20, "output": 1.25, "cached_input": 0.02 }
     },
@@ -37,10 +48,12 @@
       "service_tier": "priority"
     },
     "gpt-4o-mini": {
+      "provider": "openai",
       "name": "gpt-4o-mini",
       "pricing": { "input": 0.15, "output": 0.60, "cached_input": 0.075 }
     },
     "text-embedding-3-large": {
+      "provider": "openai",
       "name": "text-embedding-3-large",
       "type": "embedding",
       "dimensions": 1024,

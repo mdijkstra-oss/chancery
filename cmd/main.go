@@ -20,19 +20,13 @@ func main() {
 	registry := prompts.CompileRegistry(prompts.PromptsDir)
 	slog.Info("prompts compiled", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
 
-	chatHandler := httpHandlers.NewChatHandler(httpHandlers.Config{
-		APIKey:  cfg.APIKey,
-		BaseURL: cfg.BaseURL,
-		Inspect: cfg.Inspect,
-	}, registry)
+	chatHandler := httpHandlers.NewChatHandler(cfg.Inspect, registry)
 
 	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
 
 	embCfg := registry.Configs["embeddings"]
-	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(httpHandlers.Config{
-		APIKey:  cfg.APIKey,
-		BaseURL: cfg.BaseURL,
-	}, httpHandlers.EmbeddingConfig{
+	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(httpHandlers.EmbeddingConfig{
+		Provider:   embCfg.Provider,
 		Model:      embCfg.Model,
 		Dimensions: embCfg.Dimensions,
 		Pricing:    embCfg.Pricing,

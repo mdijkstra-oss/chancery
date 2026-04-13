@@ -25,7 +25,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func forwardStream(ctx context.Context, src io.Reader, dst io.Writer, flusher http.Flusher, cfg Config, endpoint string) *UsageResponse {
+func forwardStream(ctx context.Context, src io.Reader, dst io.Writer, flusher http.Flusher, inspect bool, endpoint string) *UsageResponse {
 	scanner := bufio.NewScanner(src)
 	lineCount := 0
 	var currentEvent string
@@ -57,7 +57,7 @@ func forwardStream(ctx context.Context, src io.Reader, dst io.Writer, flusher ht
 		return nil
 	}
 
-	if cfg.Inspect && completedData != "" {
+	if inspect && completedData != "" {
 		inspectRawJSON(endpoint+" response", []byte(completedData))
 	}
 	slog.DebugContext(ctx, "stream completed", "component", "stream", slog.Group("data", slog.Int("lines", lineCount)))

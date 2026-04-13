@@ -7,8 +7,6 @@ import (
 
 type Config struct {
 	Port        string
-	APIKey      string
-	BaseURL     string
 	CorsOrigins []string
 	LogLevel    slog.Level
 	Environment string
@@ -18,8 +16,6 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Port:        getEnv("PORT", "8081"),
-		APIKey:      getEnv("API_KEY", ""),
-		BaseURL:     getEnv("BASE_URL", "https://api.openai.com/v1"),
 		CorsOrigins: []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:    parseLogLevel(getEnv("LOG_LEVEL", "info")),
 		Environment: getEnv("ENV", "development"),

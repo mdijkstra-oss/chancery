@@ -8,12 +8,6 @@ type ChatRequest struct {
 	ResponseFormat json.RawMessage   `json:"response_format,omitempty"`
 }
 
-type Config struct {
-	APIKey  string
-	BaseURL string
-	Inspect bool
-}
-
 type InputMessage struct {
 	Type    string `json:"type"`
 	Role    string `json:"role"`

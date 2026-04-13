@@ -15,10 +15,10 @@ import (
 
 const maxEmbeddingBatchSize = 512
 const maxEmbeddingBatchTokens = 200_000
-const maxEmbeddingRetries = 3
 const charsPerToken = 4
 
 type EmbeddingConfig struct {
+	Provider   prompts.ProviderConfig
 	Model      string
 	Dimensions int
 	Pricing    prompts.Pricing
@@ -48,13 +48,13 @@ type EmbeddingsUsage struct {
 	TotalTokens int `json:"total_tokens"`
 }
 
-func NewEmbeddingsHandler(cfg Config, embCfg EmbeddingConfig) http.HandlerFunc {
+func NewEmbeddingsHandler(embCfg EmbeddingConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleEmbeddings(w, r, cfg, embCfg)
+		handleEmbeddings(w, r, embCfg)
 	}
 }
 
-func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config, embCfg EmbeddingConfig) {
+func handleEmbeddings(w http.ResponseWriter, r *http.Request, embCfg EmbeddingConfig) {
 	ctx := r.Context()
 
 	var req EmbeddingsClientRequest
@@ -86,7 +86,7 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config, embCfg
 	}
 
 	start := time.Now()
-	resp, err := proxyEmbeddingsWithRetry(ctx, proxyReq, cfg)
+	resp, err := proxyWithRetry(ctx, proxyReq, embCfg.Provider, "/embeddings")
 	if err != nil {
 		handleEmbeddingsProxyError(ctx, w, err)
 		return
@@ -121,52 +121,6 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg Config, embCfg
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
-}
-
-func proxyEmbeddingsRequest(ctx context.Context, req embeddingsProxyRequest, cfg Config) (*http.Response, error) {
-	proxyReq, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseURL+"/embeddings", jsonReader(req))
-	if err != nil {
-		return nil, err
-	}
-
-	proxyReq.Header.Set("Content-Type", "application/json")
-	proxyReq.Header.Set("Authorization", "Bearer "+cfg.APIKey)
-
-	return http.DefaultClient.Do(proxyReq)
-}
-
-func proxyEmbeddingsWithRetry(ctx context.Context, req embeddingsProxyRequest, cfg Config) (*http.Response, error) {
-	for attempt := range maxEmbeddingRetries {
-		if err := acquireUpstream(ctx); err != nil {
-			return nil, err
-		}
-		resp, err := proxyEmbeddingsRequest(ctx, req, cfg)
-		releaseUpstream()
-
-		if err != nil {
-			return nil, err
-		}
-
-		if resp.StatusCode != http.StatusTooManyRequests {
-			return resp, nil
-		}
-
-		resp.Body.Close()
-
-		if attempt == maxEmbeddingRetries-1 {
-			return nil, errRateLimited
-		}
-
-		delay := retryDelay(resp.Header.Get("Retry-After"), attempt)
-		slog.WarnContext(ctx, "rate limited by upstream, retrying with backoff", "component", "embeddings", slog.Group("data", slog.Int("attempt", attempt+1), slog.Duration("delay", delay)))
-
-		select {
-		case <-time.After(delay):
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-	}
-	return nil, errRateLimited
 }
 
 func estimateEmbeddingTokens(input []string) int {

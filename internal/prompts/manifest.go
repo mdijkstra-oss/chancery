@@ -219,6 +219,10 @@ func loadAgentsFile(promptsDir string) map[string]PromptConfig {
 	if err := json.Unmarshal(data, &file); err != nil {
 		panic(fmt.Sprintf("parse agents.json: %v", err))
 	}
+	if len(file.Providers) == 0 {
+		panic("agents.json: providers section is required")
+	}
+	providers := resolveProviders(file.Providers)
 	resolved := resolveModels(file.Models)
 	configs := make(map[string]PromptConfig, len(file.Agents))
 	for key, agent := range file.Agents {
@@ -226,7 +230,14 @@ func loadAgentsFile(promptsDir string) map[string]PromptConfig {
 		if !ok {
 			panic(fmt.Sprintf("agent %q references unknown model %q", key, agent.Model))
 		}
-		configs[key] = mergeConfig(model, agent)
+		if model.Provider == "" {
+			panic(fmt.Sprintf("model %q has no provider", agent.Model))
+		}
+		provider, ok := providers[model.Provider]
+		if !ok {
+			panic(fmt.Sprintf("model %q references unknown provider %q", agent.Model, model.Provider))
+		}
+		configs[key] = mergeConfig(model, agent, provider)
 	}
 	return configs
 }
@@ -268,6 +279,9 @@ func resolveModel(key string, models map[string]modelEntry) modelEntry {
 func overlayModel(base, child modelEntry) modelEntry {
 	result := base
 	result.Extends = ""
+	if child.Provider != "" {
+		result.Provider = child.Provider
+	}
 	if child.Name != "" {
 		result.Name = child.Name
 	}
@@ -302,7 +316,7 @@ func hasPricing(p Pricing) bool {
 	return p.Input != 0 || p.Output != 0 || p.CachedInput != 0
 }
 
-func mergeConfig(model modelEntry, agent agentEntry) PromptConfig {
+func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) PromptConfig {
 	cfg := PromptConfig{
 		Model:            model.Name,
 		Dimensions:       model.Dimensions,
@@ -312,6 +326,7 @@ func mergeConfig(model modelEntry, agent agentEntry) PromptConfig {
 		ServiceTier:      model.ServiceTier,
 		CompactAt:        model.CompactAt,
 		Pricing:          model.Pricing,
+		Provider:         provider,
 	}
 	if agent.ReasoningEffort != "" {
 		cfg.ReasoningEffort = agent.ReasoningEffort
@@ -335,6 +350,34 @@ func mergeConfig(model modelEntry, agent agentEntry) PromptConfig {
 		cfg.Dimensions = agent.Dimensions
 	}
 	return cfg
+}
+
+func validateProtocol(p Protocol) {
+	switch p {
+	case ProtocolResponses, ProtocolChat:
+	default:
+		panic(fmt.Sprintf("unknown protocol: %q", p))
+	}
+}
+
+func resolveProviders(entries map[string]ProviderEntry) map[string]ProviderConfig {
+	providers := make(map[string]ProviderConfig, len(entries))
+	for key, entry := range entries {
+		validateProtocol(entry.Protocol)
+		if entry.APIKeyEnv == "" {
+			panic(fmt.Sprintf("provider %q has no api_key_env", key))
+		}
+		apiKey := os.Getenv(entry.APIKeyEnv)
+		if apiKey == "" {
+			panic(fmt.Sprintf("provider %q: env var %q is empty", key, entry.APIKeyEnv))
+		}
+		providers[key] = ProviderConfig{
+			Protocol: entry.Protocol,
+			BaseURL:  entry.BaseURL,
+			APIKey:   apiKey,
+		}
+	}
+	return providers
 }
 
 func resolveAgentConfigs(registry Registry) {

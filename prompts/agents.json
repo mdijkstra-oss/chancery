@@ -94,7 +94,6 @@
     "qual-coder": {
       "model": "gemini-3.1-pro-preview",
       "reasoning_effort": "medium",
-      "service_tier": "default",
       "compact_at": 500000
     },
     "scout-mapper": {

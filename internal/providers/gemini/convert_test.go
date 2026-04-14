@@ -1,0 +1,713 @@
+package gemini
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/genai"
+	"hermes-logos/internal/protocol"
+)
+
+func TestBuildCallIDToName(t *testing.T) {
+	tests := []struct {
+		name     string
+		messages []string
+		want     map[string]string
+	}{
+		{
+			name:     "empty",
+			messages: nil,
+			want:     map[string]string{},
+		},
+		{
+			name: "single function call",
+			messages: []string{
+				`{"type":"function_call","call_id":"c1","name":"search"}`,
+			},
+			want: map[string]string{"c1": "search"},
+		},
+		{
+			name: "multiple function calls mixed with other messages",
+			messages: []string{
+				`{"role":"user","content":"hi"}`,
+				`{"type":"function_call","call_id":"c1","name":"search"}`,
+				`{"type":"function_call_output","call_id":"c1","output":"result"}`,
+				`{"type":"function_call","call_id":"c2","name":"read_file"}`,
+			},
+			want: map[string]string{"c1": "search", "c2": "read_file"},
+		},
+		{
+			name: "ignores non-function-call types",
+			messages: []string{
+				`{"role":"user","content":"hi"}`,
+				`{"role":"assistant","content":"hello"}`,
+			},
+			want: map[string]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msgs := toRawMessages(tt.messages)
+			got := BuildCallIDToName(msgs)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestExtractLeadingSystem(t *testing.T) {
+	tests := []struct {
+		name        string
+		messages    []string
+		wantLeading []string
+		wantRest    int
+	}{
+		{
+			name:        "empty",
+			messages:    nil,
+			wantLeading: nil,
+			wantRest:    0,
+		},
+		{
+			name: "no leading system",
+			messages: []string{
+				`{"role":"user","content":"hello"}`,
+			},
+			wantLeading: nil,
+			wantRest:    1,
+		},
+		{
+			name: "single leading system",
+			messages: []string{
+				`{"role":"system","content":"db schema"}`,
+				`{"role":"user","content":"hello"}`,
+			},
+			wantLeading: []string{"db schema"},
+			wantRest:    1,
+		},
+		{
+			name: "multiple leading system",
+			messages: []string{
+				`{"role":"system","content":"tools info"}`,
+				`{"role":"system","content":"db schema"}`,
+				`{"role":"user","content":"hello"}`,
+				`{"role":"system","content":"cursor context"}`,
+			},
+			wantLeading: []string{"tools info", "db schema"},
+			wantRest:    2,
+		},
+		{
+			name: "all system",
+			messages: []string{
+				`{"role":"system","content":"a"}`,
+				`{"role":"system","content":"b"}`,
+			},
+			wantLeading: []string{"a", "b"},
+			wantRest:    0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msgs := toRawMessages(tt.messages)
+			leading, rest := ExtractLeadingSystem(msgs)
+			if diff := cmp.Diff(tt.wantLeading, leading); diff != "" {
+				t.Errorf("leading mismatch (-want +got):\n%s", diff)
+			}
+			if len(rest) != tt.wantRest {
+				t.Errorf("rest len = %d, want %d", len(rest), tt.wantRest)
+			}
+		})
+	}
+}
+
+func TestMessagesToContents(t *testing.T) {
+	tests := []struct {
+		name      string
+		messages  []string
+		callIDMap map[string]string
+		check     func(t *testing.T, got []*genai.Content)
+	}{
+		{
+			name: "user message",
+			messages: []string{
+				`{"role":"user","content":"hello"}`,
+			},
+			callIDMap: nil,
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if got[0].Role != "user" {
+					t.Errorf("role = %q, want user", got[0].Role)
+				}
+				assertTextPart(t, got[0], "hello")
+			},
+		},
+		{
+			name: "assistant message",
+			messages: []string{
+				`{"role":"assistant","content":"hi there"}`,
+			},
+			callIDMap: nil,
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if got[0].Role != "model" {
+					t.Errorf("role = %q, want model", got[0].Role)
+				}
+				assertTextPart(t, got[0], "hi there")
+			},
+		},
+		{
+			name: "system message wrapped as user",
+			messages: []string{
+				`{"role":"system","content":"you are helpful"}`,
+				`{"role":"user","content":"hello"}`,
+			},
+			callIDMap: nil,
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 2 {
+					t.Fatalf("len = %d, want 2", len(got))
+				}
+				if got[0].Role != "user" {
+					t.Errorf("role = %q, want user", got[0].Role)
+				}
+				assertTextPart(t, got[0], "<system_message>\nyou are helpful\n</system_message>")
+				if got[1].Role != "user" {
+					t.Errorf("role = %q, want user", got[1].Role)
+				}
+				assertTextPart(t, got[1], "hello")
+			},
+		},
+		{
+			name: "function call",
+			messages: []string{
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{\"q\":\"test\"}"}`,
+			},
+			callIDMap: map[string]string{"c1": "search"},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if got[0].Role != "model" {
+					t.Errorf("role = %q, want model", got[0].Role)
+				}
+				if got[0].Parts[0].FunctionCall == nil {
+					t.Fatal("expected FunctionCall part")
+				}
+				if got[0].Parts[0].FunctionCall.Name != "search" {
+					t.Errorf("name = %q, want search", got[0].Parts[0].FunctionCall.Name)
+				}
+			},
+		},
+		{
+			name: "function call with thought signature",
+			messages: []string{
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{\"q\":\"test\"}","extra_content":{"google":{"thought_signature":"dGVzdHNpZw=="}}}`,
+			},
+			callIDMap: map[string]string{"c1": "search"},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				part := got[0].Parts[0]
+				if part.FunctionCall == nil {
+					t.Fatal("expected FunctionCall part")
+				}
+				if string(part.ThoughtSignature) != "testsig" {
+					t.Errorf("ThoughtSignature = %q, want testsig", string(part.ThoughtSignature))
+				}
+			},
+		},
+		{
+			name: "function call without extra_content has nil signature",
+			messages: []string{
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
+			},
+			callIDMap: map[string]string{"c1": "search"},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if got[0].Parts[0].ThoughtSignature != nil {
+					t.Errorf("expected nil ThoughtSignature, got %v", got[0].Parts[0].ThoughtSignature)
+				}
+			},
+		},
+		{
+			name: "function call output",
+			messages: []string{
+				`{"type":"function_call_output","call_id":"c1","output":"{\"result\":\"found\"}"}`,
+			},
+			callIDMap: map[string]string{"c1": "search"},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if got[0].Role != "user" {
+					t.Errorf("role = %q, want user", got[0].Role)
+				}
+				if got[0].Parts[0].FunctionResponse == nil {
+					t.Fatal("expected FunctionResponse part")
+				}
+				if got[0].Parts[0].FunctionResponse.Name != "search" {
+					t.Errorf("name = %q, want search", got[0].Parts[0].FunctionResponse.Name)
+				}
+			},
+		},
+		{
+			name: "function call output with plain text",
+			messages: []string{
+				`{"type":"function_call_output","call_id":"c1","output":"plain text result"}`,
+			},
+			callIDMap: map[string]string{"c1": "search"},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				resp := got[0].Parts[0].FunctionResponse.Response
+				if resp["output"] != "plain text result" {
+					t.Errorf("output = %v, want plain text result", resp["output"])
+				}
+			},
+		},
+		{
+			name: "reasoning with thought signature",
+			messages: []string{
+				`{"type":"reasoning","id":"r1","extra_content":{"google":{"thought_signature":"dGVzdHNpZw=="}}}`,
+			},
+			callIDMap: nil,
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if !got[0].Parts[0].Thought {
+					t.Error("expected Thought=true")
+				}
+				if string(got[0].Parts[0].ThoughtSignature) != "testsig" {
+					t.Errorf("signature = %q, want testsig", string(got[0].Parts[0].ThoughtSignature))
+				}
+			},
+		},
+		{
+			name: "reasoning without extra_content skipped",
+			messages: []string{
+				`{"type":"reasoning","id":"r1"}`,
+			},
+			callIDMap: nil,
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 0 {
+					t.Errorf("len = %d, want 0", len(got))
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msgs := toRawMessages(tt.messages)
+			got := MessagesToContents(msgs, tt.callIDMap)
+			tt.check(t, got)
+		})
+	}
+}
+
+func TestMergeConsecutiveContents(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []*genai.Content
+		check func(t *testing.T, got []*genai.Content)
+	}{
+		{
+			name:  "empty",
+			input: nil,
+			check: func(t *testing.T, got []*genai.Content) {
+				if got != nil {
+					t.Errorf("want nil, got %v", got)
+				}
+			},
+		},
+		{
+			name: "single entry unchanged",
+			input: []*genai.Content{
+				genai.NewContentFromText("hello", "user"),
+			},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if len(got[0].Parts) != 1 {
+					t.Fatalf("parts = %d, want 1", len(got[0].Parts))
+				}
+			},
+		},
+		{
+			name: "alternating roles unchanged",
+			input: []*genai.Content{
+				genai.NewContentFromText("hello", "user"),
+				genai.NewContentFromText("hi", "model"),
+			},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 2 {
+					t.Fatalf("len = %d, want 2", len(got))
+				}
+			},
+		},
+		{
+			name: "consecutive user merged",
+			input: []*genai.Content{
+				genai.NewContentFromText("system context", "user"),
+				genai.NewContentFromText("actual message", "user"),
+			},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if got[0].Role != "user" {
+					t.Errorf("role = %q, want user", got[0].Role)
+				}
+				if len(got[0].Parts) != 2 {
+					t.Fatalf("parts = %d, want 2", len(got[0].Parts))
+				}
+				if got[0].Parts[0].Text != "system context" {
+					t.Errorf("part[0] = %q, want system context", got[0].Parts[0].Text)
+				}
+				if got[0].Parts[1].Text != "actual message" {
+					t.Errorf("part[1] = %q, want actual message", got[0].Parts[1].Text)
+				}
+			},
+		},
+		{
+			name: "three consecutive user then model",
+			input: []*genai.Content{
+				genai.NewContentFromText("a", "user"),
+				genai.NewContentFromText("b", "user"),
+				genai.NewContentFromText("c", "user"),
+				genai.NewContentFromText("response", "model"),
+			},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 2 {
+					t.Fatalf("len = %d, want 2", len(got))
+				}
+				if len(got[0].Parts) != 3 {
+					t.Fatalf("user parts = %d, want 3", len(got[0].Parts))
+				}
+				if got[1].Role != "model" {
+					t.Errorf("second role = %q, want model", got[1].Role)
+				}
+			},
+		},
+		{
+			name: "does not mutate input",
+			input: []*genai.Content{
+				genai.NewContentFromText("a", "user"),
+				genai.NewContentFromText("b", "user"),
+			},
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inputLen := len(tt.input)
+			got := MergeConsecutiveContents(tt.input)
+			tt.check(t, got)
+			if len(tt.input) != inputLen {
+				t.Error("input slice was mutated")
+			}
+		})
+	}
+}
+
+func TestToolsToGemini(t *testing.T) {
+	tests := []struct {
+		name  string
+		tools []string
+		check func(t *testing.T, got []*genai.Tool)
+	}{
+		{
+			name:  "empty",
+			tools: nil,
+			check: func(t *testing.T, got []*genai.Tool) {
+				if got != nil {
+					t.Errorf("want nil, got %v", got)
+				}
+			},
+		},
+		{
+			name: "single tool",
+			tools: []string{
+				`{"name":"search","description":"Search the web","parameters":{"type":"OBJECT","properties":{"q":{"type":"STRING"}}}}`,
+			},
+			check: func(t *testing.T, got []*genai.Tool) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if len(got[0].FunctionDeclarations) != 1 {
+					t.Fatalf("decl count = %d, want 1", len(got[0].FunctionDeclarations))
+				}
+				decl := got[0].FunctionDeclarations[0]
+				if decl.Name != "search" {
+					t.Errorf("name = %q, want search", decl.Name)
+				}
+				if decl.Description != "Search the web" {
+					t.Errorf("description = %q, want Search the web", decl.Description)
+				}
+			},
+		},
+		{
+			name: "multiple tools",
+			tools: []string{
+				`{"name":"search","description":"Search"}`,
+				`{"name":"read","description":"Read file"}`,
+			},
+			check: func(t *testing.T, got []*genai.Tool) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if len(got[0].FunctionDeclarations) != 2 {
+					t.Fatalf("decl count = %d, want 2", len(got[0].FunctionDeclarations))
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ToolsToGemini(toRawMessages(tt.tools))
+			tt.check(t, got)
+		})
+	}
+}
+
+func TestBuildConfig(t *testing.T) {
+	temp := 0.7
+
+	tests := []struct {
+		name          string
+		params        protocol.RequestParams
+		leadingSystem []string
+		check         func(t *testing.T, cfg *genai.GenerateContentConfig)
+	}{
+		{
+			name: "system prompt",
+			params: protocol.RequestParams{
+				SystemPrompt: "be helpful",
+			},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.SystemInstruction == nil {
+					t.Fatal("expected SystemInstruction")
+				}
+				assertTextPart(t, cfg.SystemInstruction, "be helpful")
+			},
+		},
+		{
+			name: "system prompt with leading system",
+			params: protocol.RequestParams{
+				SystemPrompt: "be helpful",
+			},
+			leadingSystem: []string{"tools info", "db schema"},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.SystemInstruction == nil {
+					t.Fatal("expected SystemInstruction")
+				}
+				assertTextPart(t, cfg.SystemInstruction, "be helpful\n\ntools info\n\ndb schema")
+			},
+		},
+		{
+			name:          "leading system without backend prompt",
+			leadingSystem: []string{"tools info"},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.SystemInstruction == nil {
+					t.Fatal("expected SystemInstruction")
+				}
+				assertTextPart(t, cfg.SystemInstruction, "tools info")
+			},
+		},
+		{
+			name: "temperature",
+			params: protocol.RequestParams{
+				Temperature: &temp,
+			},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.Temperature == nil {
+					t.Fatal("expected Temperature")
+				}
+				if *cfg.Temperature != 0.7 {
+					t.Errorf("temp = %f, want 0.7", *cfg.Temperature)
+				}
+			},
+		},
+		{
+			name: "thinking with level (non-legacy)",
+			params: protocol.RequestParams{
+				ReasoningEffort: "high",
+				LegacyThinking: false,
+			},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.ThinkingConfig == nil {
+					t.Fatal("expected ThinkingConfig")
+				}
+				if !cfg.ThinkingConfig.IncludeThoughts {
+					t.Error("expected IncludeThoughts=true")
+				}
+				if cfg.ThinkingConfig.ThinkingLevel != genai.ThinkingLevelHigh {
+					t.Errorf("level = %q, want HIGH", cfg.ThinkingConfig.ThinkingLevel)
+				}
+				if cfg.ThinkingConfig.ThinkingBudget != nil {
+					t.Error("expected ThinkingBudget=nil for non-legacy")
+				}
+			},
+		},
+		{
+			name: "thinking with budget (legacy)",
+			params: protocol.RequestParams{
+				ReasoningEffort: "low",
+				LegacyThinking: true,
+			},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.ThinkingConfig == nil {
+					t.Fatal("expected ThinkingConfig")
+				}
+				if cfg.ThinkingConfig.ThinkingBudget == nil {
+					t.Fatal("expected ThinkingBudget for legacy")
+				}
+				if *cfg.ThinkingConfig.ThinkingBudget != 4096 {
+					t.Errorf("budget = %d, want 4096", *cfg.ThinkingConfig.ThinkingBudget)
+				}
+			},
+		},
+		{
+			name: "reasoning off",
+			params: protocol.RequestParams{
+				ReasoningEffort: "off",
+			},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.ThinkingConfig != nil {
+					t.Error("expected ThinkingConfig=nil for off")
+				}
+			},
+		},
+		{
+			name: "response format json_schema",
+			params: protocol.RequestParams{
+				ResponseFormat: json.RawMessage(`{"type":"json_schema","json_schema":{"name":"test","schema":{"type":"OBJECT","properties":{"a":{"type":"STRING"}}}}}`),
+			},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.ResponseMIMEType != "application/json" {
+					t.Errorf("mime = %q, want application/json", cfg.ResponseMIMEType)
+				}
+				if cfg.ResponseSchema == nil {
+					t.Fatal("expected ResponseSchema")
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := BuildConfig(tt.params, tt.leadingSystem)
+			tt.check(t, cfg)
+		})
+	}
+}
+
+func TestBuildThinkingConfig(t *testing.T) {
+	tests := []struct {
+		name   string
+		effort string
+		legacy bool
+		check  func(t *testing.T, tc *genai.ThinkingConfig)
+	}{
+		{
+			name:   "non-legacy minimal",
+			effort: "minimal",
+			legacy: false,
+			check: func(t *testing.T, tc *genai.ThinkingConfig) {
+				if tc.ThinkingLevel != genai.ThinkingLevelMinimal {
+					t.Errorf("level = %q, want MINIMAL", tc.ThinkingLevel)
+				}
+			},
+		},
+		{
+			name:   "non-legacy medium",
+			effort: "medium",
+			legacy: false,
+			check: func(t *testing.T, tc *genai.ThinkingConfig) {
+				if tc.ThinkingLevel != genai.ThinkingLevelMedium {
+					t.Errorf("level = %q, want MEDIUM", tc.ThinkingLevel)
+				}
+			},
+		},
+		{
+			name:   "legacy low",
+			effort: "low",
+			legacy: true,
+			check: func(t *testing.T, tc *genai.ThinkingConfig) {
+				if tc.ThinkingBudget == nil || *tc.ThinkingBudget != 4096 {
+					t.Errorf("budget = %v, want 4096", tc.ThinkingBudget)
+				}
+			},
+		},
+		{
+			name:   "legacy high",
+			effort: "high",
+			legacy: true,
+			check: func(t *testing.T, tc *genai.ThinkingConfig) {
+				if tc.ThinkingBudget == nil || *tc.ThinkingBudget != 16384 {
+					t.Errorf("budget = %v, want 16384", tc.ThinkingBudget)
+				}
+			},
+		},
+		{
+			name:   "unknown effort defaults to medium level",
+			effort: "unknown",
+			legacy: false,
+			check: func(t *testing.T, tc *genai.ThinkingConfig) {
+				if tc.ThinkingLevel != genai.ThinkingLevelMedium {
+					t.Errorf("level = %q, want MEDIUM", tc.ThinkingLevel)
+				}
+			},
+		},
+		{
+			name:   "unknown effort defaults to medium budget",
+			effort: "unknown",
+			legacy: true,
+			check: func(t *testing.T, tc *genai.ThinkingConfig) {
+				if tc.ThinkingBudget == nil || *tc.ThinkingBudget != 8192 {
+					t.Errorf("budget = %v, want 8192", tc.ThinkingBudget)
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tc := buildThinkingConfig(tt.effort, tt.legacy)
+			if !tc.IncludeThoughts {
+				t.Error("expected IncludeThoughts=true")
+			}
+			tt.check(t, tc)
+		})
+	}
+}
+
+func toRawMessages(strs []string) []json.RawMessage {
+	msgs := make([]json.RawMessage, len(strs))
+	for i, s := range strs {
+		msgs[i] = json.RawMessage(s)
+	}
+	return msgs
+}
+
+func assertTextPart(t *testing.T, content *genai.Content, want string) {
+	t.Helper()
+	if len(content.Parts) == 0 {
+		t.Fatal("no parts")
+	}
+	if content.Parts[0].Text != want {
+		t.Errorf("text = %q, want %q", content.Parts[0].Text, want)
+	}
+}

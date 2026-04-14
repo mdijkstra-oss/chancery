@@ -7,11 +7,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"hermes-logos/internal/messages"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers"
+	"hermes-logos/internal/telemetry"
 )
 
 func NewChatHandler(inspect bool, registry prompts.Registry) http.HandlerFunc {
@@ -83,11 +86,12 @@ func handleChat(w http.ResponseWriter, r *http.Request, inspect bool, registry p
 		ResponseFormat:   req.ResponseFormat,
 	}
 
-	apiReq := protocol.BuildResponsesRequestFromParams(params)
-
 	if inspect {
+		apiReq := protocol.BuildResponsesRequestFromParams(params)
 		inspectJSON(urlPath+" request", apiReq)
 	}
+
+	trigger := telemetry.DeriveTrigger(req.Messages)
 
 	slog.InfoContext(r.Context(), "request expanded",
 		"component", "chat",
@@ -99,8 +103,24 @@ func handleChat(w http.ResponseWriter, r *http.Request, inspect bool, registry p
 		),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(apiReq)
+	start := time.Now()
+	streamFn := providers.StreamForProtocol(promptCfg.Provider.Protocol)
+	result, err := streamFn(r.Context(), w, params, promptCfg.Provider)
+	duration := time.Since(start).Milliseconds()
+	if err != nil {
+		slog.ErrorContext(r.Context(), "stream error",
+			"component", "chat",
+			"error", err,
+			slog.Group("data",
+				slog.String("endpoint", urlPath),
+				slog.String("model", model),
+			),
+		)
+		return
+	}
+
+	rec := telemetry.BuildCallRecord(urlPath, model, promptCfg.ReasoningEffort, promptCfg.ServiceTier, trigger, result.Usage, promptCfg.Pricing, duration)
+	telemetry.LogCallRecord(r.Context(), rec)
 }
 
 func decodeRequest(r *http.Request) (protocol.ChatRequest, error) {

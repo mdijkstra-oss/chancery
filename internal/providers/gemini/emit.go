@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"google.golang.org/genai"
 	"hermes-logos/internal/protocol"
@@ -15,11 +16,10 @@ type SSEEvent struct {
 }
 
 type EmitState struct {
-	OutputIndex   int
-	NextCallID    int
-	ThoughtText   string
-	ThoughtSig    []byte
-	HasThought    bool
+	OutputIndex int
+	ThoughtText string
+	ThoughtSig  []byte
+	HasThought  bool
 }
 
 func ChunkToEvents(chunk *genai.GenerateContentResponse, state *EmitState) []SSEEvent {
@@ -43,6 +43,7 @@ func partToEvents(part *genai.Part, state *EmitState) []SSEEvent {
 	case part.Text != "":
 		return textEvents(part.Text, state)
 	default:
+		slog.Warn("gemini: unhandled part type", "has_inline_data", part.InlineData != nil, "has_file_data", part.FileData != nil, "has_code_exec", part.ExecutableCode != nil, "has_code_result", part.CodeExecutionResult != nil)
 		return nil
 	}
 }
@@ -60,7 +61,7 @@ func textEvents(text string, state *EmitState) []SSEEvent {
 func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []SSEEvent {
 	flushEvents := flushThought(state)
 
-	callID := generateCallID(state)
+	callID := fc.ID
 	argsJSON, _ := json.Marshal(fc.Args)
 
 	addedData, _ := json.Marshal(map[string]any{
@@ -149,12 +150,6 @@ func flushThought(state *EmitState) []SSEEvent {
 	}}
 }
 
-func generateCallID(state *EmitState) string {
-	id := fmt.Sprintf("call_%d", state.NextCallID)
-	state.NextCallID++
-	return id
-}
-
 func ExtractGeminiUsage(chunk *genai.GenerateContentResponse) *protocol.UsageResponse {
 	if chunk == nil || chunk.UsageMetadata == nil {
 		return nil
@@ -162,7 +157,7 @@ func ExtractGeminiUsage(chunk *genai.GenerateContentResponse) *protocol.UsageRes
 	m := chunk.UsageMetadata
 	usage := &protocol.UsageResponse{
 		InputTokens:  int(m.PromptTokenCount),
-		OutputTokens: int(m.CandidatesTokenCount),
+		OutputTokens: int(m.CandidatesTokenCount + m.ThoughtsTokenCount),
 		TotalTokens:  int(m.TotalTokenCount),
 	}
 	if m.CachedContentTokenCount > 0 {
@@ -181,11 +176,69 @@ func ExtractGeminiUsage(chunk *genai.GenerateContentResponse) *protocol.UsageRes
 func BuildCompletedEvent(usage *protocol.UsageResponse) SSEEvent {
 	data, _ := json.Marshal(map[string]any{
 		"response": map[string]any{
-			"usage": usage,
+			"status": "completed",
+			"usage":  usage,
 		},
 	})
 	return SSEEvent{
 		Type: "response.completed",
 		Data: string(data),
 	}
+}
+
+func BuildFailedEvent(errorType, message string) SSEEvent {
+	data, _ := json.Marshal(map[string]any{
+		"response": map[string]any{
+			"status": "failed",
+			"error": map[string]any{
+				"type":    errorType,
+				"message": message,
+			},
+		},
+	})
+	return SSEEvent{
+		Type: "response.failed",
+		Data: string(data),
+	}
+}
+
+func BuildTextDeltaEvent(text string) SSEEvent {
+	data, _ := json.Marshal(map[string]string{"delta": text})
+	return SSEEvent{
+		Type: "response.output_text.delta",
+		Data: string(data),
+	}
+}
+
+func ExtractFinishReason(chunk *genai.GenerateContentResponse) genai.FinishReason {
+	if chunk == nil || len(chunk.Candidates) == 0 {
+		return ""
+	}
+	return chunk.Candidates[0].FinishReason
+}
+
+var finishReasonErrors = map[genai.FinishReason]string{
+	genai.FinishReasonMaxTokens:            "output truncated: token limit reached",
+	genai.FinishReasonSafety:               "output blocked by safety filter",
+	genai.FinishReasonRecitation:            "output blocked by recitation filter",
+	genai.FinishReasonMalformedFunctionCall: "malformed function call",
+	genai.FinishReasonBlocklist:             "output blocked by blocklist filter",
+	genai.FinishReasonProhibitedContent:     "output blocked: prohibited content",
+	genai.FinishReasonSPII:                  "output blocked: sensitive personal information detected",
+}
+
+func FinishReasonToEvent(reason genai.FinishReason) *SSEEvent {
+	message, ok := finishReasonErrors[reason]
+	if !ok {
+		return nil
+	}
+	event := BuildFailedEvent(string(reason), message)
+	return &event
+}
+
+func ExtractPromptFeedback(chunk *genai.GenerateContentResponse) string {
+	if chunk == nil || chunk.PromptFeedback == nil || chunk.PromptFeedback.BlockReason == "" {
+		return ""
+	}
+	return fmt.Sprintf("I'm unable to process this request (blocked: %s).", chunk.PromptFeedback.BlockReason)
 }

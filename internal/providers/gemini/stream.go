@@ -23,7 +23,8 @@ func Stream(ctx context.Context, w http.ResponseWriter, params protocol.RequestP
 
 	leadingSystem, rest := ExtractLeadingSystem(params.Messages)
 	callIDMap := BuildCallIDToName(params.Messages)
-	contents := MergeConsecutiveContents(MessagesToContents(rest, callIDMap))
+	isThinking := params.ReasoningEffort != "" && params.ReasoningEffort != "off"
+	contents := MergeConsecutiveContents(MessagesToContents(rest, callIDMap, isThinking))
 	config := BuildConfig(params, leadingSystem)
 
 	sse.SetHeaders(w)
@@ -31,11 +32,21 @@ func Stream(ctx context.Context, w http.ResponseWriter, params protocol.RequestP
 
 	state := &EmitState{}
 	var lastUsage *protocol.UsageResponse
+	var lastFinishReason genai.FinishReason
+	var streamErr error
 
 	for chunk, err := range client.Models.GenerateContentStream(ctx, params.Model, contents, config) {
 		if err != nil {
 			slog.ErrorContext(ctx, "gemini stream chunk error", "component", "gemini", "error", err)
+			streamErr = err
 			break
+		}
+		if feedback := ExtractPromptFeedback(chunk); feedback != "" {
+			event := BuildTextDeltaEvent(feedback)
+			sse.WriteEvent(w, event.Type, event.Data)
+		}
+		if reason := ExtractFinishReason(chunk); reason != "" {
+			lastFinishReason = reason
 		}
 		usage := ExtractGeminiUsage(chunk)
 		if usage != nil {
@@ -47,8 +58,14 @@ func Stream(ctx context.Context, w http.ResponseWriter, params protocol.RequestP
 		sse.Flush(w)
 	}
 
-	flushEvents := flushThought(state)
-	for _, event := range flushEvents {
+	for _, event := range flushThought(state) {
+		sse.WriteEvent(w, event.Type, event.Data)
+	}
+
+	if streamErr != nil {
+		event := BuildFailedEvent("stream_error", streamErr.Error())
+		sse.WriteEvent(w, event.Type, event.Data)
+	} else if event := FinishReasonToEvent(lastFinishReason); event != nil {
 		sse.WriteEvent(w, event.Type, event.Data)
 	}
 

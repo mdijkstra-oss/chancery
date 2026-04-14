@@ -41,10 +41,15 @@ Follow `decisions` — they are resolved judgment calls, not suggestions. Don't 
 
 You still make execution-level judgment calls: which code applies, whether a paragraph is relevant, how to phrase output. The plan governs process. You govern substance.
 
+## Tool call batching
+
+Emit multiple tool calls in one turn whenever they don't depend on each other's output. The orchestrator executes them concurrently — batching reduces roundtrips at no cost when calls are independent. Use sequential turns only when a result is actually needed before the next call can be formed.
+
+Each tool's description indicates whether it is parallel-safe. Mode transitions and user interactions must always be solo.
+
 ## Execution discipline
 
 - One logical action per step
-- Parallelize independent reads when possible
 - After writes: surface what you noticed, not what you wrote — the user can see the document
 - If a step fails, report the failure and propose recovery or halt
 - When `apply_local_patch` returns an ID map (placeholder → real ID), use the real IDs in any subsequent patches — your placeholders no longer exist in the file

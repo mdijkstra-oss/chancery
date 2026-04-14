@@ -53,6 +53,7 @@ func TestChunkToEvents(t *testing.T) {
 					Content: &genai.Content{
 						Parts: []*genai.Part{{
 							FunctionCall: &genai.FunctionCall{
+								ID:   "fc_abc123",
 								Name: "search",
 								Args: map[string]any{"q": "test"},
 							},
@@ -74,9 +75,7 @@ func TestChunkToEvents(t *testing.T) {
 				if events[2].Type != "response.output_item.done" {
 					t.Errorf("event[2].type = %q, want response.output_item.done", events[2].Type)
 				}
-				if state.NextCallID != 1 {
-					t.Errorf("NextCallID = %d, want 1", state.NextCallID)
-				}
+				assertJSONItemField(t, events[0].Data, "call_id", "fc_abc123")
 				if state.OutputIndex != 1 {
 					t.Errorf("OutputIndex = %d, want 1", state.OutputIndex)
 				}
@@ -89,6 +88,7 @@ func TestChunkToEvents(t *testing.T) {
 					Content: &genai.Content{
 						Parts: []*genai.Part{{
 							FunctionCall: &genai.FunctionCall{
+								ID:   "fc_sig1",
 								Name: "search",
 								Args: map[string]any{"q": "test"},
 							},
@@ -113,6 +113,7 @@ func TestChunkToEvents(t *testing.T) {
 					Content: &genai.Content{
 						Parts: []*genai.Part{{
 							FunctionCall: &genai.FunctionCall{
+								ID:   "fc_nosig",
 								Name: "search",
 								Args: map[string]any{},
 							},
@@ -207,7 +208,7 @@ func TestChunkToEvents(t *testing.T) {
 				Candidates: []*genai.Candidate{{
 					Content: &genai.Content{
 						Parts: []*genai.Part{{
-							FunctionCall: &genai.FunctionCall{Name: "fn", Args: map[string]any{}},
+							FunctionCall: &genai.FunctionCall{ID: "fc_flush", Name: "fn", Args: map[string]any{}},
 						}},
 					},
 				}},
@@ -280,15 +281,15 @@ func TestExtractGeminiUsage(t *testing.T) {
 				UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
 					PromptTokenCount:        200,
 					CandidatesTokenCount:    80,
-					TotalTokenCount:         280,
+					TotalTokenCount:         300,
 					CachedContentTokenCount: 30,
 					ThoughtsTokenCount:      20,
 				},
 			},
 			want: &protocol.UsageResponse{
 				InputTokens:         200,
-				OutputTokens:        80,
-				TotalTokens:         280,
+				OutputTokens:        100,
+				TotalTokens:         300,
 				InputTokensDetails:  &protocol.PromptTokensDetails{CachedTokens: 30},
 				OutputTokensDetails: &protocol.OutputTokensDetails{ReasoningTokens: 20},
 			},
@@ -321,6 +322,114 @@ func TestBuildCompletedEvent(t *testing.T) {
 	}
 }
 
+func TestBuildFailedEvent(t *testing.T) {
+	event := BuildFailedEvent("SAFETY", "output blocked by safety filter")
+	if event.Type != "response.failed" {
+		t.Errorf("type = %q, want response.failed", event.Type)
+	}
+	var parsed struct {
+		Response struct {
+			Status string `json:"status"`
+			Error  struct {
+				Type    string `json:"type"`
+				Message string `json:"message"`
+			} `json:"error"`
+		} `json:"response"`
+	}
+	if json.Unmarshal([]byte(event.Data), &parsed) != nil {
+		t.Fatalf("invalid json: %s", event.Data)
+	}
+	if parsed.Response.Status != "failed" {
+		t.Errorf("status = %q, want failed", parsed.Response.Status)
+	}
+	if parsed.Response.Error.Type != "SAFETY" {
+		t.Errorf("error.type = %q, want SAFETY", parsed.Response.Error.Type)
+	}
+	if parsed.Response.Error.Message != "output blocked by safety filter" {
+		t.Errorf("error.message = %q", parsed.Response.Error.Message)
+	}
+}
+
+func TestFinishReasonToEvent(t *testing.T) {
+	tests := []struct {
+		reason  genai.FinishReason
+		wantNil bool
+	}{
+		{genai.FinishReasonStop, true},
+		{"", true},
+		{genai.FinishReasonMaxTokens, false},
+		{genai.FinishReasonSafety, false},
+		{genai.FinishReasonMalformedFunctionCall, false},
+		{genai.FinishReasonRecitation, false},
+		{genai.FinishReasonBlocklist, false},
+		{genai.FinishReasonProhibitedContent, false},
+		{genai.FinishReasonSPII, false},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.reason), func(t *testing.T) {
+			event := FinishReasonToEvent(tt.reason)
+			if tt.wantNil && event != nil {
+				t.Errorf("expected nil for %q, got event", tt.reason)
+			}
+			if !tt.wantNil && event == nil {
+				t.Errorf("expected event for %q, got nil", tt.reason)
+			}
+			if event != nil && event.Type != "response.failed" {
+				t.Errorf("type = %q, want response.failed", event.Type)
+			}
+		})
+	}
+}
+
+func TestExtractFinishReason(t *testing.T) {
+	tests := []struct {
+		name  string
+		chunk *genai.GenerateContentResponse
+		want  genai.FinishReason
+	}{
+		{"nil chunk", nil, ""},
+		{"no candidates", &genai.GenerateContentResponse{}, ""},
+		{"stop", &genai.GenerateContentResponse{
+			Candidates: []*genai.Candidate{{FinishReason: genai.FinishReasonStop}},
+		}, genai.FinishReasonStop},
+		{"safety", &genai.GenerateContentResponse{
+			Candidates: []*genai.Candidate{{FinishReason: genai.FinishReasonSafety}},
+		}, genai.FinishReasonSafety},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ExtractFinishReason(tt.chunk)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractPromptFeedback(t *testing.T) {
+	tests := []struct {
+		name  string
+		chunk *genai.GenerateContentResponse
+		want  string
+	}{
+		{"nil chunk", nil, ""},
+		{"no feedback", &genai.GenerateContentResponse{}, ""},
+		{"safety block", &genai.GenerateContentResponse{
+			PromptFeedback: &genai.GenerateContentResponsePromptFeedback{
+				BlockReason: genai.BlockedReasonSafety,
+			},
+		}, "I'm unable to process this request (blocked: SAFETY)."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ExtractPromptFeedback(tt.chunk)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func assertJSONField(t *testing.T, data, key, want string) {
 	t.Helper()
 	var m map[string]string
@@ -344,6 +453,21 @@ func assertJSONContains(t *testing.T, data, key string) {
 	}
 	if _, ok := item[key]; !ok {
 		t.Errorf("expected %q in item", key)
+	}
+}
+
+func assertJSONItemField(t *testing.T, data, key, want string) {
+	t.Helper()
+	var outer map[string]json.RawMessage
+	if json.Unmarshal([]byte(data), &outer) != nil {
+		t.Fatalf("invalid json: %s", data)
+	}
+	var item map[string]string
+	if json.Unmarshal(outer["item"], &item) != nil {
+		t.Fatal("missing item in data")
+	}
+	if item[key] != want {
+		t.Errorf("item.%s = %q, want %q", key, item[key], want)
 	}
 }
 

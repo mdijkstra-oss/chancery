@@ -124,10 +124,11 @@ func TestExtractLeadingSystem(t *testing.T) {
 
 func TestMessagesToContents(t *testing.T) {
 	tests := []struct {
-		name      string
-		messages  []string
-		callIDMap map[string]string
-		check     func(t *testing.T, got []*genai.Content)
+		name            string
+		messages        []string
+		callIDMap       map[string]string
+		thinkingEnabled bool
+		check           func(t *testing.T, got []*genai.Content)
 	}{
 		{
 			name: "user message",
@@ -223,17 +224,34 @@ func TestMessagesToContents(t *testing.T) {
 			},
 		},
 		{
-			name: "function call without extra_content has nil signature",
+			name: "function call without extra_content has nil signature when thinking disabled",
 			messages: []string{
 				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
 			},
-			callIDMap: map[string]string{"c1": "search"},
+			callIDMap:       map[string]string{"c1": "search"},
+			thinkingEnabled: false,
 			check: func(t *testing.T, got []*genai.Content) {
 				if len(got) != 1 {
 					t.Fatalf("len = %d, want 1", len(got))
 				}
 				if got[0].Parts[0].ThoughtSignature != nil {
 					t.Errorf("expected nil ThoughtSignature, got %v", got[0].Parts[0].ThoughtSignature)
+				}
+			},
+		},
+		{
+			name: "function call without extra_content gets fallback signature when thinking enabled",
+			messages: []string{
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
+			},
+			callIDMap:       map[string]string{"c1": "search"},
+			thinkingEnabled: true,
+			check: func(t *testing.T, got []*genai.Content) {
+				if len(got) != 1 {
+					t.Fatalf("len = %d, want 1", len(got))
+				}
+				if string(got[0].Parts[0].ThoughtSignature) != "context_engineering_is_the_way_to_go" {
+					t.Errorf("ThoughtSignature = %q, want fallback", string(got[0].Parts[0].ThoughtSignature))
 				}
 			},
 		},
@@ -308,7 +326,7 @@ func TestMessagesToContents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			msgs := toRawMessages(tt.messages)
-			got := MessagesToContents(msgs, tt.callIDMap)
+			got := MessagesToContents(msgs, tt.callIDMap, tt.thinkingEnabled)
 			tt.check(t, got)
 		})
 	}
@@ -690,6 +708,83 @@ func TestBuildThinkingConfig(t *testing.T) {
 				t.Error("expected IncludeThoughts=true")
 			}
 			tt.check(t, tc)
+		})
+	}
+}
+
+func TestToolChoiceToMode(t *testing.T) {
+	tests := []struct {
+		choice string
+		want   genai.FunctionCallingConfigMode
+	}{
+		{"", genai.FunctionCallingConfigModeValidated},
+		{"required", genai.FunctionCallingConfigModeAny},
+		{"none", genai.FunctionCallingConfigModeNone},
+		{"auto", genai.FunctionCallingConfigModeValidated},
+		{"unknown", genai.FunctionCallingConfigModeValidated},
+	}
+	for _, tt := range tests {
+		t.Run(tt.choice, func(t *testing.T) {
+			got := toolChoiceToMode(tt.choice)
+			if got != tt.want {
+				t.Errorf("toolChoiceToMode(%q) = %q, want %q", tt.choice, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBuildConfigToolConfig(t *testing.T) {
+	oneTool := []json.RawMessage{json.RawMessage(`{"name":"search","description":"Search"}`)}
+	tests := []struct {
+		name       string
+		params     protocol.RequestParams
+		wantMode   genai.FunctionCallingConfigMode
+		wantNilTC  bool
+	}{
+		{
+			name:      "no tools produces no ToolConfig",
+			params:    protocol.RequestParams{},
+			wantNilTC: true,
+		},
+		{
+			name:     "tools without toolChoice defaults to VALIDATED",
+			params:   protocol.RequestParams{Tools: oneTool},
+			wantMode: genai.FunctionCallingConfigModeValidated,
+		},
+		{
+			name:     "tools with required maps to ANY",
+			params:   protocol.RequestParams{Tools: oneTool, ToolChoice: "required"},
+			wantMode: genai.FunctionCallingConfigModeAny,
+		},
+		{
+			name:     "tools with none maps to NONE",
+			params:   protocol.RequestParams{Tools: oneTool, ToolChoice: "none"},
+			wantMode: genai.FunctionCallingConfigModeNone,
+		},
+		{
+			name:     "tools with auto still maps to VALIDATED",
+			params:   protocol.RequestParams{Tools: oneTool, ToolChoice: "auto"},
+			wantMode: genai.FunctionCallingConfigModeValidated,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := BuildConfig(tt.params, nil)
+			if tt.wantNilTC {
+				if cfg.ToolConfig != nil {
+					t.Errorf("expected nil ToolConfig, got %v", cfg.ToolConfig)
+				}
+				return
+			}
+			if cfg.ToolConfig == nil {
+				t.Fatal("expected ToolConfig")
+			}
+			if cfg.ToolConfig.FunctionCallingConfig == nil {
+				t.Fatal("expected FunctionCallingConfig")
+			}
+			if cfg.ToolConfig.FunctionCallingConfig.Mode != tt.wantMode {
+				t.Errorf("mode = %q, want %q", cfg.ToolConfig.FunctionCallingConfig.Mode, tt.wantMode)
+			}
 		})
 	}
 }

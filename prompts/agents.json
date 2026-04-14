@@ -92,8 +92,8 @@
   },
   "agents": {
     "qual-coder": {
-      "model": "gemini-3.1-pro-preview",
-      "reasoning_effort": "medium",
+      "model": "gemini-3-flash-preview",
+      "reasoning_effort": "high",
       "compact_at": 500000
     },
     "scout-mapper": {

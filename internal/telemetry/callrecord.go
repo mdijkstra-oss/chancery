@@ -157,27 +157,34 @@ func BuildEmbeddingCallRecord(model string, totalTokens, inputCount int, pricing
 	}
 }
 
+func callRecordAttrs(rec CallRecord) []any {
+	attrs := []any{
+		slog.String("endpoint", rec.Endpoint),
+		slog.String("model", rec.Model),
+		slog.String("reasoning", rec.Reasoning),
+		slog.String("service_tier", rec.ServiceTier),
+		slog.String("trigger", rec.Trigger),
+		slog.Int("input_tokens", rec.InputTokens),
+		slog.Int("cached_input_tokens", rec.CachedInputTokens),
+		slog.Int("output_tokens", rec.OutputTokens),
+		slog.Int("reasoning_tokens", rec.ReasoningTokens),
+		slog.Float64("input_cost", rec.InputCost),
+		slog.Float64("cached_input_cost", rec.CachedInputCost),
+		slog.Float64("output_cost", rec.OutputCost),
+		slog.Float64("reasoning_cost", rec.ReasoningCost),
+		slog.Float64("total_cost", rec.TotalCost),
+		slog.Int64("duration_ms", rec.DurationMs),
+	}
+	if rec.InputCount > 0 {
+		attrs = append(attrs, slog.Int("input_count", rec.InputCount))
+	}
+	return attrs
+}
+
 func LogCallRecord(ctx context.Context, rec CallRecord) {
 	slog.InfoContext(ctx, "call completed",
 		"component", "usage",
-		slog.Group("data",
-			slog.String("endpoint", rec.Endpoint),
-			slog.String("model", rec.Model),
-			slog.String("reasoning", rec.Reasoning),
-			slog.String("service_tier", rec.ServiceTier),
-			slog.String("trigger", rec.Trigger),
-			slog.Int("input_tokens", rec.InputTokens),
-			slog.Int("cached_input_tokens", rec.CachedInputTokens),
-			slog.Int("output_tokens", rec.OutputTokens),
-			slog.Int("reasoning_tokens", rec.ReasoningTokens),
-			slog.Float64("input_cost", rec.InputCost),
-			slog.Float64("cached_input_cost", rec.CachedInputCost),
-			slog.Float64("output_cost", rec.OutputCost),
-			slog.Float64("reasoning_cost", rec.ReasoningCost),
-			slog.Float64("total_cost", rec.TotalCost),
-			slog.Int64("duration_ms", rec.DurationMs),
-			slog.Int("input_count", rec.InputCount),
-		),
+		slog.Group("data", callRecordAttrs(rec)...),
 	)
 	if axiomToken != "" && axiomDataset != "" {
 		go sendToAxiom(ctx, rec)

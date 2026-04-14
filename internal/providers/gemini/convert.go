@@ -3,6 +3,7 @@ package gemini
 import (
 	"encoding/base64"
 	"encoding/json"
+	"log/slog"
 	"strings"
 
 	"google.golang.org/genai"
@@ -58,14 +59,14 @@ func BuildCallIDToName(messages []json.RawMessage) map[string]string {
 	return result
 }
 
-func MessagesToContents(messages []json.RawMessage, callIDMap map[string]string) []*genai.Content {
+func MessagesToContents(messages []json.RawMessage, callIDMap map[string]string, thinkingEnabled bool) []*genai.Content {
 	var contents []*genai.Content
 	for _, raw := range messages {
 		var m messagePeek
 		if json.Unmarshal(raw, &m) != nil {
 			continue
 		}
-		content := messageToContent(m, callIDMap)
+		content := messageToContent(m, callIDMap, thinkingEnabled)
 		if content == nil {
 			continue
 		}
@@ -97,10 +98,10 @@ func MergeConsecutiveContents(contents []*genai.Content) []*genai.Content {
 	return merged
 }
 
-func messageToContent(m messagePeek, callIDMap map[string]string) *genai.Content {
+func messageToContent(m messagePeek, callIDMap map[string]string, thinkingEnabled bool) *genai.Content {
 	switch {
 	case m.Type == "function_call":
-		return functionCallToContent(m)
+		return functionCallToContent(m, thinkingEnabled)
 	case m.Type == "function_call_output":
 		return functionCallOutputToContent(m, callIDMap)
 	case m.Type == "reasoning":
@@ -116,13 +117,21 @@ func messageToContent(m messagePeek, callIDMap map[string]string) *genai.Content
 	}
 }
 
-func functionCallToContent(m messagePeek) *genai.Content {
+var fallbackThoughtSig = []byte("context_engineering_is_the_way_to_go")
+
+func functionCallToContent(m messagePeek, thinkingEnabled bool) *genai.Content {
 	var args map[string]any
 	if m.Arguments != "" {
 		json.Unmarshal([]byte(m.Arguments), &args)
 	}
 	part := genai.NewPartFromFunctionCall(m.Name, args)
-	part.ThoughtSignature = extractThoughtSignature(m.ExtraContent)
+	part.FunctionCall.ID = m.CallID
+	sig := extractThoughtSignature(m.ExtraContent)
+	if sig == nil && thinkingEnabled {
+		slog.Warn("gemini function call missing thought signature, using fallback", "name", m.Name, "call_id", m.CallID)
+		sig = fallbackThoughtSig
+	}
+	part.ThoughtSignature = sig
 	return genai.NewContentFromParts([]*genai.Part{part}, "model")
 }
 
@@ -149,7 +158,9 @@ func functionCallOutputToContent(m messagePeek, callIDMap map[string]string) *ge
 			resp = map[string]any{"output": m.Output}
 		}
 	}
-	return genai.NewContentFromFunctionResponse(name, resp, "user")
+	content := genai.NewContentFromFunctionResponse(name, resp, "user")
+	content.Parts[0].FunctionResponse.ID = m.CallID
+	return content
 }
 
 func reasoningToContent(m messagePeek) *genai.Content {
@@ -221,6 +232,9 @@ func BuildConfig(params protocol.RequestParams, leadingSystem []string) *genai.G
 	}
 
 	cfg.Tools = ToolsToGemini(params.Tools)
+	if len(cfg.Tools) > 0 {
+		cfg.ToolConfig = buildToolConfig(params.ToolChoice)
+	}
 
 	if params.ReasoningEffort != "" && params.ReasoningEffort != "off" {
 		cfg.ThinkingConfig = buildThinkingConfig(params.ReasoningEffort, params.LegacyThinking)
@@ -293,6 +307,26 @@ type responseFormatPeek struct {
 
 type jsonSchemaPeek struct {
 	Schema json.RawMessage `json:"schema"`
+}
+
+var toolChoiceModeMap = map[string]genai.FunctionCallingConfigMode{
+	"required": genai.FunctionCallingConfigModeAny,
+	"none":     genai.FunctionCallingConfigModeNone,
+}
+
+func toolChoiceToMode(choice string) genai.FunctionCallingConfigMode {
+	if mode, ok := toolChoiceModeMap[choice]; ok {
+		return mode
+	}
+	return genai.FunctionCallingConfigModeValidated
+}
+
+func buildToolConfig(toolChoice string) *genai.ToolConfig {
+	return &genai.ToolConfig{
+		FunctionCallingConfig: &genai.FunctionCallingConfig{
+			Mode: toolChoiceToMode(toolChoice),
+		},
+	}
 }
 
 func applyResponseFormat(cfg *genai.GenerateContentConfig, responseFormat json.RawMessage) {

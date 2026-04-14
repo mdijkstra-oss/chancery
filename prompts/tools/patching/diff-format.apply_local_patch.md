@@ -84,7 +84,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 
 **Structured blocks (json-attributes, json-settings, json-callout):**
 - **Create**: patch the entire block in one call
-- **Update**: use `patch_json_block`, not `apply_local_patch`. JSON property changes, annotation add/remove, tag changes — all go through `patch_json_block`.
+- **Update**: use the typed patch tool (e.g. `patch_callout`, `patch_attributes`), not `apply_local_patch`. JSON property changes, annotation add/remove, tag changes — all go through the typed patch tools.
 - **Comment lines** (`// start ...`, `// end ...`) are system-managed. Use them as context anchors, but never add, remove, or modify them.
 
 This enables streaming display. Never combine multiple blocks in one patch.
@@ -236,7 +236,7 @@ Inclusion criteria:
 """
 ```
 
-The content between `"""` markers is regular markdown displayed as normal file lines. To update it, use `apply_local_patch` on the content lines directly — no need to rewrite the entire field through `patch_json_block`:
+The content between `"""` markers is regular markdown displayed as normal file lines. To update it, use `apply_local_patch` on the content lines directly — no need to rewrite the entire field through a typed patch tool:
 
 ```
 @@

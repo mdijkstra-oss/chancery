@@ -97,7 +97,7 @@ Tool results may include a `hint` with a suggestion for next time. Follow it.
 - Include 1-2 context lines for unique matching
 - If patch fails ("context not found"), re-read the file and retry with correct context
 - Context lines must match file content exactly (including indentation)
-- **Block endings are identical.** Every json block ends with `"""`, `}`, ` ``` ` — matching any of them. When targeting a location near a block boundary, include unique content lines from *inside* the block (e.g., the last example or counter-example text) as context, not just the closing syntax.
+- **Block endings are identical.** Every json block ends with `}`, ` ``` ` — matching any of them. When targeting a location near a block boundary, include unique content lines from *inside* the block as context, not just the closing syntax.
 
 ### Range References (`<<`)
 
@@ -206,11 +206,7 @@ When creating a new block that requires an ID, use a placeholder:
   "title": "My Reference",
   "color": "blue",
   "collapsed": false,
-  "content": """
-Line one.
-
-Line two.
-"""
+  "content": "Line one.\n\nLine two."
 }
 ```
 
@@ -222,35 +218,6 @@ The system replaces the placeholder with a prefixed ID like `callout-x7k2m9p1`.
 
 Name the placeholder after the block's content (code name, title, key concept). Each unique name gets a unique ID; reusing the same name returns the same ID.
 
-### Multi-line Content (`"""`)
-
-Properties containing markdown content (like `content` in callouts) use `"""` fences:
-
-```
-  "content": """
-Definition: Expressions of dissatisfaction...
-
-Inclusion criteria:
-- Direct complaints
-- Negative evaluations
-"""
-```
-
-The content between `"""` markers is regular markdown displayed as normal file lines. To update it, use `apply_local_patch` on the content lines directly — no need to rewrite the entire field through a typed patch tool:
-
-```
-@@
-- Direct complaints
-+- Direct complaints about process
-+- Expressions of annoyance
-```
-
-This is more precise than replacing the whole field, and works naturally with long content.
-
-When creating blocks, always use `"""` fences for multi-line content — never manually escape newlines or quotes.
-
-Short, single-line values remain regular JSON strings: `"title": "My Code"`
-
 ### Immutable Fields
 
 Some fields are **immutable** — you can set them once when creating a block, but cannot change them afterward.
@@ -259,29 +226,11 @@ Some fields are **immutable** — you can set them once when creating a block, b
 
 If you try to change an immutable field, the patch is rejected with: `"id: immutable - already set to 'callout-x7k2m9p1'"`
 
-### Referencing Existing Blocks
+### Updating Existing Blocks
 
-When updating an existing block, use its actual ID — not a placeholder.
+Use the typed patch tools (`patch_callout`, `patch_attributes`, etc.) — not `apply_local_patch`. The system rejects `apply_local_patch` diffs that modify content inside a JSON block.
 
-**Update per property** — patch individual fields, not the whole block:
-
-```json
-{
-  "type": "update_file",
-  "path": "document.md",
-  "diff": "@@\n ```json-callout\n {\n   \"id\": \"callout-x7k2m9p1\",\n   \"type\": \"codebook\",\n   \"title\": \"User Frustration\",\n-  \"color\": \"blue\",\n+  \"color\": \"red\",\n   \"collapsed\": false,"
-}
-```
-
-**Update array entries** — patch individual items, not the whole array:
-
-```json
-{
-  "type": "update_file",
-  "path": "document.md",
-  "diff": "@@\n ```json-attributes\n {\n   \"tags\": [\n     \"tag-abc12345\",\n-    \"tag-def67890\"\n+    \"tag-ghi11111\"\n   ]\n }"
-}
-```
+When referencing an existing block, use its actual ID — not a placeholder.
 
 ### Fuzzy matching
 

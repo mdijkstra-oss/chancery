@@ -22,7 +22,7 @@ Do not create index or navigation files that list the split files — those refe
 Each code requires:
 - **type** — always `"codebook-code"`
 - **title** — short, descriptive name for the code
-- **content** — definition, criteria, and examples in `"""` fenced content
+- **content** — definition, criteria, and examples as a JSON string (use `\n` for newlines)
 - **color** — visual identifier
 - **collapsed** — `false` for active codes, `true` for stable ones
 
@@ -35,26 +35,7 @@ Each code requires:
   "title": "User Frustration",
   "color": "tomato",
   "collapsed": false,
-  "content": """
-Expressions of dissatisfaction with the product, process, or experience.
-
-Inclusion criteria:
-- Direct complaints about specific features or processes
-- Negative evaluations of experience quality
-- Expressions of annoyance or disappointment
-
-Exclusion criteria:
-- Neutral descriptions of difficulty (code as Process Friction instead)
-- Constructive suggestions without emotional valence
-
-Examples:
-- "this is really annoying and I don't understand why it works this way"
-- "I gave up after the third attempt"
-
-Counter-examples:
-- "it took a few tries but I figured it out" (neutral difficulty)
-- "it would be better if the button were larger" (constructive suggestion)
-"""
+  "content": "Expressions of dissatisfaction with the product, process, or experience.\n\nInclusion criteria:\n- Direct complaints about specific features or processes\n- Negative evaluations of experience quality\n- Expressions of annoyance or disappointment\n\nExclusion criteria:\n- Neutral descriptions of difficulty (code as Process Friction instead)\n- Constructive suggestions without emotional valence\n\nExamples:\n- \"this is really annoying and I don't understand why it works this way\"\n- \"I gave up after the third attempt\"\n\nCounter-examples:\n- \"it took a few tries but I figured it out\" (neutral difficulty)\n- \"it would be better if the button were larger\" (constructive suggestion)"
 }
 ```
 

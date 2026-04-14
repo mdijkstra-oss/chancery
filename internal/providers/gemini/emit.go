@@ -155,6 +155,9 @@ func ExtractGeminiUsage(chunk *genai.GenerateContentResponse) *protocol.UsageRes
 		return nil
 	}
 	m := chunk.UsageMetadata
+	// PromptTokenCount includes CachedContentTokenCount (per Gemini SDK docs).
+	// CandidatesTokenCount excludes ThoughtsTokenCount — we combine them to match
+	// OpenAI's convention where output_tokens includes reasoning_tokens.
 	usage := &protocol.UsageResponse{
 		InputTokens:  int(m.PromptTokenCount),
 		OutputTokens: int(m.CandidatesTokenCount + m.ThoughtsTokenCount),

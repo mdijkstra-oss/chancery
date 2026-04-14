@@ -28,6 +28,9 @@ type CallRecord struct {
 	InputCount        int
 }
 
+// Both OpenAI and Gemini report input tokens inclusive of cached tokens:
+//   OpenAI: prompt_tokens includes cached_tokens (subset in prompt_tokens_details)
+//   Gemini: PromptTokenCount "includes the number of tokens in the cached content"
 func computeCosts(input, cached, output int, pricing prompts.Pricing) (float64, float64, float64) {
 	uncached := input - cached
 	inputCost := float64(uncached) * pricing.Input / 1_000_000

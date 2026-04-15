@@ -45,10 +45,11 @@ type PromptConfig struct {
 	Provider         ProviderConfig `json:"provider"`
 }
 
-type agentsFile struct {
-	Providers map[string]ProviderEntry `json:"providers"`
-	Models    map[string]modelEntry    `json:"models"`
-	Agents    map[string]agentEntry    `json:"agents"`
+type providerFile struct {
+	Protocol  Protocol                `json:"protocol"`
+	BaseURL   string                  `json:"base_url"`
+	APIKeyEnv string                  `json:"api_key_env"`
+	Models    map[string]modelEntry   `json:"models"`
 }
 
 type modelEntry struct {

@@ -1,0 +1,28 @@
+{
+  "protocol": "gemini",
+  "base_url": "https://generativelanguage.googleapis.com/v1beta",
+  "api_key_env": "GEMINI_API_KEY",
+  "models": {
+    "gemini-3.1-pro-preview": {
+      "name": "gemini-3.1-pro-preview",
+      "pricing": { "input": 2.00, "output": 12.00, "cached_input": 0.20 },
+      "reasoning_effort": "minimal"
+    },
+    "gemini-3-flash-preview": {
+      "name": "gemini-3-flash-preview",
+      "pricing": { "input": 0.50, "output": 3.00, "cached_input": 0.05 },
+      "reasoning_effort": "minimal"
+    },
+    "gemini-3.1-flash-lite-preview": {
+      "name": "gemini-3.1-flash-lite-preview",
+      "pricing": { "input": 0.25, "output": 1.50, "cached_input": 0.025 },
+      "reasoning_effort": "minimal"
+    },
+    "gemini-2.5-flash-lite": {
+      "name": "gemini-2.5-flash-lite",
+      "legacy_thinking": true,
+      "pricing": { "input": 0.10, "output": 0.40, "cached_input": 0.01 },
+      "reasoning_effort": "minimal"
+    }
+  }
+}

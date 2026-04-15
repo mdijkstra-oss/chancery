@@ -307,25 +307,23 @@ func TestCompileRegistry(t *testing.T) {
 
 	t.Setenv("TEST_API_KEY", "test-key-123")
 
-	agentsJSON := `{
-		"providers": {
-			"openai": {
-				"protocol": "responses",
-				"base_url": "https://api.openai.com/v1",
-				"api_key_env": "TEST_API_KEY"
-			}
-		},
+	providerJSON := `{
+		"protocol": "responses",
+		"base_url": "https://api.openai.com/v1",
+		"api_key_env": "TEST_API_KEY",
 		"models": {
-			"gpt-5.2": {"provider": "openai", "name": "gpt-5.2", "pricing": {"input": 0, "output": 0, "cached_input": 0}},
-			"gpt-5-mini": {"provider": "openai", "name": "gpt-5-mini", "pricing": {"input": 0, "output": 0, "cached_input": 0}}
-		},
-		"agents": {
-			"qual-coder": {"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"},
-			"compacter": {"model": "gpt-5.2", "reasoning_effort": "medium"},
-			"advisor": {"model": "gpt-5-mini", "reasoning_effort": "low"}
+			"gpt-5.2": {"name": "gpt-5.2", "pricing": {"input": 0, "output": 0, "cached_input": 0}},
+			"gpt-5-mini": {"name": "gpt-5-mini", "pricing": {"input": 0, "output": 0, "cached_input": 0}}
 		}
 	}`
-	writeTestFile(t, filepath.Join(promptsDir, "agents.json"), agentsJSON)
+	writeTestFile(t, filepath.Join(promptsDir, "config", "openai.json"), providerJSON)
+
+	agentsJSON := `{
+		"qual-coder": {"model": "gpt-5.2", "reasoning_effort": "high", "verbosity": "low"},
+		"compacter": {"model": "gpt-5.2", "reasoning_effort": "medium"},
+		"advisor": {"model": "gpt-5-mini", "reasoning_effort": "low"}
+	}`
+	writeTestFile(t, filepath.Join(promptsDir, "config", "agents.json"), agentsJSON)
 
 	modeFiles := map[string]string{
 		"modes/planning.md":  "Planning intro.\n\n[planning/planning.md]\n[planning/template.md]",

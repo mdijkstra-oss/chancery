@@ -134,7 +134,7 @@ func CompileRegistry(promptsDir string) Registry {
 	agentsDir := filepath.Join(promptsDir, "agents")
 	sharedDir := filepath.Join(promptsDir, "shared")
 
-	configs, providerKeys := loadAgentsFile(promptsDir)
+	configs, providerKeys := loadConfigDir(promptsDir)
 	registry := Registry{
 		Agents:       make(map[string]CompiledAgent),
 		Configs:      configs,
@@ -212,27 +212,83 @@ func osReadFile(path string) (string, error) {
 	return string(data), nil
 }
 
-func loadAgentsFile(promptsDir string) (map[string]PromptConfig, []string) {
-	path := filepath.Join(promptsDir, "agents.json")
+func loadProviderFile(path, providerKey string) (ProviderEntry, map[string]modelEntry) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		panic(fmt.Sprintf("read %s: %v", filepath.Base(path), err))
+	}
+	var pf providerFile
+	if err := json.Unmarshal(data, &pf); err != nil {
+		panic(fmt.Sprintf("parse %s: %v", filepath.Base(path), err))
+	}
+	entry := ProviderEntry{Protocol: pf.Protocol, BaseURL: pf.BaseURL, APIKeyEnv: pf.APIKeyEnv}
+	for key, m := range pf.Models {
+		if m.Provider == "" {
+			m.Provider = providerKey
+			pf.Models[key] = m
+		}
+	}
+	return entry, pf.Models
+}
+
+func loadAgentsConfig(path string) map[string]agentEntry {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		panic(fmt.Sprintf("read agents.json: %v", err))
 	}
-	var file agentsFile
-	if err := json.Unmarshal(data, &file); err != nil {
+	var agents map[string]agentEntry
+	if err := json.Unmarshal(data, &agents); err != nil {
 		panic(fmt.Sprintf("parse agents.json: %v", err))
 	}
-	if len(file.Providers) == 0 {
-		panic("agents.json: providers section is required")
+	return agents
+}
+
+func loadConfigDir(promptsDir string) (map[string]PromptConfig, []string) {
+	configDir := filepath.Join(promptsDir, "config")
+	entries, err := os.ReadDir(configDir)
+	if err != nil {
+		panic(fmt.Sprintf("read config dir: %v", err))
 	}
-	providers := resolveProviders(file.Providers)
+
+	providerEntries := make(map[string]ProviderEntry)
+	allModels := make(map[string]modelEntry)
+	var agents map[string]agentEntry
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		path := filepath.Join(configDir, entry.Name())
+		key := strings.TrimSuffix(entry.Name(), ".json")
+
+		if key == "agents" {
+			agents = loadAgentsConfig(path)
+			continue
+		}
+
+		pe, models := loadProviderFile(path, key)
+		providerEntries[key] = pe
+		for mk, mv := range models {
+			allModels[mk] = mv
+		}
+	}
+
+	if len(providerEntries) == 0 {
+		panic("config: no provider files found")
+	}
+	if agents == nil {
+		panic("config: agents.json not found")
+	}
+
+	providers := resolveProviders(providerEntries)
 	providerKeys := make([]string, 0, len(providers))
 	for key := range providers {
 		providerKeys = append(providerKeys, key)
 	}
-	resolved := resolveModels(file.Models)
-	configs := make(map[string]PromptConfig, len(file.Agents))
-	for key, agent := range file.Agents {
+
+	resolved := resolveModels(allModels)
+	configs := make(map[string]PromptConfig, len(agents))
+	for key, agent := range agents {
 		model, ok := resolved[agent.Model]
 		if !ok {
 			panic(fmt.Sprintf("agent %q references unknown model %q", key, agent.Model))

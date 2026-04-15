@@ -1,0 +1,35 @@
+{
+  "qual-coder": {
+    "model": "gemini-3-flash-preview",
+    "reasoning_effort": "high",
+    "compact_at": 500000
+  },
+  "scout-mapper": {
+    "model": "gemini-3-flash-preview"
+  },
+  "semantic-filter": {
+    "model": "gemini-3-flash-preview"
+  },
+  "write-answer": {
+    "model": "gemini-3-flash-preview",
+    "reasoning_effort": "medium"
+  },
+  "compacter": {
+    "model": "gemini-3-flash-preview"
+  },
+  "commit-agent": {
+    "model": "gpt-5-mini",
+    "reasoning_effort": "off"
+  },
+  "hyde-generator": {
+    "model": "gemini-2.5-flash-lite",
+    "temperature": 0
+  },
+  "topic-assigner": {
+    "model": "gemini-2.5-flash-lite",
+    "temperature": 0
+  },
+  "embeddings": {
+    "model": "text-embedding-3-large"
+  }
+}

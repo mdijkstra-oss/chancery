@@ -26,17 +26,8 @@ Use `apply_local_patch` to create, update, or delete files. Each operation speci
 
 **Creating new files:** You MUST:
 1. First call: `create_file` with just the title
-2. For `.md` files: immediately append a `json-attributes` block with appropriate tags (see [Tagging Files](#tagging-files))
+2. For `.md` files: use `patch_attributes` to set tags (creates the block automatically)
 3. Subsequent calls: one `update_file` call per logical block (paragraph, list, code block, etc.)
-
-Every `.md` file must have a `json-attributes` block with tags. Include it right after creation:
-```json
-{
-  "type": "update_file",
-  "path": "notes.md",
-  "diff": "@@\n+\n+```json-attributes\n+{\n+  \"tags\": [\"tag-abc12345\"]\n+}\n+```"
-}
-```
 
 Never put entire file content in one patch. Send **multiple separate `apply_local_patch` tool calls in one stream**.
 
@@ -83,7 +74,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 - One for each code block (including `json-callout`, `json-attributes`)
 
 **Structured blocks (json-attributes, json-settings, json-callout):**
-- **Create**: patch the entire block in one call
+- **Create**: this tool cannot create JSON blocks — it rejects diffs that add block fences. Use `add_callout` / `add_chart` to place blocks, then `patch_*` to populate.
 - **Update**: use the typed patch tool (e.g. `patch_callout`, `patch_attributes`), not `apply_local_patch`. JSON property changes, annotation add/remove, tag changes — all go through the typed patch tools.
 - **Comment lines** (`// start ...`, `// end ...`) are system-managed. Use them as context anchors, but never add, remove, or modify them.
 
@@ -195,28 +186,13 @@ Only one json-attributes block per file.
 
 Documents can contain structured JSON blocks with specific types. Each block type has a schema and validation rules.
 
-### Creating Blocks with IDs
+### Creating Blocks
 
-When creating a new block that requires an ID, use a placeholder:
+`apply_local_patch` cannot create JSON blocks — the system rejects diffs that add block fences. To create blocks:
 
-```json-callout
-{
-  "id": "[uuid-callout-my-reference]",
-  "type": "codebook",
-  "title": "My Reference",
-  "color": "blue",
-  "collapsed": false,
-  "content": "Line one.\n\nLine two."
-}
-```
-
-The system replaces the placeholder with a prefixed ID like `callout-x7k2m9p1`.
-
-**Placeholder format**: `[uuid-{prefix}-{name}]`
-- `[uuid-callout-user-frustration]` → `callout-a1b2c3d4`
-- `[uuid-callout-theme-a]`, `[uuid-callout-process-gap]` → different IDs, same `callout-` prefix
-
-Name the placeholder after the block's content (code name, title, key concept). Each unique name gets a unique ID; reusing the same name returns the same ID.
+1. Write the prose/markdown structure with `apply_local_patch`
+2. Place the block with `add_callout` / `add_chart` (returns the generated `block_id`)
+3. Populate fields with `patch_callout` / `patch_chart` using that `block_id`
 
 ### Immutable Fields
 

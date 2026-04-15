@@ -1,17 +1,17 @@
 <typed-block-tools>
-## Typed block patch tools
+## Typed block tools
 
-Each block type has its own patch and delete tool. Operations are schema-validated — use the right tool for the block type and the schema handles the rest.
+Each block type has its own tools. Operations are schema-validated — use the right tool for the block type and the schema handles the rest.
 
-| Block | Patch tool | Delete tool | Singleton |
-|-------|-----------|-------------|-----------|
-| `json-attributes` | `patch_attributes` | `delete_attributes` | yes |
-| `json-annotations` | `patch_annotations` | `delete_annotations` | yes |
-| `json-callout` | `patch_callout` | `delete_callout` | no (needs `block_id`) |
-| `json-settings` | `patch_settings` | `delete_settings` | yes |
-| `json-chart` | `patch_chart` | `delete_chart` | no (needs `block_id`) |
+| Block | Patch | Delete | Add | Move | Singleton |
+|-------|-------|--------|-----|------|-----------|
+| `json-attributes` | `patch_attributes` | `delete_attributes` | — | — | yes |
+| `json-annotations` | `patch_annotations` | `delete_annotations` | — | — | yes |
+| `json-callout` | `patch_callout` | `delete_callout` | `add_callout` | `move_callout` | no |
+| `json-settings` | `patch_settings` | `delete_settings` | — | — | yes |
+| `json-chart` | `patch_chart` | `delete_chart` | `add_chart` | `move_chart` | no |
 
-### Operation types
+### Patch operation types
 
 - **`set`** — partial field update (scalars, full array/object replacement). Fine for short fields. For long multiline fields, prefer `patch_<field>` — `set` replaces the entire field value.
 - **`add_<item>`** — append to an object array (`add_annotation`, `add_tag`, `add_search`)
@@ -20,6 +20,15 @@ Each block type has its own patch and delete tool. Operations are schema-validat
 - **`patch_<field>`** — apply a V4A diff to a multiline string field (e.g. `patch_content` for callout `content`). Use instead of `set` when the field is long — sends only the changed lines, not the full value. Fewer tokens, more precise.
 
 Batch related changes as multiple operations in one call.
+
+### Add and move tools
+
+Non-singleton blocks (`json-callout`, `json-chart`) have `add_*` and `move_*` tools.
+
+- **`add_<type>`** — insert a new empty block after an anchor position. Returns the generated `block_id`. Follow up with `patch_<type>` to populate the block's fields.
+- **`move_<type>`** — relocate an existing block to a new anchor position.
+
+Both take a `context` parameter — a few lines of prose from the document that uniquely identify the insertion point. The block is placed after the matched context. If the context matches zero or multiple locations, the tool returns an error with guidance.
 
 ### Annotation text fuzzy-matching
 
@@ -31,8 +40,10 @@ Annotation `text` is automatically fuzzy-matched against the document prose — 
 
 ### When to use which
 
+- **`add_<type>`** — create a new non-singleton block at a specific position. Preferred over `apply_local_patch` for block creation — handles ID generation and validates placement.
 - **Typed patch tools** — any change to a JSON block: adding/removing annotations, updating properties, modifying tags, changing colors. Match the tool to the block type.
 - **`patch_<field>`** — for long multiline text fields. Use instead of `set` when the field has substantial content — surgical diff against the field value, not a full replacement.
+- **`move_<type>`** — reorder a non-singleton block within the document.
 - **Typed delete tools** — remove an entire JSON block from a document. Use when the block itself should cease to exist, not when removing items within it.
 - `apply_local_patch` — prose, markdown structure, or anything outside a JSON block. Never use it to rewrite a JSON block.
   </typed-block-tools>

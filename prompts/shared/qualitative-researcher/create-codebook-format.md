@@ -26,11 +26,16 @@ Each code requires:
 - **color** — visual identifier
 - **collapsed** — `false` for active codes, `true` for stable ones
 
-## Example
+## Creating codes
+
+1. Write the document prose first — heading, group description, any organizational context
+2. `add_callout` to place an empty block after the right prose anchor
+3. `patch_callout` to populate the block's fields using the returned `block_id`
+
+## Example value shape
 
 ```json-callout
 {
-  "id": "[uuid-callout]",
   "type": "codebook-code",
   "title": "User Frustration",
   "color": "tomato",

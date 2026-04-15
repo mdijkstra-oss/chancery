@@ -18,3 +18,5 @@
 [chat/user-language.md]
 [chat/links.md]
 [chat/routing.md]
+
+[nabu/parallelization.md]

@@ -31,6 +31,9 @@ type googleExtra struct {
 }
 
 func ExtractLeadingSystem(messages []json.RawMessage) ([]string, []json.RawMessage) {
+	if !hasConversationTurn(messages) {
+		return nil, messages
+	}
 	var leading []string
 	for i, raw := range messages {
 		var m messagePeek
@@ -43,6 +46,19 @@ func ExtractLeadingSystem(messages []json.RawMessage) ([]string, []json.RawMessa
 		leading = append(leading, m.Content)
 	}
 	return leading, nil
+}
+
+func hasConversationTurn(messages []json.RawMessage) bool {
+	for _, raw := range messages {
+		var m messagePeek
+		if json.Unmarshal(raw, &m) != nil {
+			return true
+		}
+		if m.Role != "system" {
+			return true
+		}
+	}
+	return false
 }
 
 func BuildCallIDToName(messages []json.RawMessage) map[string]string {

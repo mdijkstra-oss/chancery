@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func SetupRoutes(r *chi.Mux, chatHandler http.HandlerFunc, approachesHandler http.HandlerFunc, corsOrigins []string) {
+func SetupRoutes(r *chi.Mux, chatHandler http.HandlerFunc, approachesHandler http.HandlerFunc, embeddingsHandler http.HandlerFunc, corsOrigins []string) {
 	r.Use(middleware.Recoverer)
 	r.Use(RequestContext)
 	r.Use(cors.Handler(cors.Options{
@@ -19,5 +19,6 @@ func SetupRoutes(r *chi.Mux, chatHandler http.HandlerFunc, approachesHandler htt
 	}))
 
 	r.Get("/approaches", approachesHandler)
+	r.Post("/embeddings", embeddingsHandler)
 	r.Post("/*", chatHandler)
 }

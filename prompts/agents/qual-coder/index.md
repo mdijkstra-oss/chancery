@@ -19,4 +19,5 @@
 [chat/links.md]
 [chat/routing.md]
 
+[nabu/search.md]
 [nabu/parallelization.md]

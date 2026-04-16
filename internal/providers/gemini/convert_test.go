@@ -99,13 +99,13 @@ func TestExtractLeadingSystem(t *testing.T) {
 			wantRest:    2,
 		},
 		{
-			name: "all system",
+			name: "all system falls through to rest",
 			messages: []string{
 				`{"role":"system","content":"a"}`,
 				`{"role":"system","content":"b"}`,
 			},
-			wantLeading: []string{"a", "b"},
-			wantRest:    0,
+			wantLeading: nil,
+			wantRest:    2,
 		},
 	}
 	for _, tt := range tests {

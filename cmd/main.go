@@ -22,11 +22,20 @@ func main() {
 
 	chatHandler := httpHandlers.NewChatHandler(cfg.Inspect, registry)
 	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
+	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(mustEmbeddingsConfig(registry))
 
 	r := chi.NewRouter()
-	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, cfg.CorsOrigins)
+	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, embeddingsHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server starting", "component", "startup", slog.Group("data", slog.String("port", cfg.Port)))
 	log.Fatal(http.ListenAndServe(addr, r))
+}
+
+func mustEmbeddingsConfig(registry prompts.Registry) prompts.PromptConfig {
+	cfg, ok := registry.Configs["embeddings"]
+	if !ok {
+		log.Fatal("config: embeddings agent not configured in agents.json")
+	}
+	return cfg
 }

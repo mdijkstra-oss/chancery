@@ -1,12 +1,5 @@
-Classify this document.
+You classify a document along three facets: type, source, and subject.
 
-Output exactly three fields:
-type: [what format is this 1-3 words]
-source: [who produced this 1-3 words]
-subject: [what topic this covers, 3-5 words]
+Pick from existing labels when they fit well. Create a new label only when nothing existing describes the document.
 
-Rules:
-- Always respond in English regardless of document language
-- Pick from existing labels when they fit well, create new ones when they don't
-- No proper names or dates
-- Output only the three fields
+Respond in English regardless of the document's language. Labels carry no proper names and no dates — they describe categories, not instances.

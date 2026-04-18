@@ -3,8 +3,8 @@ package gemini
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
-	"net/http"
 
 	"google.golang.org/genai"
 	"hermes-logos/internal/prompts"
@@ -12,7 +12,7 @@ import (
 	"hermes-logos/internal/protocol"
 )
 
-func Stream(ctx context.Context, w http.ResponseWriter, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {
+func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  provider.APIKey,
 		Backend: genai.BackendGeminiAPI,

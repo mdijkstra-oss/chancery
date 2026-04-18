@@ -3,6 +3,7 @@ package sse
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 
 	"hermes-logos/internal/prompts"
@@ -13,19 +14,21 @@ type StreamResult struct {
 	Usage *protocol.UsageResponse
 }
 
-type StreamFunc func(ctx context.Context, w http.ResponseWriter, params protocol.RequestParams, provider prompts.ProviderConfig) (StreamResult, error)
+type StreamFunc func(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (StreamResult, error)
 
-func SetHeaders(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
+func SetHeaders(w io.Writer) {
+	if hw, ok := w.(http.ResponseWriter); ok {
+		hw.Header().Set("Content-Type", "text/event-stream")
+		hw.Header().Set("Cache-Control", "no-cache")
+		hw.Header().Set("Connection", "keep-alive")
+	}
 }
 
-func WriteEvent(w http.ResponseWriter, eventType, data string) {
+func WriteEvent(w io.Writer, eventType, data string) {
 	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, data)
 }
 
-func Flush(w http.ResponseWriter) {
+func Flush(w io.Writer) {
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}

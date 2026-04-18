@@ -4,49 +4,26 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"hermes-logos/internal/messages"
+	"hermes-logos/internal/pipeline"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
 	"hermes-logos/internal/providers"
 	"hermes-logos/internal/telemetry"
 )
 
-func NewChatHandler(inspect string, registry prompts.Registry) http.HandlerFunc {
+func NewChatHandler(registry prompts.Registry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleChat(w, r, inspect, registry)
+		handleChat(w, r, registry)
 	}
 }
 
-func shouldInspect(inspect, endpoint string) bool {
-	if inspect == "" {
-		return false
-	}
-	if inspect == "1" || inspect == "true" {
-		return true
-	}
-	return inspect == endpoint
-}
-
-func handleChat(w http.ResponseWriter, r *http.Request, inspect string, registry prompts.Registry) {
+func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registry) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
-
-	agent, ok := registry.Agents[urlPath]
-	if !ok {
-		http.Error(w, "unknown agent: "+urlPath, http.StatusNotFound)
-		return
-	}
-
-	promptCfg, ok := registry.Configs[urlPath]
-	if !ok {
-		http.Error(w, "no config for agent: "+urlPath, http.StatusInternalServerError)
-		return
-	}
 
 	req, err := decodeRequest(r)
 	if err != nil {
@@ -54,52 +31,20 @@ func handleChat(w http.ResponseWriter, r *http.Request, inspect string, registry
 		return
 	}
 
-	req.Messages = messages.ExpandMessages(req.Messages, registry.Modes)
-	req.Messages = messages.ExpandApproaches(req.Messages, registry.Approaches.Entries)
-
-	model := promptCfg.Model
-	toolNames := protocol.ExtractToolNames(req.Tools)
-
-	toolPrompt, _, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
+	params, promptCfg, err := pipeline.BuildRequestParams(urlPath, req, registry)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	fullPrompt := agent.Prompt
-	if toolPrompt != "" {
-		fullPrompt = fullPrompt + "\n\n" + toolPrompt
+	if tc := r.URL.Query().Get("tool_choice"); tc != "" {
+		params.ToolChoice = tc
 	}
-
-	toolChoice := r.URL.Query().Get("tool_choice")
-	temperature := parseTemperature(r.URL.Query().Get("temperature"))
-	if temperature == nil {
-		temperature = promptCfg.Temperature
+	if t := parseTemperature(r.URL.Query().Get("temperature")); t != nil {
+		params.Temperature = t
 	}
-	reasoningSummary := r.URL.Query().Get("reasoning_summary")
-	if reasoningSummary == "" {
-		reasoningSummary = promptCfg.ReasoningSummary
-	}
-
-	params := protocol.RequestParams{
-		Model:            model,
-		SystemPrompt:     fullPrompt,
-		ReasoningEffort:  promptCfg.ReasoningEffort,
-		ReasoningSummary: reasoningSummary,
-		Verbosity:        promptCfg.Verbosity,
-		ServiceTier:      promptCfg.ServiceTier,
-		ToolChoice:       toolChoice,
-		LegacyThinking:  promptCfg.LegacyThinking,
-		Temperature:      temperature,
-		Seed:             promptCfg.Seed,
-		Tools:            req.Tools,
-		Messages:         req.Messages,
-		ResponseFormat:   req.ResponseFormat,
-	}
-
-	if shouldInspect(inspect, urlPath) {
-		apiReq := protocol.BuildResponsesRequestFromParams(params)
-		inspectJSON(urlPath+" request", apiReq)
+	if rs := r.URL.Query().Get("reasoning_summary"); rs != "" {
+		params.ReasoningSummary = rs
 	}
 
 	trigger := telemetry.DeriveTrigger(req.Messages)
@@ -108,7 +53,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, inspect string, registry
 		"component", "chat",
 		slog.Group("data",
 			slog.String("endpoint", urlPath),
-			slog.String("model", model),
+			slog.String("model", params.Model),
 			slog.Int("messages", len(req.Messages)),
 			slog.Int("tools", len(req.Tools)),
 		),
@@ -124,13 +69,13 @@ func handleChat(w http.ResponseWriter, r *http.Request, inspect string, registry
 			"error", err,
 			slog.Group("data",
 				slog.String("endpoint", urlPath),
-				slog.String("model", model),
+				slog.String("model", params.Model),
 			),
 		)
 		return
 	}
 
-	rec := telemetry.BuildCallRecord(urlPath, model, promptCfg.ReasoningEffort, promptCfg.ServiceTier, trigger, result.Usage, promptCfg.Pricing, duration)
+	rec := telemetry.BuildCallRecord(urlPath, params.Model, promptCfg.ReasoningEffort, promptCfg.ServiceTier, trigger, result.Usage, promptCfg.Pricing, duration)
 	telemetry.LogCallRecord(r.Context(), rec)
 }
 

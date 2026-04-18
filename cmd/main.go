@@ -20,7 +20,7 @@ func main() {
 	registry := prompts.CompileRegistry(prompts.PromptsDir)
 	slog.Info("prompts compiled", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
 
-	chatHandler := httpHandlers.NewChatHandler(cfg.Inspect, registry)
+	chatHandler := httpHandlers.NewChatHandler(registry)
 	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
 	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(mustEmbeddingsConfig(registry))
 

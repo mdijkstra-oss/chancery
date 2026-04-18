@@ -10,7 +10,6 @@ type Config struct {
 	CorsOrigins []string
 	LogLevel    slog.Level
 	Environment string
-	Inspect     string
 }
 
 func Load() Config {
@@ -19,7 +18,6 @@ func Load() Config {
 		CorsOrigins: []string{getEnv("CORS_ORIGINS", "*")},
 		LogLevel:    parseLogLevel(getEnv("LOG_LEVEL", "info")),
 		Environment: getEnv("ENV", "development"),
-		Inspect:     os.Getenv("INSPECT"),
 	}
 }
 

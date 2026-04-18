@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,7 +14,7 @@ import (
 	"hermes-logos/internal/protocol"
 )
 
-func Stream(ctx context.Context, w http.ResponseWriter, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {
+func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {
 	req, err := BuildHTTPRequest(ctx, params, provider)
 	if err != nil {
 		return sse.StreamResult{}, fmt.Errorf("build request: %w", err)
@@ -33,7 +34,7 @@ func Stream(ctx context.Context, w http.ResponseWriter, params protocol.RequestP
 	return relaySSE(ctx, w, bufio.NewScanner(resp.Body)), nil
 }
 
-func relaySSE(ctx context.Context, w http.ResponseWriter, scanner *bufio.Scanner) sse.StreamResult {
+func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner) sse.StreamResult {
 	var result sse.StreamResult
 	var currentEvent string
 	for scanner.Scan() {

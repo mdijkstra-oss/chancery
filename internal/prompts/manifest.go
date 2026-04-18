@@ -302,7 +302,16 @@ func loadConfigDir(promptsDir string) (map[string]PromptConfig, []string) {
 		}
 		configs[key] = mergeConfig(model, agent, provider)
 	}
+	validateSeedProtocols(configs)
 	return configs, providerKeys
+}
+
+func validateSeedProtocols(configs map[string]PromptConfig) {
+	for key, cfg := range configs {
+		if cfg.Seed && cfg.Provider.Protocol != ProtocolGemini {
+			panic(fmt.Sprintf("agent %q has seed enabled but provider %q (protocol %q) does not support it", key, cfg.Provider.Key, cfg.Provider.Protocol))
+		}
+	}
 }
 
 const maxModelDepth = 5
@@ -409,6 +418,9 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 	}
 	if agent.Temperature != nil {
 		cfg.Temperature = agent.Temperature
+	}
+	if agent.Seed {
+		cfg.Seed = true
 	}
 	if agent.CompactAt != 0 {
 		cfg.CompactAt = agent.CompactAt

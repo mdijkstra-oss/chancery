@@ -549,6 +549,13 @@ func TestMergeConfig(t *testing.T) {
 			provider: prov,
 			want:     PromptConfig{Model: "gpt-5.4", ServiceTier: "default", Pricing: Pricing{Input: 2.50}, Provider: prov},
 		},
+		{
+			name:     "seed from agent",
+			model:    modelEntry{Name: "gemini-2.5-flash-lite"},
+			agent:    agentEntry{Model: "gemini-2.5-flash-lite", Seed: true},
+			provider: ProviderConfig{Protocol: ProtocolGemini, BaseURL: "https://gen.googleapis.com/v1beta", APIKey: "k"},
+			want:     PromptConfig{Model: "gemini-2.5-flash-lite", Seed: true, Provider: ProviderConfig{Protocol: ProtocolGemini, BaseURL: "https://gen.googleapis.com/v1beta", APIKey: "k"}},
+		},
 	}
 
 	for _, tc := range cases {
@@ -739,6 +746,37 @@ func TestResolveProvidersPanics(t *testing.T) {
 			resolveProviders(tc.entries)
 		})
 	}
+}
+
+func TestValidateSeedProtocols(t *testing.T) {
+	gemini := ProviderConfig{Protocol: ProtocolGemini, BaseURL: "https://gen.googleapis.com/v1beta", APIKey: "k"}
+	openai := ProviderConfig{Key: "openai", Protocol: ProtocolResponses, BaseURL: "https://api.openai.com/v1", APIKey: "k"}
+
+	t.Run("gemini with seed passes", func(t *testing.T) {
+		configs := map[string]PromptConfig{
+			"a": {Model: "gemini-2.5-flash-lite", Seed: true, Provider: gemini},
+		}
+		validateSeedProtocols(configs)
+	})
+
+	t.Run("openai without seed passes", func(t *testing.T) {
+		configs := map[string]PromptConfig{
+			"a": {Model: "gpt-5-mini", Provider: openai},
+		}
+		validateSeedProtocols(configs)
+	})
+
+	t.Run("openai with seed panics", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic, got none")
+			}
+		}()
+		configs := map[string]PromptConfig{
+			"bad-agent": {Model: "gpt-5-mini", Seed: true, Provider: openai},
+		}
+		validateSeedProtocols(configs)
+	})
 }
 
 func float64Ptr(v float64) *float64 {

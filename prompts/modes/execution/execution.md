@@ -17,15 +17,15 @@ Every step except the last must produce a deliverable before `complete_step`:
 
 Read-only work (reading files, reasoning) is preparation, not a deliverable. The system enforces this — `complete_step` is rejected if neither happened. The final step is exempt: it can complete with just a summary.
 
-Nested steps: call `complete_step` for each inner step. The system detects substep vs. top-level automatically.
+Nested steps are not used — plans are flat.
 
 Loops describe iteration patterns. You determine the actual items at execution time.
 
 ## Working with sections
 
-The plan's nested steps correspond to sections from the section map produced during scout. Use `run_local_shell` with `cat -o <offset> -l <limit>` to read the relevant lines for each section. The section map's line ranges tell you exactly where each section starts and how many lines it spans.
+The plan's steps reference sections from the recommendation that fed planning — either a scout section map or plan_deep_analysis's recommended steps. Use `run_local_shell` with `cat -o <offset> -l <limit>` to read the relevant lines for each section when needed. For deep-analysis steps, the args already specify what to pass to `apply_deep_analysis`.
 
-Process each section fully (including writes) before moving to the next. Don't collect information from all sections first, then write at the end — that risks losing information from earlier sections.
+Process each step fully (including writes) before moving to the next. Don't collect information from all steps first, then write at the end — that risks losing information from earlier steps.
 
 ## User checkpoints
 

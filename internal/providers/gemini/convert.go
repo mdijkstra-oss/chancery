@@ -75,14 +75,14 @@ func BuildCallIDToName(messages []json.RawMessage) map[string]string {
 	return result
 }
 
-func MessagesToContents(messages []json.RawMessage, callIDMap map[string]string, thinkingEnabled bool) []*genai.Content {
+func MessagesToContents(messages []json.RawMessage, callIDMap map[string]string) []*genai.Content {
 	var contents []*genai.Content
 	for _, raw := range messages {
 		var m messagePeek
 		if json.Unmarshal(raw, &m) != nil {
 			continue
 		}
-		content := messageToContent(m, callIDMap, thinkingEnabled)
+		content := messageToContent(m, callIDMap)
 		if content == nil {
 			continue
 		}
@@ -114,10 +114,10 @@ func MergeConsecutiveContents(contents []*genai.Content) []*genai.Content {
 	return merged
 }
 
-func messageToContent(m messagePeek, callIDMap map[string]string, thinkingEnabled bool) *genai.Content {
+func messageToContent(m messagePeek, callIDMap map[string]string) *genai.Content {
 	switch {
 	case m.Type == "function_call":
-		return functionCallToContent(m, thinkingEnabled)
+		return functionCallToContent(m)
 	case m.Type == "function_call_output":
 		return functionCallOutputToContent(m, callIDMap)
 	case m.Type == "reasoning":
@@ -135,20 +135,42 @@ func messageToContent(m messagePeek, callIDMap map[string]string, thinkingEnable
 
 var fallbackThoughtSig = []byte("context_engineering_is_the_way_to_go")
 
-func functionCallToContent(m messagePeek, thinkingEnabled bool) *genai.Content {
+func functionCallToContent(m messagePeek) *genai.Content {
 	var args map[string]any
 	if m.Arguments != "" {
 		json.Unmarshal([]byte(m.Arguments), &args)
 	}
 	part := genai.NewPartFromFunctionCall(m.Name, args)
 	part.FunctionCall.ID = m.CallID
-	sig := extractThoughtSignature(m.ExtraContent)
-	if sig == nil && thinkingEnabled {
-		slog.Warn("gemini function call missing thought signature, using fallback", "name", m.Name, "call_id", m.CallID)
-		sig = fallbackThoughtSig
-	}
-	part.ThoughtSignature = sig
+	part.ThoughtSignature = extractThoughtSignature(m.ExtraContent)
 	return genai.NewContentFromParts([]*genai.Part{part}, "model")
+}
+
+func EnsureThoughtSignatures(contents []*genai.Content, thinkingEnabled bool) []*genai.Content {
+	if !thinkingEnabled {
+		return contents
+	}
+	for _, c := range contents {
+		if c.Role != "model" {
+			continue
+		}
+		ensureFirstFCSignature(c.Parts)
+	}
+	return contents
+}
+
+func ensureFirstFCSignature(parts []*genai.Part) {
+	for _, part := range parts {
+		if part.FunctionCall == nil {
+			continue
+		}
+		if len(part.ThoughtSignature) == 0 {
+			slog.Warn("gemini: first function call missing thought signature, using fallback",
+				"name", part.FunctionCall.Name, "id", part.FunctionCall.ID)
+			part.ThoughtSignature = fallbackThoughtSig
+		}
+		return
+	}
 }
 
 func extractThoughtSignature(raw json.RawMessage) []byte {
@@ -254,6 +276,11 @@ func BuildConfig(params protocol.RequestParams, leadingSystem []string) *genai.G
 
 	if params.ReasoningEffort != "" && params.ReasoningEffort != "off" {
 		cfg.ThinkingConfig = buildThinkingConfig(params.ReasoningEffort, params.LegacyThinking)
+	}
+
+	if params.Seed {
+		seed := int32(12041989)
+		cfg.Seed = &seed
 	}
 
 	if params.ResponseFormat != nil {

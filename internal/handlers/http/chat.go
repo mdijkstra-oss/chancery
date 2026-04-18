@@ -17,13 +17,23 @@ import (
 	"hermes-logos/internal/telemetry"
 )
 
-func NewChatHandler(inspect bool, registry prompts.Registry) http.HandlerFunc {
+func NewChatHandler(inspect string, registry prompts.Registry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		handleChat(w, r, inspect, registry)
 	}
 }
 
-func handleChat(w http.ResponseWriter, r *http.Request, inspect bool, registry prompts.Registry) {
+func shouldInspect(inspect, endpoint string) bool {
+	if inspect == "" {
+		return false
+	}
+	if inspect == "1" || inspect == "true" {
+		return true
+	}
+	return inspect == endpoint
+}
+
+func handleChat(w http.ResponseWriter, r *http.Request, inspect string, registry prompts.Registry) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 
 	agent, ok := registry.Agents[urlPath]
@@ -81,12 +91,13 @@ func handleChat(w http.ResponseWriter, r *http.Request, inspect bool, registry p
 		ToolChoice:       toolChoice,
 		LegacyThinking:  promptCfg.LegacyThinking,
 		Temperature:      temperature,
+		Seed:             promptCfg.Seed,
 		Tools:            req.Tools,
 		Messages:         req.Messages,
 		ResponseFormat:   req.ResponseFormat,
 	}
 
-	if inspect {
+	if shouldInspect(inspect, urlPath) {
 		apiReq := protocol.BuildResponsesRequestFromParams(params)
 		inspectJSON(urlPath+" request", apiReq)
 	}

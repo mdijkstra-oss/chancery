@@ -126,9 +126,8 @@ func TestMessagesToContents(t *testing.T) {
 	tests := []struct {
 		name            string
 		messages        []string
-		callIDMap       map[string]string
-		thinkingEnabled bool
-		check           func(t *testing.T, got []*genai.Content)
+		callIDMap map[string]string
+		check     func(t *testing.T, got []*genai.Content)
 	}{
 		{
 			name: "user message",
@@ -224,34 +223,17 @@ func TestMessagesToContents(t *testing.T) {
 			},
 		},
 		{
-			name: "function call without extra_content has nil signature when thinking disabled",
+			name: "function call without extra_content has nil signature",
 			messages: []string{
 				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
 			},
-			callIDMap:       map[string]string{"c1": "search"},
-			thinkingEnabled: false,
+			callIDMap: map[string]string{"c1": "search"},
 			check: func(t *testing.T, got []*genai.Content) {
 				if len(got) != 1 {
 					t.Fatalf("len = %d, want 1", len(got))
 				}
 				if got[0].Parts[0].ThoughtSignature != nil {
 					t.Errorf("expected nil ThoughtSignature, got %v", got[0].Parts[0].ThoughtSignature)
-				}
-			},
-		},
-		{
-			name: "function call without extra_content gets fallback signature when thinking enabled",
-			messages: []string{
-				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
-			},
-			callIDMap:       map[string]string{"c1": "search"},
-			thinkingEnabled: true,
-			check: func(t *testing.T, got []*genai.Content) {
-				if len(got) != 1 {
-					t.Fatalf("len = %d, want 1", len(got))
-				}
-				if string(got[0].Parts[0].ThoughtSignature) != "context_engineering_is_the_way_to_go" {
-					t.Errorf("ThoughtSignature = %q, want fallback", string(got[0].Parts[0].ThoughtSignature))
 				}
 			},
 		},
@@ -326,7 +308,7 @@ func TestMessagesToContents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			msgs := toRawMessages(tt.messages)
-			got := MessagesToContents(msgs, tt.callIDMap, tt.thinkingEnabled)
+			got := MessagesToContents(msgs, tt.callIDMap)
 			tt.check(t, got)
 		})
 	}
@@ -624,6 +606,29 @@ func TestBuildConfig(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "seed enabled",
+			params: protocol.RequestParams{
+				Seed: true,
+			},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.Seed == nil {
+					t.Fatal("expected Seed")
+				}
+				if *cfg.Seed != 12041989 {
+					t.Errorf("seed = %d, want 12041989", *cfg.Seed)
+				}
+			},
+		},
+		{
+			name:   "seed disabled",
+			params: protocol.RequestParams{},
+			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
+				if cfg.Seed != nil {
+					t.Errorf("expected nil Seed, got %d", *cfg.Seed)
+				}
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -795,6 +800,144 @@ func toRawMessages(strs []string) []json.RawMessage {
 		msgs[i] = json.RawMessage(s)
 	}
 	return msgs
+}
+
+func TestEnsureThoughtSignatures(t *testing.T) {
+	realSig := []byte("real-signature")
+
+	tests := []struct {
+		name     string
+		thinking bool
+		contents []*genai.Content
+		check    func(t *testing.T, got []*genai.Content)
+	}{
+		{
+			name:     "thinking disabled is no-op",
+			thinking: false,
+			contents: []*genai.Content{{
+				Role: "model",
+				Parts: []*genai.Part{{
+					FunctionCall: &genai.FunctionCall{Name: "search", ID: "c1"},
+				}},
+			}},
+			check: func(t *testing.T, got []*genai.Content) {
+				if got[0].Parts[0].ThoughtSignature != nil {
+					t.Error("expected nil sig when thinking disabled")
+				}
+			},
+		},
+		{
+			name:     "single FC with sig unchanged",
+			thinking: true,
+			contents: []*genai.Content{{
+				Role: "model",
+				Parts: []*genai.Part{{
+					FunctionCall:     &genai.FunctionCall{Name: "search", ID: "c1"},
+					ThoughtSignature: realSig,
+				}},
+			}},
+			check: func(t *testing.T, got []*genai.Content) {
+				if string(got[0].Parts[0].ThoughtSignature) != "real-signature" {
+					t.Errorf("sig = %q, want real-signature", string(got[0].Parts[0].ThoughtSignature))
+				}
+			},
+		},
+		{
+			name:     "single FC missing sig gets fallback",
+			thinking: true,
+			contents: []*genai.Content{{
+				Role: "model",
+				Parts: []*genai.Part{{
+					FunctionCall: &genai.FunctionCall{Name: "search", ID: "c1"},
+				}},
+			}},
+			check: func(t *testing.T, got []*genai.Content) {
+				if string(got[0].Parts[0].ThoughtSignature) != string(fallbackThoughtSig) {
+					t.Errorf("sig = %q, want fallback", string(got[0].Parts[0].ThoughtSignature))
+				}
+			},
+		},
+		{
+			name:     "parallel FCs first has sig rest untouched",
+			thinking: true,
+			contents: []*genai.Content{{
+				Role: "model",
+				Parts: []*genai.Part{
+					{FunctionCall: &genai.FunctionCall{Name: "search", ID: "c1"}, ThoughtSignature: realSig},
+					{FunctionCall: &genai.FunctionCall{Name: "read", ID: "c2"}},
+					{FunctionCall: &genai.FunctionCall{Name: "write", ID: "c3"}},
+				},
+			}},
+			check: func(t *testing.T, got []*genai.Content) {
+				if string(got[0].Parts[0].ThoughtSignature) != "real-signature" {
+					t.Errorf("first sig = %q, want real-signature", string(got[0].Parts[0].ThoughtSignature))
+				}
+				if got[0].Parts[1].ThoughtSignature != nil {
+					t.Errorf("second sig = %v, want nil", got[0].Parts[1].ThoughtSignature)
+				}
+				if got[0].Parts[2].ThoughtSignature != nil {
+					t.Errorf("third sig = %v, want nil", got[0].Parts[2].ThoughtSignature)
+				}
+			},
+		},
+		{
+			name:     "parallel FCs first missing sig gets fallback rest untouched",
+			thinking: true,
+			contents: []*genai.Content{{
+				Role: "model",
+				Parts: []*genai.Part{
+					{FunctionCall: &genai.FunctionCall{Name: "search", ID: "c1"}},
+					{FunctionCall: &genai.FunctionCall{Name: "read", ID: "c2"}},
+				},
+			}},
+			check: func(t *testing.T, got []*genai.Content) {
+				if string(got[0].Parts[0].ThoughtSignature) != string(fallbackThoughtSig) {
+					t.Errorf("first sig = %q, want fallback", string(got[0].Parts[0].ThoughtSignature))
+				}
+				if got[0].Parts[1].ThoughtSignature != nil {
+					t.Errorf("second sig = %v, want nil", got[0].Parts[1].ThoughtSignature)
+				}
+			},
+		},
+		{
+			name:     "user content skipped",
+			thinking: true,
+			contents: []*genai.Content{{
+				Role:  "user",
+				Parts: []*genai.Part{{Text: "hello"}},
+			}},
+			check: func(t *testing.T, got []*genai.Content) {
+				if got[0].Parts[0].ThoughtSignature != nil {
+					t.Error("expected nil sig for user content")
+				}
+			},
+		},
+		{
+			name:     "thought part before FC preserves both",
+			thinking: true,
+			contents: []*genai.Content{{
+				Role: "model",
+				Parts: []*genai.Part{
+					{Thought: true, ThoughtSignature: realSig},
+					{FunctionCall: &genai.FunctionCall{Name: "search", ID: "c1"}, ThoughtSignature: realSig},
+				},
+			}},
+			check: func(t *testing.T, got []*genai.Content) {
+				if string(got[0].Parts[0].ThoughtSignature) != "real-signature" {
+					t.Errorf("thought sig = %q, want real-signature", string(got[0].Parts[0].ThoughtSignature))
+				}
+				if string(got[0].Parts[1].ThoughtSignature) != "real-signature" {
+					t.Errorf("FC sig = %q, want real-signature", string(got[0].Parts[1].ThoughtSignature))
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := EnsureThoughtSignatures(tt.contents, tt.thinking)
+			tt.check(t, got)
+		})
+	}
 }
 
 func assertTextPart(t *testing.T, content *genai.Content, want string) {

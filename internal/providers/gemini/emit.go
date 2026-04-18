@@ -34,6 +34,18 @@ func ChunkToEvents(chunk *genai.GenerateContentResponse, state *EmitState) []SSE
 	return events
 }
 
+func isEmptyPart(part *genai.Part) bool {
+	return part.Text == "" &&
+		!part.Thought &&
+		part.FunctionCall == nil &&
+		part.FunctionResponse == nil &&
+		part.InlineData == nil &&
+		part.FileData == nil &&
+		part.ExecutableCode == nil &&
+		part.CodeExecutionResult == nil &&
+		len(part.ThoughtSignature) == 0
+}
+
 func partToEvents(part *genai.Part, state *EmitState) []SSEEvent {
 	switch {
 	case part.FunctionCall != nil:
@@ -41,9 +53,19 @@ func partToEvents(part *genai.Part, state *EmitState) []SSEEvent {
 	case part.Thought:
 		return thoughtEvents(part, state)
 	case part.Text != "":
-		return textEvents(part.Text, state)
+		events := textEvents(part.Text, state)
+		if len(part.ThoughtSignature) > 0 {
+			state.ThoughtSig = part.ThoughtSignature
+			state.HasThought = true
+		}
+		return events
+	case len(part.ThoughtSignature) > 0:
+		return thoughtEvents(part, state)
+	case isEmptyPart(part):
+		return nil
 	default:
-		slog.Warn("gemini: unhandled part type", "has_inline_data", part.InlineData != nil, "has_file_data", part.FileData != nil, "has_code_exec", part.ExecutableCode != nil, "has_code_result", part.CodeExecutionResult != nil)
+		raw, _ := json.Marshal(part)
+		slog.Warn("gemini: unhandled part type", "part", string(raw))
 		return nil
 	}
 }
@@ -59,6 +81,10 @@ func textEvents(text string, state *EmitState) []SSEEvent {
 }
 
 func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []SSEEvent {
+	if len(sig) == 0 && len(state.ThoughtSig) > 0 {
+		sig = state.ThoughtSig
+		state.ThoughtSig = nil
+	}
 	flushEvents := flushThought(state)
 
 	callID := fc.ID

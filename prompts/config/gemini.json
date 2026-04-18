@@ -6,7 +6,8 @@
     "gemini-3.1-pro-preview": {
       "name": "gemini-3.1-pro-preview",
       "pricing": { "input": 2.00, "output": 12.00, "cached_input": 0.20 },
-      "reasoning_effort": "minimal"
+      "reasoning_effort": "minimal",
+      "todo": "LIMIT TOKENS DUE TO MORE EXPANSIVE ABOVE THRESHOLD"
     },
     "gemini-3-flash-preview": {
       "name": "gemini-3-flash-preview",

@@ -42,25 +42,17 @@ Coded annotation with review — boundary friction:
 }
 ```
 
-Color annotation with review — codebook gap:
+Color annotation — codebook gap (no review field, reason carries the note):
 
 ```json
 {
   "text": "after that meeting everything just quietly went back to how it was before",
-  "reason": "Reversion to pre-intervention state after formal process concluded",
-  "color": "teal",
-  "review": "No code covers post-intervention regression. Multiple passages describe this pattern — may warrant a new code."
+  "reason": "No code covers post-intervention regression. Multiple passages describe this pattern — may warrant a new code.",
+  "color": "teal"
 }
 ```
 
-Color annotation with review — uncertain relevance:
+## When review applies
 
-```json
-{
-  "text": "I remember thinking at the time that something felt off",
-  "reason": "Retrospective sense-making that may signal an unprocessed critical incident",
-  "color": "amber",
-  "review": "Ambiguous whether this is analytically relevant or casual reflection. Flagging for researcher judgment."
-}
-```
+The `review` field only appears on code-linked annotations. For color-only annotations, the `reason` field already carries any note the researcher needs — no separate review.
 </coding-mechanics>

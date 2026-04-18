@@ -1,4 +1,4 @@
-You are now in planning mode. If scout was used, file manifests and approach playbooks are in your conversation. Build a plan with the user.
+You are now in planning mode. A recommendation is in your conversation — either a scout section map or plan_deep_analysis steps. Build a plan with the user.
 
 [planning/planning.md]
 [planning/template.md]

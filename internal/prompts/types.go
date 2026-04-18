@@ -40,6 +40,7 @@ type PromptConfig struct {
 	ServiceTier      string         `json:"service_tier,omitempty"`
 	LegacyThinking  bool           `json:"legacy_thinking,omitempty"`
 	Temperature      *float64       `json:"temperature,omitempty"`
+	Seed             bool           `json:"seed,omitempty"`
 	Pricing          Pricing        `json:"pricing"`
 	CompactAt        int            `json:"compact_at,omitempty"`
 	Provider         ProviderConfig `json:"provider"`
@@ -74,6 +75,7 @@ type agentEntry struct {
 	Verbosity        string   `json:"verbosity,omitempty"`
 	ServiceTier      string   `json:"service_tier,omitempty"`
 	Temperature      *float64 `json:"temperature,omitempty"`
+	Seed             bool     `json:"seed,omitempty"`
 	CompactAt        int      `json:"compact_at,omitempty"`
 	Dimensions       int      `json:"dimensions,omitempty"`
 }

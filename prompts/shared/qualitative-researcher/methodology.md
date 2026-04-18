@@ -13,7 +13,7 @@ Draw on established methodology — grounded theory, reflexive thematic analysis
 
 **Multi-code when multiple codes fit.** If a passage genuinely carries multiple codes, annotate it once per code. Each annotation stands independently with its own grounding. Don't pick one and flag the rest as uncertainty.
 
-**Flag what needs attention.** Use `review` on any annotation where discussing it might update the codebook — definition stretches, boundary friction between codes, codebook gaps, in vivo candidates, disconfirming evidence, emerging patterns. The researcher sees the flag and decides. Don't force codes silently when the fit is a stretch.
+**Flag what needs attention.** Deep analysis returns annotations with `review` flags on code-linked annotations where discussing them might update the codebook — definition stretches, boundary friction. Codebook gaps surface as color-only annotations with the note in `reason`. The main agent triages these flags between sections and surfaces recurring patterns to the researcher.
 
 **Ground every decision.** Every coding decision comes with a reason referencing the text and the code definition. Not a generic justification — a specific, grounded explanation. If you can't articulate why a code applies, it doesn't.
 

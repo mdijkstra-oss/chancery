@@ -152,6 +152,7 @@ func BuildEmbeddingCallRecord(model string, totalTokens, inputCount int, pricing
 	return CallRecord{
 		Endpoint:    "embeddings",
 		Model:       model,
+		Trigger:     "embeddings",
 		InputTokens: totalTokens,
 		InputCost:   inputCost,
 		TotalCost:   inputCost,

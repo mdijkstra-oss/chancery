@@ -131,6 +131,71 @@ func TestChunkToEvents(t *testing.T) {
 			},
 		},
 		{
+			name: "text part with thought signature stores sig",
+			chunk: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{{
+							Text:             "final answer",
+							ThoughtSignature: []byte("textsig"),
+						}},
+					},
+				}},
+			},
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 1 {
+					t.Fatalf("want 1 event, got %d", len(events))
+				}
+				if events[0].Type != "response.output_text.delta" {
+					t.Errorf("type = %q, want response.output_text.delta", events[0].Type)
+				}
+				if string(state.ThoughtSig) != "textsig" {
+					t.Errorf("ThoughtSig = %q, want textsig", string(state.ThoughtSig))
+				}
+				if !state.HasThought {
+					t.Error("expected HasThought=true")
+				}
+			},
+		},
+		{
+			name: "standalone thought signature without thought flag",
+			chunk: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{{
+							ThoughtSignature: []byte("standalone"),
+						}},
+					},
+				}},
+			},
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 0 {
+					t.Errorf("want 0 events, got %d", len(events))
+				}
+				if string(state.ThoughtSig) != "standalone" {
+					t.Errorf("ThoughtSig = %q, want standalone", string(state.ThoughtSig))
+				}
+			},
+		},
+		{
+			name: "empty part is silently skipped",
+			chunk: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{{}},
+					},
+				}},
+			},
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 0 {
+					t.Errorf("want 0 events for empty part, got %d", len(events))
+				}
+			},
+		},
+		{
 			name: "thought text part",
 			chunk: &genai.GenerateContentResponse{
 				Candidates: []*genai.Candidate{{
@@ -203,7 +268,7 @@ func TestChunkToEvents(t *testing.T) {
 			},
 		},
 		{
-			name: "function call after thought flushes reasoning item",
+			name: "function call without sig inherits thought sig",
 			chunk: &genai.GenerateContentResponse{
 				Candidates: []*genai.Candidate{{
 					Content: &genai.Content{
@@ -215,12 +280,13 @@ func TestChunkToEvents(t *testing.T) {
 			},
 			state: &EmitState{HasThought: true, ThoughtSig: []byte("sig"), ThoughtText: "thought"},
 			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
-				if len(events) != 4 {
-					t.Fatalf("want 4 events (flush + 3 fc), got %d", len(events))
+				if len(events) != 3 {
+					t.Fatalf("want 3 events (3 fc), got %d", len(events))
 				}
-				if events[0].Type != "response.output_item.done" {
-					t.Errorf("flush event type = %q", events[0].Type)
+				if events[0].Type != "response.output_item.added" {
+					t.Errorf("event[0] type = %q, want response.output_item.added", events[0].Type)
 				}
+				assertJSONContains(t, events[2].Data, "extra_content")
 			},
 		},
 		{

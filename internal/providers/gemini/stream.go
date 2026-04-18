@@ -24,7 +24,10 @@ func Stream(ctx context.Context, w http.ResponseWriter, params protocol.RequestP
 	leadingSystem, rest := ExtractLeadingSystem(params.Messages)
 	callIDMap := BuildCallIDToName(params.Messages)
 	isThinking := params.ReasoningEffort != "" && params.ReasoningEffort != "off"
-	contents := MergeConsecutiveContents(MessagesToContents(rest, callIDMap, isThinking))
+	contents := EnsureThoughtSignatures(
+		MergeConsecutiveContents(MessagesToContents(rest, callIDMap)),
+		isThinking,
+	)
 	config := BuildConfig(params, leadingSystem)
 
 	sse.SetHeaders(w)

@@ -12,6 +12,7 @@ type RequestParams struct {
 	ToolChoice       string
 	LegacyThinking  bool
 	Temperature      *float64
+	Seed             bool
 	Tools            []json.RawMessage
 	Messages         []json.RawMessage
 	ResponseFormat   json.RawMessage

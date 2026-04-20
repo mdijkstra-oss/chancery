@@ -38,6 +38,9 @@
   "hyde-generator": {
     "model": "gemini-3.1-flash-lite-preview"
   },
+  "generic-hyde": {
+    "model": "gemini-3.1-flash-lite-preview"
+  },
   "corpus-describer": {
     "model": "gemini-3.1-flash-lite-preview"
   },

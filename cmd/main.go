@@ -11,6 +11,7 @@ import (
 	"hermes-logos/internal/config"
 	httpHandlers "hermes-logos/internal/handlers/http"
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/ratelimit"
 )
 
 func main() {
@@ -20,9 +21,11 @@ func main() {
 	registry := prompts.CompileRegistry(prompts.PromptsDir)
 	slog.Info("prompts compiled", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
 
-	chatHandler := httpHandlers.NewChatHandler(registry)
+	limiter := ratelimit.NewLimiter()
+
+	chatHandler := httpHandlers.NewChatHandler(registry, limiter)
 	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
-	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(mustEmbeddingsConfig(registry))
+	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(mustEmbeddingsConfig(registry), limiter)
 
 	r := chi.NewRouter()
 	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, embeddingsHandler, cfg.CorsOrigins)

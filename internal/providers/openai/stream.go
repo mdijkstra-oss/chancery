@@ -12,6 +12,7 @@ import (
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/providers/sse"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/ratelimit"
 )
 
 func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {
@@ -24,6 +25,9 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 		return sse.StreamResult{}, fmt.Errorf("execute request: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("openai returned status %d", resp.StatusCode))
+	}
 	if resp.StatusCode != http.StatusOK {
 		return sse.StreamResult{}, fmt.Errorf("openai returned status %d", resp.StatusCode)
 	}

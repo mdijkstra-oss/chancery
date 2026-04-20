@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/ratelimit"
 )
 
 func TestEmbeddingsHandler(t *testing.T) {
@@ -59,7 +60,7 @@ func TestEmbeddingsHandler(t *testing.T) {
 				Dimensions: 1024,
 				Provider:   prompts.ProviderConfig{BaseURL: srv.URL, APIKey: "test-key"},
 			}
-			handler := NewEmbeddingsHandler(cfg)
+			handler := NewEmbeddingsHandler(cfg, ratelimit.NewLimiter())
 
 			req := httptest.NewRequest(http.MethodPost, "/embeddings", strings.NewReader(tt.body))
 			rec := httptest.NewRecorder()

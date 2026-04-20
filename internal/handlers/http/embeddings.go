@@ -9,6 +9,7 @@ import (
 
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/providers/openai"
+	"hermes-logos/internal/ratelimit"
 	"hermes-logos/internal/telemetry"
 )
 
@@ -22,13 +23,13 @@ type EmbeddingsRequest struct {
 	Input []string `json:"input"`
 }
 
-func NewEmbeddingsHandler(cfg prompts.PromptConfig) http.HandlerFunc {
+func NewEmbeddingsHandler(cfg prompts.PromptConfig, limiter *ratelimit.Limiter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleEmbeddings(w, r, cfg)
+		handleEmbeddings(w, r, cfg, limiter)
 	}
 }
 
-func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.PromptConfig) {
+func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.PromptConfig, limiter *ratelimit.Limiter) {
 	ctx := r.Context()
 
 	req, err := decodeEmbeddingsRequest(r)
@@ -42,7 +43,9 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.Prompt
 	}
 
 	start := time.Now()
-	res, err := openai.Embed(ctx, req.Input, cfg.Model, cfg.Dimensions, cfg.Provider)
+	res, err := ratelimit.Do(ctx, limiter, cfg.Provider.Key, 3, func() (openai.EmbedResult, error) {
+		return openai.Embed(ctx, req.Input, cfg.Model, cfg.Dimensions, cfg.Provider)
+	})
 	duration := time.Since(start).Milliseconds()
 	if err != nil {
 		slog.ErrorContext(ctx, "embeddings upstream failed",

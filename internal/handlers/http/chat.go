@@ -13,16 +13,18 @@ import (
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
 	"hermes-logos/internal/providers"
+	"hermes-logos/internal/providers/sse"
+	"hermes-logos/internal/ratelimit"
 	"hermes-logos/internal/telemetry"
 )
 
-func NewChatHandler(registry prompts.Registry) http.HandlerFunc {
+func NewChatHandler(registry prompts.Registry, limiter *ratelimit.Limiter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleChat(w, r, registry)
+		handleChat(w, r, registry, limiter)
 	}
 }
 
-func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registry) {
+func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registry, limiter *ratelimit.Limiter) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 
 	req, err := decodeRequest(r)
@@ -61,7 +63,9 @@ func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registr
 
 	start := time.Now()
 	streamFn := providers.StreamForProtocol(promptCfg.Provider.Protocol)
-	result, err := streamFn(r.Context(), w, params, promptCfg.Provider)
+	result, err := ratelimit.Do(r.Context(), limiter, promptCfg.Provider.Key, 3, func() (sse.StreamResult, error) {
+		return streamFn(r.Context(), w, params, promptCfg.Provider)
+	})
 	duration := time.Since(start).Milliseconds()
 	if err != nil {
 		slog.ErrorContext(r.Context(), "stream error",

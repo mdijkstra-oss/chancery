@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/ratelimit"
 )
 
 type EmbedRequest struct {
@@ -52,6 +53,9 @@ func Embed(ctx context.Context, input []string, model string, dimensions int, pr
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return EmbedResult{}, fmt.Errorf("read response: %w", err)
+	}
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return EmbedResult{}, ratelimit.Retryable(fmt.Errorf("openai returned status %d: %s", resp.StatusCode, string(respBody)))
 	}
 	if resp.StatusCode != http.StatusOK {
 		return EmbedResult{}, fmt.Errorf("openai returned status %d: %s", resp.StatusCode, string(respBody))

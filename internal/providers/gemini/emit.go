@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"google.golang.org/genai"
 	"hermes-logos/internal/protocol"
@@ -20,6 +21,8 @@ type EmitState struct {
 	ThoughtText string
 	ThoughtSig  []byte
 	HasThought  bool
+	Suppressing bool
+	LeakedBuf   string
 }
 
 func ChunkToEvents(chunk *genai.GenerateContentResponse, state *EmitState) []SSEEvent {
@@ -70,14 +73,118 @@ func partToEvents(part *genai.Part, state *EmitState) []SSEEvent {
 	}
 }
 
+type textSegment struct {
+	content     string
+	isReasoning bool
+}
+
+var leakedOpenTags = []string{"<thinking>", "<thought>", "<think>"}
+var leakedCloseTags = []string{"</thinking>", "</thought>", "</think>"}
+
 func textEvents(text string, state *EmitState) []SSEEvent {
+	segments := filterLeakedThinking(text, state)
+	var events []SSEEvent
+	for _, seg := range segments {
+		if seg.isReasoning {
+			events = append(events, emitReasoningDelta(seg.content, state)...)
+		} else {
+			events = append(events, emitTextDelta(seg.content, state)...)
+		}
+	}
+	return events
+}
+
+func emitTextDelta(text string, state *EmitState) []SSEEvent {
 	flushEvents := flushThought(state)
 	data, _ := json.Marshal(map[string]string{"delta": text})
-	event := SSEEvent{
+	return append(flushEvents, SSEEvent{
 		Type: "response.output_text.delta",
 		Data: string(data),
+	})
+}
+
+func emitReasoningDelta(text string, state *EmitState) []SSEEvent {
+	state.ThoughtText += text
+	state.HasThought = true
+	data, _ := json.Marshal(map[string]string{"delta": text})
+	return []SSEEvent{{
+		Type: "response.reasoning_summary_text.delta",
+		Data: string(data),
+	}}
+}
+
+func filterLeakedThinking(text string, state *EmitState) []textSegment {
+	input := state.LeakedBuf + text
+	state.LeakedBuf = ""
+
+	if len(input) == 0 {
+		return nil
 	}
-	return append(flushEvents, event)
+
+	var segments []textSegment
+
+	for len(input) > 0 {
+		tags, isReasoning := activeLeakedTags(state.Suppressing)
+		idx, tagLen := indexOfAny(input, tags)
+		if idx == -1 {
+			partial := longestPartialSuffix(input, tags)
+			if partial > 0 && partial < len(input) {
+				segments = append(segments, textSegment{input[:len(input)-partial], isReasoning})
+				state.LeakedBuf = input[len(input)-partial:]
+			} else if partial == len(input) {
+				state.LeakedBuf = input
+			} else {
+				segments = append(segments, textSegment{input, isReasoning})
+			}
+			break
+		}
+		if idx > 0 {
+			segments = append(segments, textSegment{input[:idx], isReasoning})
+		}
+		input = input[idx+tagLen:]
+		state.Suppressing = !state.Suppressing
+	}
+
+	return segments
+}
+
+func activeLeakedTags(suppressing bool) ([]string, bool) {
+	if suppressing {
+		return leakedCloseTags, true
+	}
+	return leakedOpenTags, false
+}
+
+func indexOfAny(s string, needles []string) (int, int) {
+	bestIdx := -1
+	bestLen := 0
+	for _, needle := range needles {
+		idx := strings.Index(s, needle)
+		if idx != -1 && (bestIdx == -1 || idx < bestIdx || (idx == bestIdx && len(needle) > bestLen)) {
+			bestIdx = idx
+			bestLen = len(needle)
+		}
+	}
+	return bestIdx, bestLen
+}
+
+func longestPartialSuffix(s string, tags []string) int {
+	best := 0
+	for _, tag := range tags {
+		maxN := len(tag) - 1
+		if maxN > len(s) {
+			maxN = len(s)
+		}
+		for n := maxN; n >= 1; n-- {
+			if s[len(s)-n:] == tag[:n] {
+				if n > best {
+					best = n
+				}
+				break
+			}
+		}
+	}
+	return best
 }
 
 func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []SSEEvent {
@@ -133,13 +240,7 @@ func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []
 
 func thoughtEvents(part *genai.Part, state *EmitState) []SSEEvent {
 	if part.Text != "" {
-		state.ThoughtText += part.Text
-		state.HasThought = true
-		data, _ := json.Marshal(map[string]string{"delta": part.Text})
-		return []SSEEvent{{
-			Type: "response.reasoning_summary_text.delta",
-			Data: string(data),
-		}}
+		return emitReasoningDelta(part.Text, state)
 	}
 	if len(part.ThoughtSignature) > 0 {
 		state.ThoughtSig = part.ThoughtSignature

@@ -301,11 +301,241 @@ func TestChunkToEvents(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "leaked think reroutes to reasoning",
+			chunk: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{{Text: "before<think>thinking</think>after"}},
+					},
+				}},
+			},
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 3 {
+					t.Fatalf("want 3 events, got %d", len(events))
+				}
+				if events[0].Type != "response.output_text.delta" {
+					t.Errorf("event[0].type = %q", events[0].Type)
+				}
+				assertJSONField(t, events[0].Data, "delta", "before")
+				if events[1].Type != "response.reasoning_summary_text.delta" {
+					t.Errorf("event[1].type = %q", events[1].Type)
+				}
+				assertJSONField(t, events[1].Data, "delta", "thinking")
+				if events[2].Type != "response.output_text.delta" {
+					t.Errorf("event[2].type = %q", events[2].Type)
+				}
+				assertJSONField(t, events[2].Data, "delta", "after")
+			},
+		},
+		{
+			name: "entirely leaked think",
+			chunk: &genai.GenerateContentResponse{
+				Candidates: []*genai.Candidate{{
+					Content: &genai.Content{
+						Parts: []*genai.Part{{Text: "<think>all reasoning</think>"}},
+					},
+				}},
+			},
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 1 {
+					t.Fatalf("want 1 event, got %d", len(events))
+				}
+				if events[0].Type != "response.reasoning_summary_text.delta" {
+					t.Errorf("type = %q", events[0].Type)
+				}
+				assertJSONField(t, events[0].Data, "delta", "all reasoning")
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			events := ChunkToEvents(tt.chunk, tt.state)
 			tt.check(t, events, tt.state)
+		})
+	}
+}
+
+func TestFilterLeakedThinking(t *testing.T) {
+	tests := []struct {
+		name           string
+		text           string
+		state          *EmitState
+		want           []textSegment
+		wantSuppressing bool
+		wantLeakedBuf  string
+	}{
+		{
+			name:  "no tags",
+			text:  "hello world",
+			state: &EmitState{},
+			want:  []textSegment{{"hello world", false}},
+		},
+		{
+			name:  "complete think block",
+			text:  "<think>reasoning here</think>",
+			state: &EmitState{},
+			want:  []textSegment{{"reasoning here", true}},
+		},
+		{
+			name:  "complete thought block",
+			text:  "<thought>reasoning</thought>output",
+			state: &EmitState{},
+			want:  []textSegment{{"reasoning", true}, {"output", false}},
+		},
+		{
+			name:  "complete thinking block",
+			text:  "<thinking>deep</thinking>result",
+			state: &EmitState{},
+			want:  []textSegment{{"deep", true}, {"result", false}},
+		},
+		{
+			name:  "text before and after",
+			text:  "before<think>inside</think>after",
+			state: &EmitState{},
+			want:  []textSegment{{"before", false}, {"inside", true}, {"after", false}},
+		},
+		{
+			name:            "unclosed tag spans chunks",
+			text:            "text<think>reasoning",
+			state:           &EmitState{},
+			want:            []textSegment{{"text", false}, {"reasoning", true}},
+			wantSuppressing: true,
+		},
+		{
+			name:  "already suppressing finds close",
+			text:  "continued</think>output",
+			state: &EmitState{Suppressing: true},
+			want:  []textSegment{{"continued", true}, {"output", false}},
+		},
+		{
+			name:          "partial opening tag at end",
+			text:          "hello<thin",
+			state:         &EmitState{},
+			want:          []textSegment{{"hello", false}},
+			wantLeakedBuf: "<thin",
+		},
+		{
+			name:            "partial closing tag at end",
+			text:            "reasoning</thi",
+			state:           &EmitState{Suppressing: true},
+			want:            []textSegment{{"reasoning", true}},
+			wantSuppressing: true,
+			wantLeakedBuf:   "</thi",
+		},
+		{
+			name:            "buffer confirms opening tag",
+			text:            "nk>inside",
+			state:           &EmitState{LeakedBuf: "<thi"},
+			want:            []textSegment{{"inside", true}},
+			wantSuppressing: true,
+		},
+		{
+			name:  "buffer rejects tag",
+			text:  "gs are cool",
+			state: &EmitState{LeakedBuf: "<thin"},
+			want:  []textSegment{{"<things are cool", false}},
+		},
+		{
+			name:  "empty text",
+			text:  "",
+			state: &EmitState{},
+			want:  nil,
+		},
+		{
+			name:  "empty tag",
+			text:  "<think></think>",
+			state: &EmitState{},
+			want:  nil,
+		},
+		{
+			name:  "thinking preferred over think at same position",
+			text:  "<thinking>deep</thinking>out",
+			state: &EmitState{},
+			want:  []textSegment{{"deep", true}, {"out", false}},
+		},
+		{
+			name:          "entire input is partial tag",
+			text:          "<th",
+			state:         &EmitState{},
+			want:          nil,
+			wantLeakedBuf: "<th",
+		},
+		{
+			name:  "unrelated xml passes through",
+			text:  "<div>content</div>",
+			state: &EmitState{},
+			want:  []textSegment{{"<div>content</div>", false}},
+		},
+		{
+			name:            "multiple blocks",
+			text:            "a<think>b</think>c<thought>d</thought>e",
+			state:           &EmitState{},
+			want:            []textSegment{{"a", false}, {"b", true}, {"c", false}, {"d", true}, {"e", false}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := filterLeakedThinking(tt.text, tt.state)
+			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(textSegment{})); diff != "" {
+				t.Errorf("segments (-want +got):\n%s", diff)
+			}
+			if tt.state.Suppressing != tt.wantSuppressing {
+				t.Errorf("Suppressing = %v, want %v", tt.state.Suppressing, tt.wantSuppressing)
+			}
+			if tt.state.LeakedBuf != tt.wantLeakedBuf {
+				t.Errorf("LeakedBuf = %q, want %q", tt.state.LeakedBuf, tt.wantLeakedBuf)
+			}
+		})
+	}
+}
+
+func TestIndexOfAny(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       string
+		needles []string
+		wantIdx int
+		wantLen int
+	}{
+		{"no match", "hello", []string{"<think>"}, -1, 0},
+		{"single match", "a<think>b", []string{"<think>"}, 1, 7},
+		{"first of two", "a<think>b<thought>c", []string{"<think>", "<thought>"}, 1, 7},
+		{"longer wins on tie", "<thinking>x", []string{"<think>", "<thinking>"}, 0, 10},
+		{"earlier wins over longer", "a<think>b<thinking>c", []string{"<thinking>", "<think>"}, 1, 7},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			idx, length := indexOfAny(tt.s, tt.needles)
+			if idx != tt.wantIdx || length != tt.wantLen {
+				t.Errorf("got (%d, %d), want (%d, %d)", idx, length, tt.wantIdx, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestLongestPartialSuffix(t *testing.T) {
+	tests := []struct {
+		name string
+		s    string
+		tags []string
+		want int
+	}{
+		{"no match", "hello", []string{"<think>"}, 0},
+		{"single char", "x<", []string{"<think>"}, 1},
+		{"multi char", "x<thin", []string{"<think>"}, 5},
+		{"full tag not partial", "x<think>", []string{"<think>"}, 0},
+		{"best across tags", "x<thou", []string{"<think>", "<thought>"}, 5},
+		{"entire string is partial", "<th", []string{"<think>", "<thought>"}, 3},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := longestPartialSuffix(tt.s, tt.tags)
+			if got != tt.want {
+				t.Errorf("got %d, want %d", got, tt.want)
+			}
 		})
 	}
 }

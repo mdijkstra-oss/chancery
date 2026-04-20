@@ -9,6 +9,12 @@
       "verbosity": "low",
       "reasoning_summary": "concise"
     },
+    "gpt-5.4-mini": {
+      "name": "gpt-5.4-mini",
+      "pricing": { "input": 0.75, "output": 4.50, "cached_input": 0.075 },
+      "verbosity": "low",
+      "reasoning_summary": "concise"
+    },
     "gpt-5.2": {
       "name": "gpt-5.2",
       "pricing": { "input": 1.75, "output": 14.00, "cached_input": 0.175 },

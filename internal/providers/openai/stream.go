@@ -25,11 +25,12 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 		return sse.StreamResult{}, fmt.Errorf("execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("openai returned status %d", resp.StatusCode))
-	}
 	if resp.StatusCode != http.StatusOK {
-		return sse.StreamResult{}, fmt.Errorf("openai returned status %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("openai returned status %d: %s", resp.StatusCode, body))
+		}
+		return sse.StreamResult{}, fmt.Errorf("openai returned status %d: %s", resp.StatusCode, body)
 	}
 
 	sse.SetHeaders(w)

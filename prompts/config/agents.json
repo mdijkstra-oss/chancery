@@ -1,8 +1,8 @@
 {
   "qual-coder": {
-    "model": "gemini-3-flash-preview",
+    "model": "gpt-5.4-mini",
     "reasoning_effort": "high",
-    "compact_at": 500000
+    "compact_at": 200000
   },
   "scout-mapper": {
     "model": "gemini-2.5-flash-lite",
@@ -29,7 +29,7 @@
   },
   "deep-analysis": {
     "model": "gemini-3.1-pro-preview",
-    "reasoning_effort": "medium"
+    "reasoning_effort": "low"
   },
   "commit-agent": {
     "model": "gpt-5-mini",

@@ -36,12 +36,14 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	sse.SetHeaders(w)
 	sse.Flush(w)
 
-	return relaySSE(ctx, w, bufio.NewScanner(resp.Body)), nil
+	return relaySSE(ctx, w, bufio.NewScanner(resp.Body), params.Model), nil
 }
 
-func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner) sse.StreamResult {
+func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner, model string) sse.StreamResult {
 	var result sse.StreamResult
 	var currentEvent string
+	var eventsRelayed int
+	var lastEvent string
 	for scanner.Scan() {
 		line := scanner.Text()
 		fmt.Fprintln(w, line)
@@ -54,11 +56,19 @@ func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner) sse.Stre
 		}
 		if isEventBoundary(line) {
 			sse.Flush(w)
+			eventsRelayed++
+			lastEvent = currentEvent
 			currentEvent = ""
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		slog.ErrorContext(ctx, "stream scan error", "component", "openai", "error", err)
+		slog.ErrorContext(ctx, "stream scan error",
+			"component", "openai",
+			"error", err,
+			"model", model,
+			"events_relayed", eventsRelayed,
+			"last_event", lastEvent,
+		)
 	}
 	return result
 }

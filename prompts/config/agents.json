@@ -1,12 +1,13 @@
 {
   "qual-coder": {
     "model": "gpt-5.4-mini",
+    "prompt": "",
     "reasoning_effort": "high",
     "compact_at": 200000
   },
-  "scout-mapper": {
+  "section-labeler": {
     "model": "gemini-2.5-flash-lite",
-    "reasoning_effort": "medium",
+    "reasoning_effort": "off",
     "temperature": 0,
     "seed": true
   },
@@ -28,8 +29,8 @@
     "model": "gemini-3-flash-preview"
   },
   "deep-analysis": {
-    "model": "gemini-3.1-pro-preview",
-    "reasoning_effort": "low"
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium"
   },
   "commit-agent": {
     "model": "gpt-5-mini",

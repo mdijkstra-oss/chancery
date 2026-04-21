@@ -30,6 +30,9 @@ func BuildRequestParams(agentName string, req protocol.ChatRequest, registry pro
 	}
 
 	fullPrompt := agent.Prompt
+	if promptCfg.Prompt != "" {
+		fullPrompt = promptCfg.Prompt + "\n\n" + fullPrompt
+	}
 	if toolPrompt != "" {
 		fullPrompt = fullPrompt + "\n\n" + toolPrompt
 	}

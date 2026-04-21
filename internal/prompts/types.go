@@ -33,6 +33,7 @@ type ProviderConfig struct {
 
 type PromptConfig struct {
 	Model            string         `json:"model"`
+	Prompt           string         `json:"prompt,omitempty"`
 	Dimensions       int            `json:"dimensions,omitempty"`
 	ReasoningEffort  string         `json:"reasoning_effort"`
 	ReasoningSummary string         `json:"reasoning_summary"`
@@ -57,6 +58,7 @@ type modelEntry struct {
 	Extends          string  `json:"extends,omitempty"`
 	Provider         string  `json:"provider,omitempty"`
 	Name             string  `json:"name,omitempty"`
+	Prompt           string  `json:"prompt,omitempty"`
 	Type             string  `json:"type,omitempty"`
 	Dimensions       int     `json:"dimensions,omitempty"`
 	ReasoningEffort  string  `json:"reasoning_effort,omitempty"`
@@ -70,6 +72,7 @@ type modelEntry struct {
 
 type agentEntry struct {
 	Model            string   `json:"model"`
+	Prompt           *string  `json:"prompt,omitempty"`
 	ReasoningEffort  string   `json:"reasoning_effort,omitempty"`
 	ReasoningSummary string   `json:"reasoning_summary,omitempty"`
 	Verbosity        string   `json:"verbosity,omitempty"`

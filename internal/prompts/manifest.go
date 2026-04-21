@@ -302,8 +302,29 @@ func loadConfigDir(promptsDir string) (map[string]PromptConfig, []string) {
 		}
 		configs[key] = mergeConfig(model, agent, provider)
 	}
+	resolvePromptPaths(configs, filepath.Join(promptsDir, "shared"))
 	validateSeedProtocols(configs)
 	return configs, providerKeys
+}
+
+func resolvePromptPaths(configs map[string]PromptConfig, sharedDir string) {
+	cache := make(map[string]string)
+	for key, cfg := range configs {
+		if cfg.Prompt == "" {
+			continue
+		}
+		content, ok := cache[cfg.Prompt]
+		if !ok {
+			raw, err := osReadFile(filepath.Join(sharedDir, cfg.Prompt))
+			if err != nil {
+				panic(fmt.Sprintf("agent %q prompt %q: %v", key, cfg.Prompt, err))
+			}
+			content = strings.TrimRight(raw, "\n")
+			cache[cfg.Prompt] = content
+		}
+		cfg.Prompt = content
+		configs[key] = cfg
+	}
 }
 
 func validateSeedProtocols(configs map[string]PromptConfig) {
@@ -363,6 +384,9 @@ func overlayModel(base, child modelEntry) modelEntry {
 	if child.Dimensions != 0 {
 		result.Dimensions = child.Dimensions
 	}
+	if child.Prompt != "" {
+		result.Prompt = child.Prompt
+	}
 	if child.ReasoningEffort != "" {
 		result.ReasoningEffort = child.ReasoningEffort
 	}
@@ -394,6 +418,7 @@ func hasPricing(p Pricing) bool {
 func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) PromptConfig {
 	cfg := PromptConfig{
 		Model:            model.Name,
+		Prompt:           model.Prompt,
 		Dimensions:       model.Dimensions,
 		ReasoningEffort:  model.ReasoningEffort,
 		ReasoningSummary: model.ReasoningSummary,
@@ -403,6 +428,9 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 		CompactAt:        model.CompactAt,
 		Pricing:          model.Pricing,
 		Provider:         provider,
+	}
+	if agent.Prompt != nil {
+		cfg.Prompt = *agent.Prompt
 	}
 	if agent.ReasoningEffort != "" {
 		cfg.ReasoningEffort = agent.ReasoningEffort

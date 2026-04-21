@@ -61,7 +61,7 @@ The rule is simple: **if you describe content, you have read that content in thi
 - Specific quotes, paraphrases, or characterizations
 
 **Claims that do not require reading:**
-- What files exist (from `ls`)
+- What files exist (from `ls --show-tags`)
 - What codes the codebook defines (from reading the codebook)
 - What the project is set up to investigate (from preferences)
 - What tools and structures are available

@@ -45,7 +45,7 @@ If you are writing more than one `ILIKE` to cover different phrasings of the sam
 ## When grep is appropriate
 
 `run_local_shell` with `grep` is appropriate for:
-- Listing files or checking file existence (`ls`, `find`)
+- Listing files or checking file existence (`ls --show-tags`, `find`)
 - Reading sections of a document by line range (`cat -o -l`)
 - Searching for literal strings in non-corpus files (settings structure, config)
 

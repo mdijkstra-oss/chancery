@@ -26,7 +26,7 @@
       "reasoning_effort": "minimal"
     },
     "gemini-2.5-flash": {
-      "name": "gemini-2.5",
+      "name": "gemini-2.5-flash",
       "legacy_thinking": true,
       "pricing": { "input": 0.30, "output": 2.50, "cached_input": 0.03 },
       "reasoning_effort": "minimal"

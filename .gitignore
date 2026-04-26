@@ -1,6 +1,7 @@
 *.exe
 main
 generate
+test
 .idea/
 .DS_Store
 AI-Architecture.md

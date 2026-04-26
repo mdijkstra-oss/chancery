@@ -28,9 +28,17 @@
   "compacter": {
     "model": "gemini-3-flash-preview"
   },
-  "deep-analysis": {
+  "deep-analysis-find": {
     "model": "gpt-5.4",
-    "reasoning_effort": "medium"
+    "reasoning_effort": "none"
+  },
+  "deep-analysis-reason": {
+    "model": "gpt-5.4",
+    "reasoning_effort": "none"
+  },
+  "deep-analysis-review": {
+    "model": "gpt-5.4",
+    "reasoning_effort": "none"
   },
   "commit-agent": {
     "model": "gpt-5-mini",

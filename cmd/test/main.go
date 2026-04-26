@@ -13,12 +13,14 @@ import (
 	"hermes-logos/internal/protocol"
 	"hermes-logos/internal/providers"
 	"hermes-logos/internal/providers/sse"
+	"hermes-logos/internal/telemetry"
 )
 
 func main() {
 	temperature := flag.String("temperature", "", "override temperature")
 	model := flag.String("model", "", "override model")
 	toolChoice := flag.String("tool-choice", "", "override tool choice")
+	reasoning := flag.String("reasoning", "", "override reasoning effort (low, medium, high)")
 	reasoningSummary := flag.String("reasoning-summary", "", "override reasoning summary")
 	flag.Parse()
 
@@ -44,7 +46,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	applyOverrides(&params, *temperature, *model, *toolChoice, *reasoningSummary)
+	applyOverrides(&params, *temperature, *model, *toolChoice, *reasoning, *reasoningSummary)
+
+	if *model != "" {
+		override, ok := registry.LookupModel(*model)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "unknown model: %s\n", *model)
+			os.Exit(1)
+		}
+		params.Model = override.Name
+		promptCfg.Provider = override.Provider
+		promptCfg.Pricing = override.Pricing
+	}
 
 	collector := &sse.Collector{}
 	streamFn := providers.StreamForProtocol(promptCfg.Provider.Protocol)
@@ -64,10 +77,17 @@ func main() {
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "\n--- meta ---\n")
+	fmt.Fprintf(os.Stderr, "model: %s\n", params.Model)
+	if params.ReasoningEffort != "" {
+		fmt.Fprintf(os.Stderr, "reasoning: %s\n", params.ReasoningEffort)
+	}
 	if result.Usage != nil {
-		fmt.Fprintf(os.Stderr, "\n--- usage ---")
-		fmt.Fprintf(os.Stderr, "\ninput: %d, output: %d, total: %d\n",
+		rec := telemetry.BuildCallRecord("chat", params.Model, "", "", "", result.Usage, promptCfg.Pricing, 0)
+		fmt.Fprintf(os.Stderr, "input: %d, output: %d, total: %d\n",
 			result.Usage.InputTokens, result.Usage.OutputTokens, result.Usage.TotalTokens)
+		fmt.Fprintf(os.Stderr, "cost: $%.4f (input: $%.4f, cached: $%.4f, output: $%.4f, reasoning: $%.4f)\n",
+			rec.TotalCost, rec.InputCost, rec.CachedInputCost, rec.OutputCost, rec.ReasoningCost)
 	}
 }
 
@@ -83,7 +103,7 @@ func loadRequest(path string) (protocol.ChatRequest, error) {
 	return req, nil
 }
 
-func applyOverrides(params *protocol.RequestParams, temperature, model, toolChoice, reasoningSummary string) {
+func applyOverrides(params *protocol.RequestParams, temperature, model, toolChoice, reasoning, reasoningSummary string) {
 	if temperature != "" {
 		v, err := strconv.ParseFloat(temperature, 64)
 		if err != nil {
@@ -97,6 +117,9 @@ func applyOverrides(params *protocol.RequestParams, temperature, model, toolChoi
 	}
 	if toolChoice != "" {
 		params.ToolChoice = toolChoice
+	}
+	if reasoning != "" {
+		params.ReasoningEffort = reasoning
 	}
 	if reasoningSummary != "" {
 		params.ReasoningSummary = reasoningSummary

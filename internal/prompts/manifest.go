@@ -28,6 +28,30 @@ type Registry struct {
 	Modes        map[string]string
 	Approaches   ApproachRegistry
 	ProviderKeys []string
+	models       map[string]modelEntry
+	providers    map[string]ProviderConfig
+}
+
+type ModelOverride struct {
+	Name     string
+	Provider ProviderConfig
+	Pricing  Pricing
+}
+
+func (r Registry) LookupModel(key string) (ModelOverride, bool) {
+	model, ok := r.models[key]
+	if !ok {
+		return ModelOverride{}, false
+	}
+	provider, ok := r.providers[model.Provider]
+	if !ok {
+		return ModelOverride{}, false
+	}
+	name := model.Name
+	if name == "" {
+		name = key
+	}
+	return ModelOverride{Name: name, Provider: provider, Pricing: model.Pricing}, true
 }
 
 var includePattern = regexp.MustCompile(`^\[([^\]]+\.md)\]$`)
@@ -134,13 +158,15 @@ func CompileRegistry(promptsDir string) Registry {
 	agentsDir := filepath.Join(promptsDir, "agents")
 	sharedDir := filepath.Join(promptsDir, "shared")
 
-	configs, providerKeys := loadConfigDir(promptsDir)
+	cr := loadConfigDir(promptsDir)
 	registry := Registry{
 		Agents:       make(map[string]CompiledAgent),
-		Configs:      configs,
+		Configs:      cr.configs,
 		Modes:        compileModes(promptsDir),
 		Approaches:   compileApproaches(promptsDir),
-		ProviderKeys: providerKeys,
+		ProviderKeys: cr.providerKeys,
+		models:       cr.models,
+		providers:    cr.providers,
 	}
 
 	filepath.Walk(agentsDir, func(path string, info os.FileInfo, err error) error {
@@ -243,7 +269,14 @@ func loadAgentsConfig(path string) map[string]agentEntry {
 	return agents
 }
 
-func loadConfigDir(promptsDir string) (map[string]PromptConfig, []string) {
+type configResult struct {
+	configs      map[string]PromptConfig
+	providerKeys []string
+	models       map[string]modelEntry
+	providers    map[string]ProviderConfig
+}
+
+func loadConfigDir(promptsDir string) configResult {
 	configDir := filepath.Join(promptsDir, "config")
 	entries, err := os.ReadDir(configDir)
 	if err != nil {
@@ -304,7 +337,7 @@ func loadConfigDir(promptsDir string) (map[string]PromptConfig, []string) {
 	}
 	resolvePromptPaths(configs, filepath.Join(promptsDir, "shared"))
 	validateSeedProtocols(configs)
-	return configs, providerKeys
+	return configResult{configs: configs, providerKeys: providerKeys, models: resolved, providers: providers}
 }
 
 func resolvePromptPaths(configs map[string]PromptConfig, sharedDir string) {

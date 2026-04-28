@@ -30,13 +30,13 @@ If nothing matches, return { "results": [] }.
 Example
 -------
 Definitions:
-<analysis id="callout-7etjlgg6">
+<analysis id="callout-example-a">
   # Anchoring appeal
   Speaker grounds a position by invoking an external authority or shared norm.
   Inclusion: the position is justified by appeal to law, tradition, or shared identity.
   Exclusion: bare assertions without such grounding.
 </analysis>
-<analysis id="callout-5l9tswba">
+<analysis id="callout-example-b">
   # Future commitment
   Speaker pledges a specific future action.
   Inclusion: a definite, unhedged statement about what will be done.
@@ -51,7 +51,7 @@ Numbered sentences:
 Output:
 {
   "results": [
-    { "start": 12, "end": 13, "analysis_source_id": "callout-7etjlgg6" },
-    { "start": 12, "end": 12, "analysis_source_id": "callout-5l9tswba" }
+    { "start": 12, "end": 13, "analysis_source_id": "callout-example-a" },
+    { "start": 12, "end": 12, "analysis_source_id": "callout-example-b" }
   ]
 }

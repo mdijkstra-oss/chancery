@@ -247,7 +247,7 @@ func loadProviderFile(path, providerKey string) (ProviderEntry, map[string]model
 	if err := json.Unmarshal(data, &pf); err != nil {
 		panic(fmt.Sprintf("parse %s: %v", filepath.Base(path), err))
 	}
-	entry := ProviderEntry{Protocol: pf.Protocol, BaseURL: pf.BaseURL, APIKeyEnv: pf.APIKeyEnv}
+	entry := ProviderEntry{Protocol: pf.Protocol, BaseURL: pf.BaseURL, APIKeyEnv: pf.APIKeyEnv, Strict: pf.Strict}
 	for key, m := range pf.Models {
 		if m.Provider == "" {
 			m.Provider = providerKey
@@ -494,7 +494,7 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 
 func validateProtocol(p Protocol) {
 	switch p {
-	case ProtocolResponses, ProtocolGemini:
+	case ProtocolResponses, ProtocolGemini, ProtocolCompletions:
 	default:
 		panic(fmt.Sprintf("unknown protocol: %q", p))
 	}
@@ -516,6 +516,7 @@ func resolveProviders(entries map[string]ProviderEntry) map[string]ProviderConfi
 			Protocol: entry.Protocol,
 			BaseURL:  entry.BaseURL,
 			APIKey:   apiKey,
+			Strict:   entry.Strict,
 		}
 	}
 	return providers

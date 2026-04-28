@@ -3,8 +3,9 @@ package prompts
 type Protocol string
 
 const (
-	ProtocolResponses Protocol = "responses"
-	ProtocolGemini Protocol = "gemini"
+	ProtocolResponses   Protocol = "responses"
+	ProtocolGemini      Protocol = "gemini"
+	ProtocolCompletions Protocol = "completions"
 )
 
 type Segment struct {
@@ -22,6 +23,7 @@ type ProviderEntry struct {
 	Protocol  Protocol `json:"protocol"`
 	BaseURL   string   `json:"base_url"`
 	APIKeyEnv string   `json:"api_key_env"`
+	Strict    bool     `json:"strict,omitempty"`
 }
 
 type ProviderConfig struct {
@@ -29,6 +31,7 @@ type ProviderConfig struct {
 	Protocol Protocol
 	BaseURL  string
 	APIKey   string
+	Strict   bool
 }
 
 type PromptConfig struct {
@@ -48,10 +51,11 @@ type PromptConfig struct {
 }
 
 type providerFile struct {
-	Protocol  Protocol                `json:"protocol"`
-	BaseURL   string                  `json:"base_url"`
-	APIKeyEnv string                  `json:"api_key_env"`
-	Models    map[string]modelEntry   `json:"models"`
+	Protocol  Protocol              `json:"protocol"`
+	BaseURL   string                `json:"base_url"`
+	APIKeyEnv string                `json:"api_key_env"`
+	Strict    bool                  `json:"strict,omitempty"`
+	Models    map[string]modelEntry `json:"models"`
 }
 
 type modelEntry struct {

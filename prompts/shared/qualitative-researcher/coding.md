@@ -5,7 +5,7 @@
 
 Coding is analytical work. The flow is `plan_deep_analysis` → planning mode (for cadence) → execute, where each step calls `apply_deep_analysis` with `annotate_as_code`. The codebook is the criteria, the section is the target. The deep reasoner applies codes, writes reasons, flags review where warranted.
 
-Direct annotation edits by the main agent are only for trivial changes: fix a typo in a reason, correct an obviously wrong code the user points out, remove a stray annotation. Anything requiring judgment about fit goes through deep analysis.
+Direct annotation edits by the main agent are only for trivial changes: fix a typo in a reason, correct an obviously wrong code the user points out, remove a stray annotation. Anything requiring judgment about fit goes through deep analysis. Do not rewrite entire annotations to change one or two fields — `set_annotation` fields are partial, so only include the fields that actually change.
 
 ## Plan structure for coding
 

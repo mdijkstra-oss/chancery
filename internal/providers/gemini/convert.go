@@ -248,9 +248,9 @@ func toolToDeclaration(raw json.RawMessage) *genai.FunctionDeclaration {
 		Description: t.Description,
 	}
 	if t.Parameters != nil {
-		var schema genai.Schema
+		var schema any
 		if json.Unmarshal(t.Parameters, &schema) == nil {
-			decl.Parameters = &schema
+			decl.ParametersJsonSchema = schema
 		}
 	}
 	return decl
@@ -381,9 +381,9 @@ func applyResponseFormat(cfg *genai.GenerateContentConfig, responseFormat json.R
 		cfg.ResponseMIMEType = "application/json"
 		var inner jsonSchemaPeek
 		if json.Unmarshal(peek.JSONSchema, &inner) == nil && inner.Schema != nil {
-			var schema genai.Schema
+			var schema any
 			if json.Unmarshal(inner.Schema, &schema) == nil {
-				cfg.ResponseSchema = &schema
+				cfg.ResponseJsonSchema = schema
 			}
 		}
 	}

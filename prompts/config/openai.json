@@ -26,6 +26,12 @@
       "service_tier": "priority",
       "pricing": { "input": 3.50, "output": 28.00, "cached_input": 0.35 }
     },
+    "gpt-5.1": {
+      "name": "gpt-5.1",
+      "pricing": { "input": 1.25, "output": 10.00, "cached_input": 0.125 },
+      "verbosity": "low",
+      "reasoning_summary": "concise"
+    },
     "gpt-5-mini": {
       "name": "gpt-5-mini",
       "pricing": { "input": 0.25, "output": 2.00, "cached_input": 0.025 },

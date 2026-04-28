@@ -442,7 +442,7 @@ func TestToolsToGemini(t *testing.T) {
 		{
 			name: "single tool",
 			tools: []string{
-				`{"name":"search","description":"Search the web","parameters":{"type":"OBJECT","properties":{"q":{"type":"STRING"}}}}`,
+				`{"name":"search","description":"Search the web","parameters":{"type":"object","properties":{"q":{"type":"string"}},"additionalProperties":false}}`,
 			},
 			check: func(t *testing.T, got []*genai.Tool) {
 				if len(got) != 1 {
@@ -457,6 +457,19 @@ func TestToolsToGemini(t *testing.T) {
 				}
 				if decl.Description != "Search the web" {
 					t.Errorf("description = %q, want Search the web", decl.Description)
+				}
+				if decl.Parameters != nil {
+					t.Error("expected Parameters to be nil (using ParametersJsonSchema)")
+				}
+				if decl.ParametersJsonSchema == nil {
+					t.Fatal("expected ParametersJsonSchema to be set")
+				}
+				schema := decl.ParametersJsonSchema.(map[string]any)
+				if schema["type"] != "object" {
+					t.Errorf("type = %v, want object", schema["type"])
+				}
+				if schema["additionalProperties"] != false {
+					t.Errorf("additionalProperties = %v, want false", schema["additionalProperties"])
 				}
 			},
 		},
@@ -595,14 +608,24 @@ func TestBuildConfig(t *testing.T) {
 		{
 			name: "response format json_schema",
 			params: protocol.RequestParams{
-				ResponseFormat: json.RawMessage(`{"type":"json_schema","json_schema":{"name":"test","schema":{"type":"OBJECT","properties":{"a":{"type":"STRING"}}}}}`),
+				ResponseFormat: json.RawMessage(`{"type":"json_schema","json_schema":{"name":"test","schema":{"type":"object","properties":{"a":{"type":"string"}},"additionalProperties":false}}}`),
 			},
 			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
 				if cfg.ResponseMIMEType != "application/json" {
 					t.Errorf("mime = %q, want application/json", cfg.ResponseMIMEType)
 				}
-				if cfg.ResponseSchema == nil {
-					t.Fatal("expected ResponseSchema")
+				if cfg.ResponseSchema != nil {
+					t.Error("expected ResponseSchema to be nil (using ResponseJsonSchema)")
+				}
+				if cfg.ResponseJsonSchema == nil {
+					t.Fatal("expected ResponseJsonSchema")
+				}
+				schema := cfg.ResponseJsonSchema.(map[string]any)
+				if schema["type"] != "object" {
+					t.Errorf("type = %v, want object", schema["type"])
+				}
+				if schema["additionalProperties"] != false {
+					t.Errorf("additionalProperties = %v, want false", schema["additionalProperties"])
 				}
 			},
 		},

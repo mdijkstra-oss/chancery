@@ -16,7 +16,7 @@ Each block type has its own tools. Operations are schema-validated — use the r
 - **`set`** — partial field update (scalars, full array/object replacement). Fine for short fields. For long multiline fields, prefer `patch_<field>` — `set` replaces the entire field value.
 - **`add_<item>`** — append to an object array (`add_annotation`, `add_tag`, `add_search`)
 - **`remove_<item>`** — remove by ID (`remove_annotation`, `remove_tag`, `remove_search`)
-- **`set_<item>`** — set fields on item by ID (`set_annotation`, `set_tag`, `set_search`)
+- **`set_<item>`** — partial field update on item by ID (`set_annotation`, `set_tag`, `set_search`). Do not include unchanged fields — only the fields that actually change. Rewriting `text` or `reason` when only `code` or `color` changed is wrong. Set a field to `null` to remove it.
 - **`patch_<field>`** — apply a V4A diff to a multiline string field (e.g. `patch_content` for callout `content`). Use instead of `set` when the field is long — sends only the changed lines, not the full value. Fewer tokens, more precise.
 
 Batch related changes as multiple operations in one call.

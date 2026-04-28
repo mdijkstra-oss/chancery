@@ -1,9 +1,9 @@
 {
   "qual-coder": {
-    "model": "gpt-5.4-mini",
+    "model": "gemini-3-flash-preview",
     "prompt": "",
     "reasoning_effort": "high",
-    "compact_at": 200000
+    "compact_at": 300000
   },
   "section-labeler": {
     "model": "gemini-2.5-flash-lite",

@@ -86,7 +86,18 @@ func TestMessagesToCompletions(t *testing.T) {
 			},
 		},
 		{
-			name:         "reasoning skipped",
+			name:         "reasoning attached to assistant",
+			systemPrompt: "",
+			messages: []string{
+				`{"type":"reasoning","id":"r1","extra_content":{"deepseek":{"reasoning_content":"thinking hard"}}}`,
+				`{"role":"assistant","content":"answer"}`,
+			},
+			want: []CompletionsMessage{
+				{Role: "assistant", Content: "answer", ReasoningContent: "thinking hard"},
+			},
+		},
+		{
+			name:         "reasoning without extra_content ignored",
 			systemPrompt: "",
 			messages: []string{
 				`{"type":"reasoning","id":"r1"}`,
@@ -94,6 +105,44 @@ func TestMessagesToCompletions(t *testing.T) {
 			},
 			want: []CompletionsMessage{
 				{Role: "assistant", Content: "answer"},
+			},
+		},
+		{
+			name:         "reasoning attached to function calls",
+			systemPrompt: "",
+			messages: []string{
+				`{"type":"reasoning","id":"r1","extra_content":{"deepseek":{"reasoning_content":"let me think"}}}`,
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
+			},
+			want: []CompletionsMessage{
+				{
+					Role:             "assistant",
+					ReasoningContent: "let me think",
+					ToolCalls: []ToolCallEntry{
+						{ID: "c1", Type: "function", Function: ToolCallFunction{Name: "search", Arguments: "{}"}},
+					},
+				},
+			},
+		},
+		{
+			name:         "reasoning attached to assistant with function calls",
+			systemPrompt: "",
+			messages: []string{
+				`{"type":"reasoning","id":"r1","extra_content":{"deepseek":{"reasoning_content":"deep thought"}}}`,
+				`{"role":"assistant","content":"searching"}`,
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
+				`{"type":"function_call_output","call_id":"c1","output":"found"}`,
+			},
+			want: []CompletionsMessage{
+				{
+					Role:             "assistant",
+					Content:          "searching",
+					ReasoningContent: "deep thought",
+					ToolCalls: []ToolCallEntry{
+						{ID: "c1", Type: "function", Function: ToolCallFunction{Name: "search", Arguments: "{}"}},
+					},
+				},
+				{Role: "tool", Content: "found", ToolCallID: "c1"},
 			},
 		},
 		{
@@ -170,7 +219,7 @@ func TestToolsToCompletions(t *testing.T) {
 			},
 		},
 		{
-			name: "single tool strict",
+			name: "single tool strict empty params omitted",
 			tools: []string{
 				`{"name":"search","description":"Search","parameters":{"type":"object"}}`,
 			},
@@ -181,7 +230,7 @@ func TestToolsToCompletions(t *testing.T) {
 					Function: CompletionsToolDef{
 						Name:        "search",
 						Description: "Search",
-						Parameters:  json.RawMessage(`{}`),
+						Parameters:  nil,
 						Strict:      boolPtr(true),
 					},
 				},
@@ -369,19 +418,19 @@ func TestSanitizeSchema(t *testing.T) {
 			want: `{"type":"string"}`,
 		},
 		{
-			name: "empty object collapsed",
+			name: "empty object returns nil",
 			in:   `{"type":"object","properties":{},"required":[],"additionalProperties":false}`,
-			want: `{}`,
+			want: "",
 		},
 		{
-			name: "object with no properties key collapsed",
+			name: "object with no properties key returns nil",
 			in:   `{"type":"object","additionalProperties":false}`,
-			want: `{}`,
+			want: "",
 		},
 		{
-			name: "bare object type collapsed",
+			name: "bare object type returns nil",
 			in:   `{"type":"object"}`,
-			want: `{}`,
+			want: "",
 		},
 		{
 			name: "object with properties preserved",
@@ -389,9 +438,19 @@ func TestSanitizeSchema(t *testing.T) {
 			want: `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"],"additionalProperties":false}`,
 		},
 		{
-			name: "nested empty object collapsed",
+			name: "nested empty object property removed",
 			in:   `{"type":"object","properties":{"meta":{"type":"object","properties":{},"additionalProperties":false},"name":{"type":"string"}}}`,
-			want: `{"type":"object","properties":{"meta":{},"name":{"type":"string"}}}`,
+			want: `{"type":"object","properties":{"name":{"type":"string"}}}`,
+		},
+		{
+			name: "nested empty object removed from required",
+			in:   `{"type":"object","properties":{"meta":{"type":"object","properties":{}},"name":{"type":"string"}},"required":["meta","name"],"additionalProperties":false}`,
+			want: `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"],"additionalProperties":false}`,
+		},
+		{
+			name: "empty object filtered from anyOf",
+			in:   `{"anyOf":[{"type":"object","properties":{}},{"type":"null"}]}`,
+			want: `{"anyOf":[{"type":"null"}]}`,
 		},
 		{
 			name: "non-object type unchanged",
@@ -422,6 +481,31 @@ func TestSanitizeSchema(t *testing.T) {
 			name: "nested string constraints stripped",
 			in:   `{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":50}}}`,
 			want: `{"type":"object","properties":{"name":{"type":"string"}}}`,
+		},
+		{
+			name: "nested anyOf flattened and deduped",
+			in:   `{"anyOf":[{"anyOf":[{"type":"array","items":{"type":"string"}},{"type":"null"}]},{"type":"null"}]}`,
+			want: `{"anyOf":[{"type":"array","items":{"type":"string"}},{"type":"null"}]}`,
+		},
+		{
+			name: "described anyOf wrapper flattened",
+			in:   `{"anyOf":[{"anyOf":[{"type":"string"},{"type":"object","properties":{"f":{"type":"string"}},"required":["f"],"additionalProperties":false}],"description":"tagged"},{"type":"null"}]}`,
+			want: `{"anyOf":[{"type":"string"},{"type":"object","properties":{"f":{"type":"string"}},"required":["f"],"additionalProperties":false},{"type":"null"}]}`,
+		},
+		{
+			name: "variant with type and anyOf preserved",
+			in:   `{"anyOf":[{"type":"string","anyOf":[{"type":"string"}]},{"type":"null"}]}`,
+			want: `{"anyOf":[{"type":"string","anyOf":[{"type":"string"}]},{"type":"null"}]}`,
+		},
+		{
+			name: "real chart series pattern flattened",
+			in:   `{"anyOf":[{"description":"Optional series field","anyOf":[{"type":"string","minLength":1},{"type":"object","properties":{"field":{"type":"string"}},"required":["field"],"additionalProperties":false}]},{"type":"null"}]}`,
+			want: `{"anyOf":[{"type":"string"},{"type":"object","properties":{"field":{"type":"string"}},"required":["field"],"additionalProperties":false},{"type":"null"}]}`,
+		},
+		{
+			name: "real ask options pattern flattened",
+			in:   `{"anyOf":[{"description":"Concrete choices","anyOf":[{"minItems":2,"type":"array","items":{"type":"string"}},{"type":"null"}]},{"type":"null"}]}`,
+			want: `{"anyOf":[{"type":"array","items":{"type":"string"}},{"type":"null"}]}`,
 		},
 	}
 	for _, tt := range tests {

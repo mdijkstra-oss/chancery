@@ -143,6 +143,90 @@ func TestChunkToEvents(t *testing.T) {
 			},
 		},
 		{
+			name:  "reasoning_content delta",
+			data:  `{"choices":[{"delta":{"reasoning_content":"let me think"},"finish_reason":null}]}`,
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 1 {
+					t.Fatalf("want 1 event, got %d", len(events))
+				}
+				if events[0].Type != "response.reasoning_summary_text.delta" {
+					t.Errorf("type = %q", events[0].Type)
+				}
+				assertJSONField(t, events[0].Data, "delta", "let me think")
+				if state.ReasoningText != "let me think" {
+					t.Errorf("ReasoningText = %q", state.ReasoningText)
+				}
+			},
+		},
+		{
+			name:  "reasoning flushed when content starts",
+			data:  `{"choices":[{"delta":{"content":"answer"},"finish_reason":null}]}`,
+			state: &EmitState{ReasoningText: "I was thinking"},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 2 {
+					t.Fatalf("want 2 events, got %d", len(events))
+				}
+				if events[0].Type != "response.output_item.done" {
+					t.Errorf("event[0].type = %q", events[0].Type)
+				}
+				if events[1].Type != "response.output_text.delta" {
+					t.Errorf("event[1].type = %q", events[1].Type)
+				}
+				if state.ReasoningText != "" {
+					t.Errorf("ReasoningText should be cleared, got %q", state.ReasoningText)
+				}
+				if state.OutputIndex != 1 {
+					t.Errorf("OutputIndex = %d, want 1", state.OutputIndex)
+				}
+			},
+		},
+		{
+			name:  "reasoning flushed when tool call starts",
+			data:  `{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"search","arguments":""}}]},"finish_reason":null}]}`,
+			state: &EmitState{ReasoningText: "thinking about tools"},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 2 {
+					t.Fatalf("want 2 events, got %d", len(events))
+				}
+				if events[0].Type != "response.output_item.done" {
+					t.Errorf("event[0].type = %q", events[0].Type)
+				}
+				if events[1].Type != "response.output_item.added" {
+					t.Errorf("event[1].type = %q", events[1].Type)
+				}
+				if state.ReasoningText != "" {
+					t.Errorf("ReasoningText should be cleared")
+				}
+			},
+		},
+		{
+			name:  "reasoning flushed on finish with no content",
+			data:  `{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
+			state: &EmitState{ReasoningText: "orphaned reasoning"},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 1 {
+					t.Fatalf("want 1 event, got %d", len(events))
+				}
+				if events[0].Type != "response.output_item.done" {
+					t.Errorf("type = %q", events[0].Type)
+				}
+				if state.ReasoningText != "" {
+					t.Errorf("ReasoningText should be cleared")
+				}
+			},
+		},
+		{
+			name:  "empty reasoning_content ignored",
+			data:  `{"choices":[{"delta":{"reasoning_content":""},"finish_reason":null}]}`,
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 0 {
+					t.Errorf("want 0 events, got %d", len(events))
+				}
+			},
+		},
+		{
 			name:  "invalid JSON returns nil",
 			data:  `not json`,
 			state: &EmitState{},
@@ -224,6 +308,78 @@ func TestFlushActiveCalls(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			events := FlushActiveCalls(tt.state)
+			tt.check(t, events, tt.state)
+		})
+	}
+}
+
+func TestFlushReasoning(t *testing.T) {
+	tests := []struct {
+		name  string
+		state *EmitState
+		check func(t *testing.T, events []SSEEvent, state *EmitState)
+	}{
+		{
+			name:  "no reasoning text",
+			state: &EmitState{},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 0 {
+					t.Errorf("want 0 events, got %d", len(events))
+				}
+			},
+		},
+		{
+			name:  "flushes reasoning item",
+			state: &EmitState{ReasoningText: "deep thought"},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				if len(events) != 1 {
+					t.Fatalf("want 1 event, got %d", len(events))
+				}
+				if events[0].Type != "response.output_item.done" {
+					t.Errorf("type = %q", events[0].Type)
+				}
+				var parsed struct {
+					Item struct {
+						Type         string `json:"type"`
+						ID           string `json:"id"`
+						ExtraContent struct {
+							DeepSeek struct {
+								ReasoningContent string `json:"reasoning_content"`
+							} `json:"deepseek"`
+						} `json:"extra_content"`
+					} `json:"item"`
+				}
+				if json.Unmarshal([]byte(events[0].Data), &parsed) != nil {
+					t.Fatalf("invalid json: %s", events[0].Data)
+				}
+				if parsed.Item.Type != "reasoning" {
+					t.Errorf("item.type = %q", parsed.Item.Type)
+				}
+				if parsed.Item.ExtraContent.DeepSeek.ReasoningContent != "deep thought" {
+					t.Errorf("reasoning_content = %q", parsed.Item.ExtraContent.DeepSeek.ReasoningContent)
+				}
+				if state.ReasoningText != "" {
+					t.Error("ReasoningText should be cleared")
+				}
+				if state.OutputIndex != 1 {
+					t.Errorf("OutputIndex = %d, want 1", state.OutputIndex)
+				}
+			},
+		},
+		{
+			name:  "idempotent after flush",
+			state: &EmitState{ReasoningText: "thought"},
+			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+				second := FlushReasoning(state)
+				if len(second) != 0 {
+					t.Errorf("second flush should return 0 events, got %d", len(second))
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			events := FlushReasoning(tt.state)
 			tt.check(t, events, tt.state)
 		})
 	}

@@ -19,10 +19,11 @@ type CompletionsRequest struct {
 }
 
 type CompletionsMessage struct {
-	Role       string          `json:"role"`
-	Content    string          `json:"content,omitempty"`
-	ToolCalls  []ToolCallEntry `json:"tool_calls,omitempty"`
-	ToolCallID string          `json:"tool_call_id,omitempty"`
+	Role             string          `json:"role"`
+	Content          string          `json:"content,omitempty"`
+	ReasoningContent string          `json:"reasoning_content,omitempty"`
+	ToolCalls        []ToolCallEntry `json:"tool_calls,omitempty"`
+	ToolCallID       string          `json:"tool_call_id,omitempty"`
 }
 
 type ToolCallEntry struct {
@@ -75,13 +76,14 @@ func BuildRequest(params protocol.RequestParams, strict bool) CompletionsRequest
 }
 
 type messagePeek struct {
-	Type      string `json:"type"`
-	Role      string `json:"role"`
-	Content   string `json:"content"`
-	Name      string `json:"name"`
-	CallID    string `json:"call_id"`
-	Arguments string `json:"arguments"`
-	Output    string `json:"output"`
+	Type         string          `json:"type"`
+	Role         string          `json:"role"`
+	Content      string          `json:"content"`
+	Name         string          `json:"name"`
+	CallID       string          `json:"call_id"`
+	Arguments    string          `json:"arguments"`
+	Output       string          `json:"output"`
+	ExtraContent json.RawMessage `json:"extra_content"`
 }
 
 func MessagesToCompletions(systemPrompt string, messages []json.RawMessage) []CompletionsMessage {
@@ -89,6 +91,7 @@ func MessagesToCompletions(systemPrompt string, messages []json.RawMessage) []Co
 	if systemPrompt != "" {
 		result = append(result, CompletionsMessage{Role: "system", Content: systemPrompt})
 	}
+	var pendingReasoning string
 	for i := 0; i < len(messages); i++ {
 		var m messagePeek
 		if json.Unmarshal(messages[i], &m) != nil {
@@ -96,11 +99,12 @@ func MessagesToCompletions(systemPrompt string, messages []json.RawMessage) []Co
 		}
 		switch {
 		case m.Type == "reasoning":
-			continue
+			pendingReasoning = extractDeepSeekReasoning(m.ExtraContent)
 		case m.Type == "function_call":
 			calls, consumed := collectFunctionCalls(messages, i)
 			i += consumed - 1
-			attachOrCreateAssistant(&result, calls)
+			attachOrCreateAssistant(&result, calls, pendingReasoning)
+			pendingReasoning = ""
 		case m.Type == "function_call_output":
 			result = append(result, CompletionsMessage{
 				Role:       "tool",
@@ -112,7 +116,9 @@ func MessagesToCompletions(systemPrompt string, messages []json.RawMessage) []Co
 		case m.Role == "user":
 			result = append(result, CompletionsMessage{Role: "user", Content: m.Content})
 		case m.Role == "assistant":
-			result = append(result, CompletionsMessage{Role: "assistant", Content: m.Content})
+			msg := CompletionsMessage{Role: "assistant", Content: m.Content, ReasoningContent: pendingReasoning}
+			pendingReasoning = ""
+			result = append(result, msg)
 		}
 	}
 	return result
@@ -139,12 +145,34 @@ func collectFunctionCalls(messages []json.RawMessage, start int) ([]ToolCallEntr
 	return calls, i - start
 }
 
-func attachOrCreateAssistant(result *[]CompletionsMessage, calls []ToolCallEntry) {
+func attachOrCreateAssistant(result *[]CompletionsMessage, calls []ToolCallEntry, reasoning string) {
 	if len(*result) > 0 && (*result)[len(*result)-1].Role == "assistant" && len((*result)[len(*result)-1].ToolCalls) == 0 {
 		(*result)[len(*result)-1].ToolCalls = calls
+		if reasoning != "" && (*result)[len(*result)-1].ReasoningContent == "" {
+			(*result)[len(*result)-1].ReasoningContent = reasoning
+		}
 		return
 	}
-	*result = append(*result, CompletionsMessage{Role: "assistant", ToolCalls: calls})
+	*result = append(*result, CompletionsMessage{Role: "assistant", ToolCalls: calls, ReasoningContent: reasoning})
+}
+
+type deepseekExtraContent struct {
+	DeepSeek *deepseekExtra `json:"deepseek"`
+}
+
+type deepseekExtra struct {
+	ReasoningContent string `json:"reasoning_content"`
+}
+
+func extractDeepSeekReasoning(raw json.RawMessage) string {
+	if raw == nil {
+		return ""
+	}
+	var extra deepseekExtraContent
+	if json.Unmarshal(raw, &extra) != nil || extra.DeepSeek == nil {
+		return ""
+	}
+	return extra.DeepSeek.ReasoningContent
 }
 
 type toolPeek struct {
@@ -188,8 +216,6 @@ var supportedFormats = map[string]bool{
 	"uuid":     true,
 }
 
-var emptySchemaJSON = json.RawMessage("{}")
-
 func sanitizeSchema(raw json.RawMessage) json.RawMessage {
 	if raw == nil {
 		return nil
@@ -199,9 +225,10 @@ func sanitizeSchema(raw json.RawMessage) json.RawMessage {
 		return raw
 	}
 	if isEmptyObject(obj) {
-		return emptySchemaJSON
+		return nil
 	}
-	changed := stripUnsupportedFormat(obj)
+	changed := flattenCompositions(obj)
+	changed = stripUnsupportedFormat(obj) || changed
 	changed = stripUnsupportedKeywords(obj) || changed
 	changed = sanitizeSchemaChildren(obj) || changed
 	if !changed {
@@ -286,19 +313,107 @@ func stripUnsupportedKeywords(obj map[string]json.RawMessage) bool {
 	return changed
 }
 
+func flattenCompositions(obj map[string]json.RawMessage) bool {
+	changed := false
+	for _, key := range []string{"anyOf", "oneOf", "allOf"} {
+		arrRaw, ok := obj[key]
+		if !ok {
+			continue
+		}
+		var arr []json.RawMessage
+		if json.Unmarshal(arrRaw, &arr) != nil {
+			continue
+		}
+		flattened, didFlatten := flattenSchemaArray(arr, key)
+		if !didFlatten {
+			continue
+		}
+		deduped := deduplicateSchemas(flattened)
+		out, err := json.Marshal(deduped)
+		if err != nil {
+			continue
+		}
+		obj[key] = out
+		changed = true
+	}
+	return changed
+}
+
+func isTypelessComposition(inner map[string]json.RawMessage, compositionKey string) bool {
+	if _, hasType := inner["type"]; hasType {
+		return false
+	}
+	if _, hasRef := inner["$ref"]; hasRef {
+		return false
+	}
+	_, hasComposition := inner[compositionKey]
+	return hasComposition
+}
+
+func flattenSchemaArray(arr []json.RawMessage, compositionKey string) ([]json.RawMessage, bool) {
+	changed := false
+	result := make([]json.RawMessage, 0, len(arr))
+	for _, v := range arr {
+		var inner map[string]json.RawMessage
+		if json.Unmarshal(v, &inner) != nil {
+			result = append(result, v)
+			continue
+		}
+		if !isTypelessComposition(inner, compositionKey) {
+			result = append(result, v)
+			continue
+		}
+		nestedRaw := inner[compositionKey]
+		var nested []json.RawMessage
+		if json.Unmarshal(nestedRaw, &nested) != nil {
+			result = append(result, v)
+			continue
+		}
+		result = append(result, nested...)
+		changed = true
+	}
+	return result, changed
+}
+
+func deduplicateSchemas(arr []json.RawMessage) []json.RawMessage {
+	seen := make(map[string]bool)
+	result := make([]json.RawMessage, 0, len(arr))
+	for _, v := range arr {
+		var obj any
+		json.Unmarshal(v, &obj)
+		norm, _ := json.Marshal(obj)
+		key := string(norm)
+		if !seen[key] {
+			seen[key] = true
+			result = append(result, json.RawMessage(norm))
+		}
+	}
+	return result
+}
+
 func sanitizeSchemaChildren(obj map[string]json.RawMessage) bool {
 	changed := false
 	for _, key := range []string{"properties", "patternProperties"} {
 		if propsRaw, ok := obj[key]; ok {
-			if sanitized := sanitizeObjectMap(propsRaw); sanitized != nil {
+			sanitized, removed := sanitizeObjectMap(propsRaw)
+			if sanitized != nil {
 				obj[key] = sanitized
 				changed = true
+			}
+			if len(removed) > 0 {
+				changed = stripFromRequired(obj, removed) || changed
 			}
 		}
 	}
 	for _, key := range []string{"items", "additionalProperties", "not"} {
 		if child, ok := obj[key]; ok {
-			if result := sanitizeSchema(child); !jsonEqual(child, result) {
+			result := sanitizeSchema(child)
+			if result == nil {
+				delete(obj, key)
+				changed = true
+				continue
+			}
+			if !jsonEqual(child, result) {
 				obj[key] = result
 				changed = true
 			}
@@ -315,27 +430,65 @@ func sanitizeSchemaChildren(obj map[string]json.RawMessage) bool {
 	return changed
 }
 
-func sanitizeObjectMap(raw json.RawMessage) json.RawMessage {
+func stripFromRequired(obj map[string]json.RawMessage, removed []string) bool {
+	reqRaw, ok := obj["required"]
+	if !ok {
+		return false
+	}
+	var required []string
+	if json.Unmarshal(reqRaw, &required) != nil {
+		return false
+	}
+	removedSet := make(map[string]bool, len(removed))
+	for _, r := range removed {
+		removedSet[r] = true
+	}
+	filtered := make([]string, 0, len(required))
+	for _, r := range required {
+		if !removedSet[r] {
+			filtered = append(filtered, r)
+		}
+	}
+	if len(filtered) == len(required) {
+		return false
+	}
+	if len(filtered) == 0 {
+		delete(obj, "required")
+	} else {
+		out, _ := json.Marshal(filtered)
+		obj["required"] = out
+	}
+	return true
+}
+
+func sanitizeObjectMap(raw json.RawMessage) (json.RawMessage, []string) {
 	var props map[string]json.RawMessage
 	if json.Unmarshal(raw, &props) != nil {
-		return nil
+		return nil, nil
 	}
 	changed := false
+	var removed []string
 	for k, v := range props {
 		result := sanitizeSchema(v)
+		if result == nil {
+			delete(props, k)
+			removed = append(removed, k)
+			changed = true
+			continue
+		}
 		if !jsonEqual(v, result) {
 			props[k] = result
 			changed = true
 		}
 	}
 	if !changed {
-		return nil
+		return nil, nil
 	}
 	out, err := json.Marshal(props)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
-	return out
+	return out, removed
 }
 
 func sanitizeSchemaArray(raw json.RawMessage) json.RawMessage {
@@ -344,17 +497,22 @@ func sanitizeSchemaArray(raw json.RawMessage) json.RawMessage {
 		return nil
 	}
 	changed := false
-	for i, v := range arr {
+	filtered := make([]json.RawMessage, 0, len(arr))
+	for _, v := range arr {
 		result := sanitizeSchema(v)
+		if result == nil {
+			changed = true
+			continue
+		}
 		if !jsonEqual(v, result) {
-			arr[i] = result
 			changed = true
 		}
+		filtered = append(filtered, result)
 	}
 	if !changed {
 		return nil
 	}
-	out, err := json.Marshal(arr)
+	out, err := json.Marshal(filtered)
 	if err != nil {
 		return nil
 	}

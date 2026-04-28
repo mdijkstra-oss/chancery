@@ -2,6 +2,7 @@ package completions
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"hermes-logos/internal/protocol"
 )
@@ -12,8 +13,9 @@ type SSEEvent struct {
 }
 
 type EmitState struct {
-	OutputIndex int
-	ActiveCalls map[int]*activeCall
+	OutputIndex   int
+	ActiveCalls   map[int]*activeCall
+	ReasoningText string
 }
 
 type activeCall struct {
@@ -33,8 +35,9 @@ type chunkChoice struct {
 }
 
 type chunkDelta struct {
-	Content   *string         `json:"content"`
-	ToolCalls []toolCallDelta `json:"tool_calls"`
+	ReasoningContent *string         `json:"reasoning_content"`
+	Content          *string         `json:"content"`
+	ToolCalls        []toolCallDelta `json:"tool_calls"`
 }
 
 type toolCallDelta struct {
@@ -76,19 +79,61 @@ func ChunkToEvents(data []byte, state *EmitState) []SSEEvent {
 	choice := env.Choices[0]
 	var events []SSEEvent
 
+	if choice.Delta.ReasoningContent != nil && *choice.Delta.ReasoningContent != "" {
+		events = append(events, reasoningDeltaEvent(*choice.Delta.ReasoningContent, state))
+	}
+
 	if choice.Delta.Content != nil && *choice.Delta.Content != "" {
+		events = append(events, FlushReasoning(state)...)
 		events = append(events, textDeltaEvent(*choice.Delta.Content))
 	}
 
 	for _, tc := range choice.Delta.ToolCalls {
+		events = append(events, FlushReasoning(state)...)
 		events = append(events, toolCallDeltaEvents(tc, state)...)
 	}
 
 	if choice.FinishReason != nil {
+		events = append(events, FlushReasoning(state)...)
 		events = append(events, FlushActiveCalls(state)...)
 	}
 
 	return events
+}
+
+func reasoningDeltaEvent(text string, state *EmitState) SSEEvent {
+	state.ReasoningText += text
+	data, _ := json.Marshal(map[string]string{"delta": text})
+	return SSEEvent{
+		Type: "response.reasoning_summary_text.delta",
+		Data: string(data),
+	}
+}
+
+func FlushReasoning(state *EmitState) []SSEEvent {
+	if state.ReasoningText == "" {
+		return nil
+	}
+	item := map[string]any{
+		"type": "reasoning",
+		"id":   fmt.Sprintf("rs_%d", state.OutputIndex),
+		"summary": []map[string]string{{
+			"type": "summary_text",
+			"text": state.ReasoningText,
+		}},
+		"extra_content": map[string]any{
+			"deepseek": map[string]string{
+				"reasoning_content": state.ReasoningText,
+			},
+		},
+	}
+	data, _ := json.Marshal(map[string]any{"item": item})
+	state.ReasoningText = ""
+	state.OutputIndex++
+	return []SSEEvent{{
+		Type: "response.output_item.done",
+		Data: string(data),
+	}}
 }
 
 func textDeltaEvent(text string) SSEEvent {

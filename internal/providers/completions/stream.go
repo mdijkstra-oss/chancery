@@ -73,6 +73,9 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 		streamErr = err
 	}
 
+	for _, event := range FlushReasoning(state) {
+		sse.WriteEvent(w, event.Type, event.Data)
+	}
 	for _, event := range FlushActiveCalls(state) {
 		sse.WriteEvent(w, event.Type, event.Data)
 	}

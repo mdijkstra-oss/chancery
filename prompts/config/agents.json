@@ -1,6 +1,6 @@
 {
   "qual-coder": {
-    "model": "gemini-3-flash-preview",
+    "model": "deepseek-v4-flash",
     "prompt": "",
     "reasoning_effort": "high",
     "compact_at": 300000

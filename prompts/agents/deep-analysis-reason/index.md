@@ -10,7 +10,7 @@ using language from the definition (quoted or closely paraphrased,
 not the model's own framing). Briefly note how the criterion applies.
 Do not restate the matched text — the reader can see it.
 
-Return:
+Return JSON:
 {
   "results": [
     { "item": 1, "reason": "<one sentence>" }

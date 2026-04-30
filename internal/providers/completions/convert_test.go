@@ -281,10 +281,11 @@ func TestBuildRequest(t *testing.T) {
 		{
 			name: "full request assembly",
 			params: protocol.RequestParams{
-				Model:        "deepseek-v4-flash",
-				SystemPrompt: "be helpful",
-				Temperature:  &temp,
-				ToolChoice:   "auto",
+				Model:           "deepseek-v4-flash",
+				SystemPrompt:    "be helpful",
+				Temperature:     &temp,
+				ToolChoice:      "auto",
+				ReasoningEffort: "high",
 				Tools: []json.RawMessage{
 					json.RawMessage(`{"name":"search","description":"Search"}`),
 				},
@@ -324,6 +325,12 @@ func TestBuildRequest(t *testing.T) {
 				if req.ParallelToolCalls == nil || !*req.ParallelToolCalls {
 					t.Error("expected parallel_tool_calls=true")
 				}
+				if req.Thinking == nil || req.Thinking.Type != "enabled" {
+					t.Errorf("thinking = %v, want enabled", req.Thinking)
+				}
+				if req.ReasoningEffort != "high" {
+					t.Errorf("reasoning_effort = %q, want high", req.ReasoningEffort)
+				}
 			},
 		},
 		{
@@ -342,11 +349,115 @@ func TestBuildRequest(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "invalid reasoning_effort returns error",
+			params: protocol.RequestParams{
+				Model:           "deepseek-v4-flash",
+				ReasoningEffort: "medium",
+				Messages: []json.RawMessage{
+					json.RawMessage(`{"role":"user","content":"hello"}`),
+				},
+			},
+			strict: false,
+			check: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := BuildRequest(tt.params, tt.strict)
+			req, err := BuildRequest(tt.params, tt.strict)
+			if tt.check == nil {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			tt.check(t, req)
+		})
+	}
+}
+
+func TestDeepseekThinking(t *testing.T) {
+	tests := []struct {
+		effort      string
+		wantType    string
+		wantEffort  string
+		wantErr     bool
+	}{
+		{effort: "", wantType: "", wantEffort: ""},
+		{effort: "off", wantType: "disabled", wantEffort: ""},
+		{effort: "none", wantType: "disabled", wantEffort: ""},
+		{effort: "high", wantType: "enabled", wantEffort: "high"},
+		{effort: "max", wantType: "enabled", wantEffort: "max"},
+		{effort: "medium", wantErr: true},
+		{effort: "low", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.effort, func(t *testing.T) {
+			thinking, effort, err := deepseekThinking(tt.effort)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tt.wantType == "" {
+				if thinking != nil {
+					t.Errorf("thinking = %v, want nil", thinking)
+				}
+			} else {
+				if thinking == nil {
+					t.Fatal("thinking = nil")
+				}
+				if thinking.Type != tt.wantType {
+					t.Errorf("thinking.type = %q, want %q", thinking.Type, tt.wantType)
+				}
+			}
+			if effort != tt.wantEffort {
+				t.Errorf("effort = %q, want %q", effort, tt.wantEffort)
+			}
+		})
+	}
+}
+
+func TestToCompletionsFormat(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "json_schema downgraded to json_object",
+			input: `{"type":"json_schema","json_schema":{"name":"output","schema":{"type":"object","properties":{"x":{"type":"string"}}},"strict":true}}`,
+			want:  `{"type":"json_object"}`,
+		},
+		{
+			name:  "json_object passed through",
+			input: `{"type":"json_object"}`,
+			want:  `{"type":"json_object"}`,
+		},
+		{
+			name:  "text passed through",
+			input: `{"type":"text"}`,
+			want:  `{"type":"text"}`,
+		},
+		{
+			name:  "invalid json passed through",
+			input: `not json`,
+			want:  `not json`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toCompletionsFormat(json.RawMessage(tt.input))
+			if string(got) != tt.want {
+				t.Errorf("got %s, want %s", string(got), tt.want)
+			}
 		})
 	}
 }

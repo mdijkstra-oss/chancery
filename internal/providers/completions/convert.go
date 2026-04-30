@@ -2,6 +2,7 @@ package completions
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"hermes-logos/internal/protocol"
 )
@@ -16,6 +17,12 @@ type CompletionsRequest struct {
 	ToolChoice        string               `json:"tool_choice,omitempty"`
 	ResponseFormat    json.RawMessage      `json:"response_format,omitempty"`
 	ParallelToolCalls *bool                `json:"parallel_tool_calls,omitempty"`
+	Thinking          *ThinkingConfig      `json:"thinking,omitempty"`
+	ReasoningEffort   string               `json:"reasoning_effort,omitempty"`
+}
+
+type ThinkingConfig struct {
+	Type string `json:"type"`
 }
 
 type CompletionsMessage struct {
@@ -53,7 +60,11 @@ type StreamOptions struct {
 	IncludeUsage bool `json:"include_usage"`
 }
 
-func BuildRequest(params protocol.RequestParams, strict bool) CompletionsRequest {
+func BuildRequest(params protocol.RequestParams, strict bool) (CompletionsRequest, error) {
+	thinking, effort, err := deepseekThinking(params.ReasoningEffort)
+	if err != nil {
+		return CompletionsRequest{}, err
+	}
 	messages := MessagesToCompletions(params.SystemPrompt, params.Messages)
 	tools := ToolsToCompletions(params.Tools, strict)
 	parallel := true
@@ -65,14 +76,46 @@ func BuildRequest(params protocol.RequestParams, strict bool) CompletionsRequest
 		StreamOptions:     &StreamOptions{IncludeUsage: true},
 		Temperature:       params.Temperature,
 		ParallelToolCalls: &parallel,
+		Thinking:          thinking,
+		ReasoningEffort:   effort,
 	}
 	if params.ToolChoice != "" && len(tools) > 0 {
 		req.ToolChoice = params.ToolChoice
 	}
 	if params.ResponseFormat != nil {
-		req.ResponseFormat = params.ResponseFormat
+		req.ResponseFormat = toCompletionsFormat(params.ResponseFormat)
 	}
-	return req
+	return req, nil
+}
+
+func deepseekThinking(effort string) (*ThinkingConfig, string, error) {
+	switch effort {
+	case "":
+		return nil, "", nil
+	case "off", "none":
+		return &ThinkingConfig{Type: "disabled"}, "", nil
+	case "high":
+		return &ThinkingConfig{Type: "enabled"}, "high", nil
+	case "max":
+		return &ThinkingConfig{Type: "enabled"}, "max", nil
+	default:
+		return nil, "", fmt.Errorf("unsupported reasoning_effort for completions: %q", effort)
+	}
+}
+
+var jsonObjectFormat = json.RawMessage(`{"type":"json_object"}`)
+
+func toCompletionsFormat(responseFormat json.RawMessage) json.RawMessage {
+	var peek struct {
+		Type string `json:"type"`
+	}
+	if json.Unmarshal(responseFormat, &peek) != nil {
+		return responseFormat
+	}
+	if peek.Type == "json_schema" {
+		return jsonObjectFormat
+	}
+	return responseFormat
 }
 
 type messagePeek struct {

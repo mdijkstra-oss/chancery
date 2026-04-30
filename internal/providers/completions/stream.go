@@ -93,7 +93,11 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 }
 
 func buildHTTPRequest(ctx context.Context, params protocol.RequestParams, provider prompts.ProviderConfig) (*http.Request, error) {
-	body, err := json.Marshal(BuildRequest(params, provider.Strict))
+	reqBody, err := BuildRequest(params, provider.Strict)
+	if err != nil {
+		return nil, fmt.Errorf("build completions request: %w", err)
+	}
+	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}

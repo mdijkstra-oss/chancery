@@ -3,6 +3,12 @@
   "base_url": "https://api.openai.com/v1",
   "api_key_env": "OPENAI_API_KEY",
   "models": {
+    "gpt-5.5": {
+      "name": "gpt-5.5",
+      "pricing": { "input": 5.00, "output": 30.00, "cached_input": 0.50 },
+      "verbosity": "low",
+      "reasoning_summary": "concise"
+    },
     "gpt-5.4": {
       "name": "gpt-5.4",
       "pricing": { "input": 2.50, "output": 15.00, "cached_input": 0.25 },

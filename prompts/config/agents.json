@@ -6,10 +6,10 @@
     "compact_at": 300000
   },
   "section-labeler": {
-    "model": "gpt-5.4-nano",
+    "model": "gemini-2.5-flash-lite",
     "reasoning_effort": "off",
-    "xtemperature": 0,
-    "xseed": true
+    "temperature": 0,
+    "seed": true
   },
   "scout-filter": {
     "model": "gemini-2.5-flash-lite",

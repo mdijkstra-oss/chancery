@@ -16,22 +16,20 @@ sentence (start equals end) or span multiple sentences.
 A passage may match more than one definition, but this should be
 uncommon. Each code must stand on its own merit for that passage.
 
+Before outputting, compress each passage: for each sentence at the
+edges, ask whether the passage still satisfies the definition without it. If yes, drop it. A sentence that merely introduces, elaborates, or echoes the coded meaning is not part of the passage.
+
 Most sentences will not match any definition.
 
 Return JSON:
 {
-"results": [
-  {
-    "analysis_source_id": "callout-4d327gdb",
-    "start": 12,
-    "end": 14
-  }
-]
+  "results": [
+    {
+      "analysis_source_id": "callout-4d327gdb",
+      "start": 12,
+      "end": 14
+    }
+  ]
 }
-
-Before outputting, compress each passage: for each sentence at the
-edges, ask whether the passage still satisfies the definition without
-it. If yes, drop it. A sentence that merely introduces, elaborates,
-or echoes the coded meaning is not part of the passage.
 
 If nothing survives rejection, return JSON { "results": [] }.

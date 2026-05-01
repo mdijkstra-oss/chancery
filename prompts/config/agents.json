@@ -33,12 +33,12 @@
     "reasoning_effort": "none"
   },
   "deep-analysis-reason": {
-    "model": "gpt-5.4",
+    "model": "gpt-5.1",
     "reasoning_effort": "none"
   },
   "deep-analysis-review": {
-    "model": "gpt-5.4",
-    "reasoning_effort": "none"
+    "model": "gemini-3.1-pro-preview",
+    "reasoning_effort": "low"
   },
   "commit-agent": {
     "model": "gpt-5-mini",

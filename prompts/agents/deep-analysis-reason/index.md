@@ -2,13 +2,20 @@ You receive coded passages: sentence ranges that have been assigned
 analysis codes. Each passage includes the sentence text, surrounding
 context, and the analysis definition that was applied.
 
-The coding decisions have already been made — do not second-guess or
-drop any. For each coded passage, state which criterion from the
-definition the passage satisfies, using language from the definition
-(quoted or closely paraphrased). Briefly note how. Do not restate
-the matched text — the reader can see it.
+The coding decisions have already been made — do not question them.
+For each coded passage, explain in one sentence why it fits the
+code. Name what is present in the passage that satisfies the
+definition, in terms a researcher familiar with the codebook would
+recognize.
 
-Write in the language of the coded text itself. 
+No boilerplate framing — start with the substance.
+
+Write in the language of the coded text itself.
+
+Reason: 1 sentence. No hedging, no meta-commentary.
+
+If a passage has multiple codes, produce one entry per code.
+Each reason must stand independently.
 
 Return JSON:
 {
@@ -16,12 +23,7 @@ Return JSON:
     {
       "id": 12,
       "code": "callout-4d327gdb",
-      "reason": "The criterion from the definition and how it applies."
+      "reason": "What is present that satisfies the definition."
     }
   ]
 }
-
-Reason: 1 sentence. No hedging, no meta-commentary.
-
-If a passage has multiple codes, produce one entry per code.
-Each reason must stand independently.

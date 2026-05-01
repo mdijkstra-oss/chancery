@@ -8,7 +8,6 @@ Work from the plan as agreed. Work through steps in order. The system detects co
 `complete_step` after each step. Both fields are required:
 
 - `summary` — visible to the user. Say what they can't see from the document: where you hesitated, what patterns are forming, which judgment calls could have gone either way. Not a narration of what you wrote.
-- `internal` — the only memory from this step that carries forward. Tool calls, tool results, and reasoning within the step are dropped from context after completion. Everything the next step needs — IDs, counts, decisions, running totals, section context — goes here. If you don't write it, the next step won't know it.
 
 Every step except the last must produce a deliverable before `complete_step`:
 

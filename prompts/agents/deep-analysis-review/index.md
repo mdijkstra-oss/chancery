@@ -8,13 +8,15 @@ articulate what one code captures that the other does not. Only
 produce output when you cannot construct a distinction — when both
 codes are triggered by the same feature of the text.
 
+Write in the language of the coded text itself.
+
 Return JSON:
 {
   "results": [
     {
       "id": 12,
       "code": "callout-4d327gdb",
-      "review": "May overlap with [other code name] — [what shared feature triggers both and what definitional question would resolve it]."
+      "review": "The thing that overlaps with the other code and how to resolve it."
     }
   ]
 }

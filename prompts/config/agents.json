@@ -29,7 +29,7 @@
     "model": "gemini-3-flash-preview"
   },
   "deep-analysis-find": {
-    "model": "gpt-5.4",
+    "model": "gpt-5.5",
     "reasoning_effort": "none"
   },
   "deep-analysis-reason": {

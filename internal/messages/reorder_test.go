@@ -93,6 +93,40 @@ func TestReorderToolMessages(t *testing.T) {
 				`{"role":"system","content":"ctx2"}`,
 			},
 		},
+		{
+			name: "user message between call and output deferred",
+			messages: []string{
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
+				`{"role":"user","content":"interruption"}`,
+				`{"type":"function_call_output","call_id":"c1","output":"found"}`,
+			},
+			want: []string{
+				`{"type":"function_call","call_id":"c1","name":"search","arguments":"{}"}`,
+				`{"type":"function_call_output","call_id":"c1","output":"found"}`,
+				`{"role":"user","content":"interruption"}`,
+			},
+		},
+		{
+			name: "mixed message types between calls and outputs deferred",
+			messages: []string{
+				`{"type":"function_call","call_id":"c1","name":"a","arguments":"{}"}`,
+				`{"type":"function_call","call_id":"c2","name":"b","arguments":"{}"}`,
+				`{"role":"user","content":"u1"}`,
+				`{"role":"system","content":"s1"}`,
+				`{"type":"function_call_output","call_id":"c1","output":"r1"}`,
+				`{"role":"assistant","content":"a1"}`,
+				`{"type":"function_call_output","call_id":"c2","output":"r2"}`,
+			},
+			want: []string{
+				`{"type":"function_call","call_id":"c1","name":"a","arguments":"{}"}`,
+				`{"type":"function_call","call_id":"c2","name":"b","arguments":"{}"}`,
+				`{"type":"function_call_output","call_id":"c1","output":"r1"}`,
+				`{"type":"function_call_output","call_id":"c2","output":"r2"}`,
+				`{"role":"user","content":"u1"}`,
+				`{"role":"system","content":"s1"}`,
+				`{"role":"assistant","content":"a1"}`,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

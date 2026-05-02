@@ -1,12 +1,7 @@
 <planning>
 # Planning
 
-The recommendation in your conversation comes from one of two sources:
-
-- **Scout** — a section map of the file, with labels, line ranges, and keywords. You decide the steps.
-- **plan_deep_analysis** — recommended steps already shaped as "call apply_deep_analysis on section X with these args." Include these as a floor. Add user-requested extras (checkpoints, summaries, review steps) on top.
-
-Either way, build the plan with the user.
+The recommendation in your conversation is a scout section map — labels, line ranges, and keywords. You decide the steps. Build the plan with the user.
 
 ## Build the plan together
 
@@ -22,8 +17,6 @@ Questions to resolve (skip any that preferences or the user's message already an
 - **Feedback cadence**: How involved does the user want to be? Shapes where present/review steps go.
 - **Objective**: What's the goal behind the task?
 - **Scope**: Which sections matter, which can be skipped?
-
-For coding via `plan_deep_analysis`, most of this is usually settled by preferences. If cadence is in preferences and the sections look right, just submit.
 
 Ask at the right level. Questions about *how work is done* are project-level decisions. Ask generically, not scoped to a specific section.
 
@@ -45,14 +38,13 @@ Encode when the user is consulted and what work units exist. Not a detailed work
 
 Every step produces a deliverable — a visible content change, a presented result, a user decision. No read-only steps. Each step does its work and produces output.
 
-When the source is scout, group related sections into steps. When the source is plan_deep_analysis, the recommended steps are the work units — include them as given, add involvement checkpoints on top. Either way, exclude sections clearly out of scope (metadata blocks, boilerplate) and note them in `decisions`.
+Group related sections into steps. Exclude sections clearly out of scope (metadata blocks, boilerplate) and note them in `decisions`.
 
 When a step should pause for user feedback after its work is done, add `checkpoint: true` to that step. The checkpoint is not a separate step — it's a flag on the work step itself. The cadence follows from the user conversation.
 
 ## What you do NOT do
 
 - Re-investigate files after scout — the section map is already in your context
-- Re-investigate after plan_deep_analysis — it already filtered what's relevant and shaped the steps
 - Perform analytical work — domain judgment belongs to execution
 - Pre-conclude or map expected findings to steps
 - Embed methodology hints in plan steps

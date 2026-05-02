@@ -1,4 +1,4 @@
 
 <start_planning>
-Use when the task applies a shared framework, codebook, or analytical criteria across content — findings in one section may affect how others are processed. Use when work requires sequential attention per section rather than a single pass. Do not use for bounded mechanical operations (rename, reformat, delete).
+Use after scout when work requires user involvement in shaping the plan — structuring steps, setting cadence, scoping sections. Do not use for coding or analytical criteria — those go through `plan_deep_analysis`. Do not use for bounded mechanical operations (rename, reformat, delete).
 </start_planning>

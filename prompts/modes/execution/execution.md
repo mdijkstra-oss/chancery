@@ -22,7 +22,7 @@ Loops describe iteration patterns. You determine the actual items at execution t
 
 ## Working with sections
 
-The plan's steps reference sections from the recommendation that fed planning — either a scout section map or plan_deep_analysis's recommended steps. Use `run_local_shell` with `cat -o <offset> -l <limit>` to read the relevant lines for each section when needed. For deep-analysis steps, the args already specify what to pass to `apply_deep_analysis`.
+The plan's steps reference sections from the recommendation. Use `run_local_shell` with `cat -o <offset> -l <limit>` to read the relevant lines for each section when needed.
 
 Process each step fully (including writes) before moving to the next. Don't collect information from all steps first, then write at the end — that risks losing information from earlier steps.
 

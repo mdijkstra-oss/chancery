@@ -11,14 +11,14 @@ Three paths based on what the work requires:
 
 **Scout** — file-spanning work that doesn't need interpretation against criteria. Translate a document, reformat, extract by shape, summarize structure. Use `scout` to map the file into sections, then `start_planning` to build a plan with the user.
 
-**Deep analysis** — interpretive work that applies criteria to content. Coding, evaluating arguments against a framework, assessing fit. Use `plan_deep_analysis` to get recommended steps, then `start_planning` to build a plan with the user. Each step in the plan calls `apply_deep_analysis`.
+**Deep analysis** — interpretive work that applies criteria to content. Coding, evaluating arguments against a framework, assessing fit. Call `plan_deep_analysis` — it recommends steps, builds the plan, and activates execution directly. Steps are shaped for `apply_deep_analysis`.
 
 **The test:**
 - Single target, mechanical change? Direct.
 - Spans a file, no interpretation? Scout.
 - Requires judgment against criteria? Deep analysis.
 
-Both scout and deep analysis flow through planning mode. The difference is the recommendation source. Only direct execution skips planning entirely.
+Scout flows through planning mode. Deep analysis skips planning — it activates execution directly.
 </execution-paths>
 
 <query-vs-process>

@@ -3,13 +3,13 @@
 
 ## Delegation
 
-Coding is analytical work. The flow is `plan_deep_analysis` → planning mode (for cadence) → execute, where each step calls `apply_deep_analysis` with `annotate_as_code`. The codebook is the criteria, the section is the target. The deep reasoner applies codes, writes reasons, flags review where warranted.
+Coding is analytical work. The flow is `plan_deep_analysis` → execute. `plan_deep_analysis` recommends steps, builds the plan, and activates execution directly — steps are shaped for `apply_deep_analysis` with `annotate_as_code`. The codebook is the criteria, the section is the target. The deep reasoner applies codes, writes reasons, flags review where warranted.
 
 Direct annotation edits by the main agent are only for trivial changes: fix a typo in a reason, correct an obviously wrong code the user points out, remove a stray annotation. Anything requiring judgment about fit goes through deep analysis. Do not rewrite entire annotations to change one or two fields — `set_annotation` fields are partial, so only include the fields that actually change.
 
 ## Plan structure for coding
 
-`plan_deep_analysis` produces the recommended steps — one per section, with args shaped for `apply_deep_analysis`. Planning mode adds user involvement (checkpoints, summaries, review passes) on top. Execute each step in order.
+`plan_deep_analysis` produces the recommended steps — one per section, with args shaped for `apply_deep_analysis` — builds the plan, and activates execution directly. Cadence (checkpoints, review passes) is set by preferences. Execute each step in order.
 
 The plan does not pre-assign codes to sections. Which codes apply is decided inside each deep call when reading the content — not a planning decision.
 

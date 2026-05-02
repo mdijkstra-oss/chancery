@@ -261,6 +261,31 @@ func BuildCompletedEvent(usage *protocol.UsageResponse) SSEEvent {
 	}
 }
 
+func ExtractFinishReason(data []byte) string {
+	var env chunkEnvelope
+	if json.Unmarshal(data, &env) != nil || len(env.Choices) == 0 {
+		return ""
+	}
+	if env.Choices[0].FinishReason == nil {
+		return ""
+	}
+	return *env.Choices[0].FinishReason
+}
+
+var finishReasonErrors = map[string]string{
+	"content_filter": "output blocked by content filter",
+	"length":         "output truncated: token limit reached",
+}
+
+func FinishReasonToEvent(reason string) *SSEEvent {
+	message, ok := finishReasonErrors[reason]
+	if !ok {
+		return nil
+	}
+	event := BuildFailedEvent(reason, message)
+	return &event
+}
+
 func BuildFailedEvent(errorType, message string) SSEEvent {
 	data, _ := json.Marshal(map[string]any{
 		"response": map[string]any{

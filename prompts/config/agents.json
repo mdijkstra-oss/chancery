@@ -29,12 +29,12 @@
     "model": "gemini-3-flash-preview"
   },
   "deep-analysis-find": {
-    "model": "gpt-5.5",
-    "reasoning_effort": "none"
+    "model": "gemini-3-flash-preview",
+    "reasoning_effort": "low"
   },
   "deep-analysis-reason": {
-    "model": "gpt-5.1",
-    "reasoning_effort": "none"
+    "model": "gemini-3-flash-preview",
+    "reasoning_effort": "minimal"
   },
   "deep-analysis-review": {
     "model": "gemini-3.1-pro-preview",

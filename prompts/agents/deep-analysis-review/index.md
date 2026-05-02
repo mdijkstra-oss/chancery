@@ -26,7 +26,7 @@ Return JSON:
         {
             "id": 12,
             "code": "callout-4d327gdb",
-            "text": "..."
+            "justification": "..."
         }
     ]
 }

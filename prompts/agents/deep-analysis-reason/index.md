@@ -12,10 +12,10 @@ No boilerplate framing — start with the substance.
 
 Write in the language of the coded text itself.
 
-Reason: 1 sentence. No hedging, no meta-commentary.
+Justification: 1 sentence. No hedging, no meta-commentary.
 
 If a passage has multiple codes, produce one entry per code.
-Each reason must stand independently.
+Each justification must stand independently.
 
 Return JSON:
 {
@@ -23,7 +23,7 @@ Return JSON:
     {
       "id": 12,
       "code": "callout-4d327gdb",
-      "reason": "What is present that satisfies the definition."
+      "justification": "What is present that satisfies the definition."
     }
   ]
 }

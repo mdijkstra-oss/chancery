@@ -41,6 +41,7 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 
 	state := &EmitState{}
 	var lastUsage *protocol.UsageResponse
+	var lastFinishReason string
 	var streamErr error
 
 	scanner := bufio.NewScanner(resp.Body)
@@ -54,12 +55,18 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 			continue
 		}
 
-		usage := ExtractUsage([]byte(data))
+		raw := []byte(data)
+
+		if reason := ExtractFinishReason(raw); reason != "" {
+			lastFinishReason = reason
+		}
+
+		usage := ExtractUsage(raw)
 		if usage != nil {
 			lastUsage = usage
 		}
 
-		for _, event := range ChunkToEvents([]byte(data), state) {
+		for _, event := range ChunkToEvents(raw, state) {
 			sse.WriteEvent(w, event.Type, event.Data)
 		}
 		sse.Flush(w)
@@ -82,6 +89,8 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 
 	if streamErr != nil {
 		event := BuildFailedEvent("stream_error", streamErr.Error())
+		sse.WriteEvent(w, event.Type, event.Data)
+	} else if event := FinishReasonToEvent(lastFinishReason); event != nil {
 		sse.WriteEvent(w, event.Type, event.Data)
 	}
 

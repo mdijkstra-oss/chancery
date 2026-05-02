@@ -451,6 +451,125 @@ func TestBuildCompletedEvent(t *testing.T) {
 	}
 }
 
+func TestExtractFinishReason(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want string
+	}{
+		{
+			name: "content_filter",
+			data: `{"choices":[{"delta":{},"finish_reason":"content_filter"}]}`,
+			want: "content_filter",
+		},
+		{
+			name: "length",
+			data: `{"choices":[{"delta":{},"finish_reason":"length"}]}`,
+			want: "length",
+		},
+		{
+			name: "stop",
+			data: `{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
+			want: "stop",
+		},
+		{
+			name: "null finish_reason",
+			data: `{"choices":[{"delta":{"content":"hi"},"finish_reason":null}]}`,
+			want: "",
+		},
+		{
+			name: "no choices",
+			data: `{"choices":[]}`,
+			want: "",
+		},
+		{
+			name: "invalid JSON",
+			data: `not json`,
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ExtractFinishReason([]byte(tt.data))
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFinishReasonToEvent(t *testing.T) {
+	tests := []struct {
+		name       string
+		reason     string
+		wantNil    bool
+		wantType   string
+		wantErrMsg string
+	}{
+		{
+			name:       "content_filter returns failed event",
+			reason:     "content_filter",
+			wantType:   "content_filter",
+			wantErrMsg: "output blocked by content filter",
+		},
+		{
+			name:       "length returns failed event",
+			reason:     "length",
+			wantType:   "length",
+			wantErrMsg: "output truncated: token limit reached",
+		},
+		{
+			name:    "stop returns nil",
+			reason:  "stop",
+			wantNil: true,
+		},
+		{
+			name:    "unknown reason returns nil",
+			reason:  "tool_calls",
+			wantNil: true,
+		},
+		{
+			name:    "empty reason returns nil",
+			reason:  "",
+			wantNil: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event := FinishReasonToEvent(tt.reason)
+			if tt.wantNil {
+				if event != nil {
+					t.Fatalf("expected nil, got %+v", event)
+				}
+				return
+			}
+			if event == nil {
+				t.Fatal("expected non-nil event")
+			}
+			if event.Type != "response.failed" {
+				t.Errorf("event type = %q", event.Type)
+			}
+			var parsed struct {
+				Response struct {
+					Error struct {
+						Type    string `json:"type"`
+						Message string `json:"message"`
+					} `json:"error"`
+				} `json:"response"`
+			}
+			if json.Unmarshal([]byte(event.Data), &parsed) != nil {
+				t.Fatalf("invalid json: %s", event.Data)
+			}
+			if parsed.Response.Error.Type != tt.wantType {
+				t.Errorf("error.type = %q, want %q", parsed.Response.Error.Type, tt.wantType)
+			}
+			if parsed.Response.Error.Message != tt.wantErrMsg {
+				t.Errorf("error.message = %q, want %q", parsed.Response.Error.Message, tt.wantErrMsg)
+			}
+		})
+	}
+}
+
 func TestBuildFailedEvent(t *testing.T) {
 	event := BuildFailedEvent("rate_limit", "too many requests")
 	if event.Type != "response.failed" {

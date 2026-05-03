@@ -34,7 +34,7 @@
   },
   "deep-analysis-reason": {
     "model": "gemini-3-flash-preview",
-    "reasoning_effort": "minimal"
+    "reasoning_effort": "low"
   },
   "deep-analysis-review": {
     "model": "gemini-3.1-pro-preview",

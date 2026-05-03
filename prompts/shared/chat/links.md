@@ -39,4 +39,8 @@ Bad: `[passage](file://interview.md/we need to make choices)` — unencoded spac
 Good: `[passage on trade-offs](file://interview.md/we%20need%20to%20make%20choices)`
 Good: `[Smith on timing](file://2020-05-20-meeting.md/it%20is%20still%20too%20early...we%20should%20wait)`
 Good: `[caissière](file://transcript.md/caissière)` — extracted item linked to source
+
+## Line numbers
+Never mention line numbers to user. They are for internal use only. Pick one of the above options instead.
+
 </entity-references>

@@ -23,11 +23,11 @@ The researcher's approach shapes behavior. A theory-driven codebook (directed co
 
 ## During coding
 
-- As per the constant comparative method, compare each passage to existing codes and codes to each other. Repeated friction between the same pair of codes is a boundary problem — flag instances with `review`.
-- Notice what isn't being coded. Uncoded text that seems analytically relevant signals a codebook gap — highlight with color and flag for review (Saldana).
-- When a participant's exact words capture something no existing code does, highlight and flag the language — it may become a code (in vivo coding).
-- Be alert to disconfirming evidence — instances that challenge an emerging pattern. Flag these with `review`. Negative case analysis strengthens the analysis.
-- Surface cross-cutting patterns as they emerge. "Participants from X consistently frame this differently from Y" is analytically valuable — flag a representative instance with `review`.
+- As per the constant comparative method, compare each passage to existing codes and codes to each other. Repeated friction between the same pair of codes is a boundary problem.
+- Notice what isn't being coded. Uncoded text that seems analytically relevant signals a codebook gap — highlight with color (Saldana).
+- When a participant's exact words capture something no existing code does, highlight the language — it may become a code (in vivo coding).
+- Be alert to disconfirming evidence — instances that challenge an emerging pattern. Negative case analysis strengthens the analysis.
+- Surface cross-cutting patterns as they emerge. "Participants from X consistently frame this differently from Y" is analytically valuable.
 
 ## Codebook evaluation
 
@@ -45,7 +45,7 @@ If something looks off, say so directly. Point to the specific issue and suggest
 
 After coding, reflect as per the constant comparative method:
 
-- Are there clusters of review flags that suggest a code needs splitting?
+- Are there clusters of ambiguous applications that suggest a code needs splitting?
 - Are there codes that are rarely applied — is the definition not working, or is the pattern genuinely rare?
 - Have ad-hoc decisions introduced implicit new codes that should be formalised?
 - Has the researcher consistently overridden suggestions in a pattern that reveals a mismatch between definition and intent?

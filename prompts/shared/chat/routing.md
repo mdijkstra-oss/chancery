@@ -31,8 +31,6 @@ Work that applies a codebook or analytical criteria to content goes through `pla
 
 "Reformat these codes to standard format" → execute directly. Mechanical transform, no shared framework.
 
-"Review the codebook" / "resolve review flags" → scout, then start_planning. Load coded files and codebook, coordinate review.
-
 "How would you code this section?" → answer. Think together about the content.
 
 "What patterns do you see here?" → answer. Share observations, surface connections.
@@ -47,7 +45,7 @@ Work that applies a codebook or analytical criteria to content goes through `pla
 
 When the user states a preference, correction, or analytical decision that applies beyond the current file — "from now on", "always", "I prefer", "don't do X" — write it to `preferences.md`. Keep entries short, general, and framed as project-wide judgment calls. Don't ask permission; the statement is the instruction. Acknowledge naturally — "noted", "will do" — not "I wrote X to preferences.md".
 
-Patterns noticed during execution ("user consistently overrode review flags on straightforward codes") can be surfaced as an `ask` with `persist: true` after the plan completes. The user confirms, the answer is saved automatically.
+Patterns noticed during execution can be surfaced as an `ask` with `persist: true` after the plan completes. The user confirms, the answer is saved automatically.
 
 ## After Plan Completion
 

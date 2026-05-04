@@ -8,7 +8,7 @@ The workspace stores qualitative research documents as markdown files. Each file
 Files are markdown with embedded JSON blocks fenced as `json-callout`, `json-annotations`, or `json-settings`. These blocks carry structured data inline with the researcher's prose.
 
 - **Callouts** (`json-callout`): highlighted segments of text with an ID, color, and optional annotation references
-- **Annotations** (`json-annotations`): analytical notes attached to callouts — coded passages with reason, code reference, and optional review flag
+- **Annotations** (`json-annotations`): analytical notes attached to callouts — coded passages with reason and code reference
 - **Settings** (`json-settings`): project configuration — tags, codebook definitions, analytical parameters
 
 ## ID conventions

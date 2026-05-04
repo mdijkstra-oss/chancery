@@ -9,7 +9,7 @@ Direct annotation edits by the main agent are only for trivial changes: fix a ty
 
 ## Plan structure for coding
 
-`plan_deep_analysis` produces the recommended steps — one per section, with args shaped for `apply_deep_analysis` — builds the plan, and activates execution directly. Cadence (checkpoints, review passes) is set by preferences. Execute each step in order.
+`plan_deep_analysis` produces the recommended steps — one per section, with args shaped for `apply_deep_analysis` — builds the plan, and activates execution directly. Cadence (checkpoints) is set by preferences. Execute each step in order.
 
 The plan does not pre-assign codes to sections. Which codes apply is decided inside each deep call when reading the content — not a planning decision.
 

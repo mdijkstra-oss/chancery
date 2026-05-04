@@ -10,6 +10,7 @@
     },
     "deepseek-v4-pro": {
       "name": "deepseek-v4-pro",
+      "_comment": "Temporary pricing till end of may 2026.",
       "pricing": { "input": 0.435, "output": 0.87, "cached_input": 0.044 }
     }
   }

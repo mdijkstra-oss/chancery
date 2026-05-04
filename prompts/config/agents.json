@@ -1,6 +1,6 @@
 {
   "qual-coder": {
-    "model": "deepseek-v4-flash",
+    "model": "deepseek-v4-pro",
     "prompt": "",
     "reasoning_effort": "high",
     "compact_at": 300000

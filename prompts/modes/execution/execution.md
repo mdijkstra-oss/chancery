@@ -5,16 +5,9 @@ Work from the plan as agreed. Work through steps in order. The system detects co
 
 ## Step execution
 
-`complete_step` after each step. Both fields are required:
+Speak about the step's results first — what you noticed, where you hesitated, what patterns are forming. Then call `complete_step` (no arguments). Communicate through chat, not through the tool.
 
-- `summary` — visible to the user. Say what they can't see from the document: where you hesitated, what patterns are forming, which judgment calls could have gone either way. Not a narration of what you wrote.
-
-Every step except the last must produce a deliverable before `complete_step`:
-
-- **Written changes** — edits applied to a file via patch tools
-- **User answer** — the user responded to a question or checkpoint
-
-Read-only work (reading files, reasoning) is preparation, not a deliverable. The system enforces this — `complete_step` is rejected if neither happened. The final step is exempt: it can complete with just a summary.
+Every step except the last should produce something tangible — edits applied to a file, or a user response to a question. Read-only work (reading files, reasoning) is preparation, not output. The final step is exempt: it can complete with just speech.
 
 Nested steps are not used — plans are flat.
 

@@ -123,9 +123,6 @@ func TestExpandMessages(t *testing.T) {
 
 func TestExpandApproaches(t *testing.T) {
 	entries := map[string]prompts.Approach{
-		"index":       {Key: "index", Content: "## Root"},
-		"a/index":     {Key: "a/index", Content: "## A Index"},
-		"a/b/index":   {Key: "a/b/index", Content: "## A/B Index"},
 		"a/b/leaf":    {Key: "a/b/leaf", Content: "## Leaf content"},
 		"a/b/another": {Key: "a/b/another", Content: "## Another content"},
 	}
@@ -136,12 +133,9 @@ func TestExpandApproaches(t *testing.T) {
 		want     []json.RawMessage
 	}{
 		{
-			name:     "single marker expanded with indexes",
+			name:     "single marker expanded",
 			messages: []json.RawMessage{msg("system", "<!-- approach: a/b/leaf -->")},
 			want: []json.RawMessage{
-				typedMsg("system", "[a/b/index]\n## A/B Index"),
-				typedMsg("system", "[a/index]\n## A Index"),
-				typedMsg("system", "[index]\n## Root"),
 				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
 			},
 		},
@@ -153,20 +147,15 @@ func TestExpandApproaches(t *testing.T) {
 				msg("system", "<!-- approach: a/b/another -->"),
 			},
 			want: []json.RawMessage{
-				typedMsg("system", "[a/b/index]\n## A/B Index"),
-				typedMsg("system", "[a/index]\n## A Index"),
-				typedMsg("system", "[index]\n## Root"),
 				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
 				msg("user", "hello"),
 				typedMsg("system", "[a/b/another]\n## Another content"),
 			},
 		},
 		{
-			name:     "unknown key dropped known index kept",
+			name:     "unknown key dropped",
 			messages: []json.RawMessage{msg("system", "<!-- approach: unknown/key -->")},
-			want: []json.RawMessage{
-				typedMsg("system", "[index]\n## Root"),
-			},
+			want:     nil,
 		},
 		{
 			name: "no markers passthrough",
@@ -187,9 +176,6 @@ func TestExpandApproaches(t *testing.T) {
 			},
 			want: []json.RawMessage{
 				msg("system", "<!-- prompt: planning -->"),
-				typedMsg("system", "[a/b/index]\n## A/B Index"),
-				typedMsg("system", "[a/index]\n## A Index"),
-				typedMsg("system", "[index]\n## Root"),
 				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
 			},
 		},

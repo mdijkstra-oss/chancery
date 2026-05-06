@@ -91,59 +91,30 @@ func collectApproachMarkers(messages []json.RawMessage) ([]string, []int) {
 	return keys, positions
 }
 
-func extraIndexKeys(resolved, requested []string) []string {
-	reqSet := make(map[string]bool, len(requested))
-	for _, k := range requested {
-		reqSet[k] = true
-	}
-	var extra []string
-	for _, k := range resolved {
-		if !reqSet[k] {
-			extra = append(extra, k)
-		}
-	}
-	return extra
-}
-
-func appendApproachContent(result []json.RawMessage, key string, entries map[string]prompts.Approach) []json.RawMessage {
-	a, ok := entries[key]
-	if !ok {
-		return result
-	}
-	return append(result, marshalSystemMessage("["+key+"]\n"+a.Content))
-}
-
 func ExpandApproaches(messages []json.RawMessage, entries map[string]prompts.Approach) []json.RawMessage {
 	requested, positions := collectApproachMarkers(messages)
 	if len(requested) == 0 {
 		return messages
 	}
 
-	resolved := prompts.ResolveApproachKeys(requested)
-	extra := extraIndexKeys(resolved, requested)
-
-	markerSet := make(map[int]bool, len(positions))
-	for _, pos := range positions {
-		markerSet[pos] = true
+	markerSet := make(map[int]string, len(positions))
+	for i, pos := range positions {
+		markerSet[pos] = requested[i]
 	}
 
-	firstMarker := positions[0]
-	result := make([]json.RawMessage, 0, len(messages)+len(extra))
+	result := make([]json.RawMessage, 0, len(messages))
 	for i, raw := range messages {
-		if !markerSet[i] {
+		key, isMarker := markerSet[i]
+		if !isMarker {
 			result = append(result, raw)
 			continue
 		}
-		if i == firstMarker {
-			for _, ek := range extra {
-				result = appendApproachContent(result, ek, entries)
-			}
-		}
-		key, _ := matchDirective(approachMarker, raw)
-		if _, ok := entries[key]; !ok {
+		a, ok := entries[key]
+		if !ok {
 			slog.Warn("approach key not found in registry", "component", "expand", slog.Group("data", slog.String("key", key)))
+			continue
 		}
-		result = appendApproachContent(result, key, entries)
+		result = append(result, marshalSystemMessage("["+key+"]\n"+a.Content))
 	}
 	return result
 }

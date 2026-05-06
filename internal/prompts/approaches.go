@@ -41,56 +41,6 @@ func ExtractDescription(content string) string {
 	return ""
 }
 
-func IsIndexKey(key string) bool {
-	return key == "index" || strings.HasSuffix(key, "/index")
-}
-
-func ParentIndexKeys(key string) []string {
-	parts := strings.Split(key, "/")
-	keys := make([]string, 0, len(parts)-1)
-	for i := 1; i < len(parts); i++ {
-		keys = append(keys, strings.Join(parts[:i], "/")+"/index")
-	}
-	return keys
-}
-
-func CollectIndexKeys(keys []string) []string {
-	set := map[string]bool{"index": true}
-	for _, key := range keys {
-		for _, idx := range ParentIndexKeys(key) {
-			set[idx] = true
-		}
-	}
-	result := make([]string, 0, len(set))
-	for k := range set {
-		result = append(result, k)
-	}
-	slices.Sort(result)
-	return result
-}
-
-func ResolveApproachKeys(requested []string) []string {
-	indexes := CollectIndexKeys(requested)
-	sorted := make([]string, len(requested))
-	copy(sorted, requested)
-	slices.Sort(sorted)
-
-	ordered := make([]string, 0, len(indexes)+len(sorted))
-	ordered = append(ordered, indexes...)
-	ordered = append(ordered, sorted...)
-
-	seen := make(map[string]bool, len(ordered))
-	result := make([]string, 0, len(ordered))
-	for _, key := range ordered {
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		result = append(result, key)
-	}
-	return result
-}
-
 func compileApproaches(promptsDir string) ApproachRegistry {
 	approachesDir := filepath.Join(promptsDir, "modes", "approaches")
 	entries := make(map[string]Approach)
@@ -122,12 +72,9 @@ func compileApproaches(promptsDir string) ApproachRegistry {
 		desc := ExtractDescription(content)
 
 		entries[key] = Approach{Key: key, Content: content, Description: desc}
-
-		if !IsIndexKey(key) {
-			keys = append(keys, key)
-			if desc != "" {
-				descriptions[key] = desc
-			}
+		keys = append(keys, key)
+		if desc != "" {
+			descriptions[key] = desc
 		}
 		return nil
 	})

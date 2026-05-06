@@ -63,112 +63,6 @@ func TestExtractDescription(t *testing.T) {
 	}
 }
 
-func TestIsIndexKey(t *testing.T) {
-	cases := []struct {
-		key  string
-		want bool
-	}{
-		{"index", true},
-		{"qual-coding/project/index", true},
-		{"qual-coding/codebook/review", false},
-		{"indexing", false},
-	}
-	for _, tc := range cases {
-		t.Run(tc.key, func(t *testing.T) {
-			if got := IsIndexKey(tc.key); got != tc.want {
-				t.Errorf("IsIndexKey(%q) = %v, want %v", tc.key, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestParentIndexKeys(t *testing.T) {
-	cases := []struct {
-		key  string
-		want []string
-	}{
-		{"simple", nil},
-		{"a/b", []string{"a/index"}},
-		{"a/b/c", []string{"a/index", "a/b/index"}},
-		{"a/b/c/d", []string{"a/index", "a/b/index", "a/b/c/index"}},
-	}
-	for _, tc := range cases {
-		t.Run(tc.key, func(t *testing.T) {
-			got := ParentIndexKeys(tc.key)
-			if len(got) == 0 {
-				got = nil
-			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestCollectIndexKeys(t *testing.T) {
-	cases := []struct {
-		name string
-		keys []string
-		want []string
-	}{
-		{
-			name: "single deep key",
-			keys: []string{"a/b/c"},
-			want: []string{"a/b/index", "a/index", "index"},
-		},
-		{
-			name: "multiple keys shared parents",
-			keys: []string{"a/b/c", "a/b/d"},
-			want: []string{"a/b/index", "a/index", "index"},
-		},
-		{
-			name: "different branches",
-			keys: []string{"a/b", "c/d"},
-			want: []string{"a/index", "c/index", "index"},
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := CollectIndexKeys(tc.keys)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestResolveApproachKeys(t *testing.T) {
-	cases := []struct {
-		name      string
-		requested []string
-		want      []string
-	}{
-		{
-			name:      "single key includes indexes",
-			requested: []string{"a/b/c"},
-			want:      []string{"a/b/index", "a/index", "index", "a/b/c"},
-		},
-		{
-			name:      "multiple keys deduped",
-			requested: []string{"a/b/c", "a/b/d"},
-			want:      []string{"a/b/index", "a/index", "index", "a/b/c", "a/b/d"},
-		},
-		{
-			name:      "requested key is also an index",
-			requested: []string{"a/b/index", "a/b/c"},
-			want:      []string{"a/b/index", "a/index", "index", "a/b/c"},
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := ResolveApproachKeys(tc.requested)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
 func writeFile(t *testing.T, dir, rel, content string) {
 	t.Helper()
 	path := filepath.Join(dir, rel)
@@ -184,8 +78,6 @@ func TestCompileApproaches(t *testing.T) {
 	dir := t.TempDir()
 	approachesDir := filepath.Join(dir, "modes", "approaches")
 
-	writeFile(t, approachesDir, "index.md", "## Root index\n")
-	writeFile(t, approachesDir, "topic/index.md", "## Topic index\n")
 	writeFile(t, approachesDir, "topic/leaf.md", "---\ndescription: A leaf approach.\n---\n\n## Leaf\n")
 	writeFile(t, approachesDir, "topic/nodesc.md", "## No description\n")
 
@@ -201,12 +93,6 @@ func TestCompileApproaches(t *testing.T) {
 		t.Errorf("Descriptions mismatch (-want +got):\n%s", diff)
 	}
 
-	if _, ok := reg.Entries["index"]; !ok {
-		t.Error("expected root index in Entries")
-	}
-	if _, ok := reg.Entries["topic/index"]; !ok {
-		t.Error("expected topic/index in Entries")
-	}
 	if _, ok := reg.Entries["topic/leaf"]; !ok {
 		t.Error("expected topic/leaf in Entries")
 	}

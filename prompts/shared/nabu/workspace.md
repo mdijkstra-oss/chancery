@@ -24,4 +24,12 @@ In prose and chat, `#label` (e.g. `#interview`, `#round-1`) is auto-linkified in
 Tags are for grouping, not describing. A small set of categories to organize the workspace — not a taxonomy of every attribute a file might have. When the user asks to tag files, discover existing tags first, then apply them sensibly. If no tags exist yet, create logical groups based on the files' roles (e.g. `#interview`, `#codebook`, `#memo`). Keep the set small — a few meaningful groups beat many fine-grained labels. Don't create a new tag when an existing one fits.
 
 Every file should have at least one tag.
+
+## Generated files
+
+Some data blocks have IDs (e.g. `callout-abc12345`). These blocks can be accessed as standalone files using `[id].generated.hidden.md` (e.g. `callout-abc12345.generated.hidden.md`). These files:
+- Can be read with `cat`, `head`, `tail`, `grep`
+- Do NOT appear in `ls` or `find` output
+- Writes redirect transparently to the real file containing the block
+- Are not separate files — they are views into existing blocks
 </workspace>

@@ -7,7 +7,7 @@ import (
 	"hermes-logos/internal/prompts"
 )
 
-func buildApproachDict(keys []string, descriptions map[string]string) map[string]string {
+func buildGuidanceDict(keys []string, descriptions map[string]string) map[string]string {
 	dict := make(map[string]string, len(keys))
 	for _, k := range keys {
 		dict[k] = descriptions[k]
@@ -15,10 +15,10 @@ func buildApproachDict(keys []string, descriptions map[string]string) map[string
 	return dict
 }
 
-func NewApproachesHandler(registry prompts.ApproachRegistry) http.HandlerFunc {
-	data, err := json.Marshal(buildApproachDict(registry.Keys, registry.Descriptions))
+func NewGuidanceHandler(registry prompts.GuidanceRegistry) http.HandlerFunc {
+	data, err := json.Marshal(buildGuidanceDict(registry.Keys, registry.Descriptions))
 	if err != nil {
-		panic("marshal approaches: " + err.Error())
+		panic("marshal guidance: " + err.Error())
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

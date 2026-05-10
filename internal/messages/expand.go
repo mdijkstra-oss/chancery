@@ -9,7 +9,7 @@ import (
 	"hermes-logos/internal/protocol"
 )
 
-var approachMarker = regexp.MustCompile(`^<!--\s*approach:\s*([\w/\-]+)\s*-->$`)
+var guidanceMarker = regexp.MustCompile(`^<!--\s*guidance:\s*([\w/\-]+)\s*-->$`)
 var modeMarker = regexp.MustCompile(`^<!--\s*prompt:\s*(\w+)\s*-->$`)
 
 func ExpandMessages(messages []json.RawMessage, modes map[string]string) []json.RawMessage {
@@ -79,11 +79,11 @@ func marshalSystemMessage(content string) json.RawMessage {
 	return b
 }
 
-func collectApproachMarkers(messages []json.RawMessage) ([]string, []int) {
+func collectGuidanceMarkers(messages []json.RawMessage) ([]string, []int) {
 	var keys []string
 	var positions []int
 	for i, raw := range messages {
-		if key, ok := matchDirective(approachMarker, raw); ok {
+		if key, ok := matchDirective(guidanceMarker, raw); ok {
 			keys = append(keys, key)
 			positions = append(positions, i)
 		}
@@ -91,8 +91,8 @@ func collectApproachMarkers(messages []json.RawMessage) ([]string, []int) {
 	return keys, positions
 }
 
-func ExpandApproaches(messages []json.RawMessage, entries map[string]prompts.Approach) []json.RawMessage {
-	requested, positions := collectApproachMarkers(messages)
+func ExpandGuidance(messages []json.RawMessage, entries map[string]prompts.Guidance) []json.RawMessage {
+	requested, positions := collectGuidanceMarkers(messages)
 	if len(requested) == 0 {
 		return messages
 	}
@@ -111,7 +111,7 @@ func ExpandApproaches(messages []json.RawMessage, entries map[string]prompts.App
 		}
 		a, ok := entries[key]
 		if !ok {
-			slog.Warn("approach key not found in registry", "component", "expand", slog.Group("data", slog.String("key", key)))
+			slog.Warn("guidance key not found in registry", "component", "expand", slog.Group("data", slog.String("key", key)))
 			continue
 		}
 		result = append(result, marshalSystemMessage("["+key+"]\n"+a.Content))

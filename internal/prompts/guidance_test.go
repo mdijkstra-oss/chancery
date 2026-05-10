@@ -74,21 +74,21 @@ func writeFile(t *testing.T, dir, rel, content string) {
 	}
 }
 
-func TestCompileApproaches(t *testing.T) {
+func TestCompileGuidance(t *testing.T) {
 	dir := t.TempDir()
-	approachesDir := filepath.Join(dir, "modes", "approaches")
+	guidanceDir := filepath.Join(dir, "modes", "guidance")
 
-	writeFile(t, approachesDir, "topic/leaf.md", "---\ndescription: A leaf approach.\n---\n\n## Leaf\n")
-	writeFile(t, approachesDir, "topic/nodesc.md", "## No description\n")
+	writeFile(t, guidanceDir, "topic/leaf.md", "---\ndescription: A leaf guidance.\n---\n\n## Leaf\n")
+	writeFile(t, guidanceDir, "topic/nodesc.md", "## No description\n")
 
-	reg := compileApproaches(dir)
+	reg := compileGuidance(dir)
 
 	wantKeys := []string{"topic/leaf", "topic/nodesc"}
 	if diff := cmp.Diff(wantKeys, reg.Keys); diff != "" {
 		t.Errorf("Keys mismatch (-want +got):\n%s", diff)
 	}
 
-	wantDescriptions := map[string]string{"topic/leaf": "A leaf approach."}
+	wantDescriptions := map[string]string{"topic/leaf": "A leaf guidance."}
 	if diff := cmp.Diff(wantDescriptions, reg.Descriptions); diff != "" {
 		t.Errorf("Descriptions mismatch (-want +got):\n%s", diff)
 	}
@@ -98,7 +98,7 @@ func TestCompileApproaches(t *testing.T) {
 	}
 
 	leaf := reg.Entries["topic/leaf"]
-	if leaf.Description != "A leaf approach." {
-		t.Errorf("leaf description = %q, want %q", leaf.Description, "A leaf approach.")
+	if leaf.Description != "A leaf guidance." {
+		t.Errorf("leaf description = %q, want %q", leaf.Description, "A leaf guidance.")
 	}
 }

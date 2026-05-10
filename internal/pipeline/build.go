@@ -21,7 +21,7 @@ func BuildRequestParams(agentName string, req protocol.ChatRequest, registry pro
 	}
 
 	expanded := messages.ExpandMessages(req.Messages, registry.Modes)
-	expanded = messages.ExpandApproaches(expanded, registry.Approaches.Entries)
+	expanded = messages.ExpandGuidance(expanded, registry.Guidance.Entries)
 	expanded = messages.ReorderToolMessages(expanded)
 
 	toolNames := protocol.ExtractToolNames(req.Tools)

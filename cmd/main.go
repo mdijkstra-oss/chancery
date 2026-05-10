@@ -24,11 +24,11 @@ func main() {
 	limiter := ratelimit.NewLimiter()
 
 	chatHandler := httpHandlers.NewChatHandler(registry, limiter)
-	approachesHandler := httpHandlers.NewApproachesHandler(registry.Approaches)
+	guidanceHandler := httpHandlers.NewGuidanceHandler(registry.Guidance)
 	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(mustEmbeddingsConfig(registry), limiter)
 
 	r := chi.NewRouter()
-	httpHandlers.SetupRoutes(r, chatHandler, approachesHandler, embeddingsHandler, cfg.CorsOrigins)
+	httpHandlers.SetupRoutes(r, chatHandler, guidanceHandler, embeddingsHandler, cfg.CorsOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server starting", "component", "startup", slog.Group("data", slog.String("port", cfg.Port)))

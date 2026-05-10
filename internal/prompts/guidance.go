@@ -8,14 +8,14 @@ import (
 	"strings"
 )
 
-type Approach struct {
+type Guidance struct {
 	Key         string
 	Content     string
 	Description string
 }
 
-type ApproachRegistry struct {
-	Entries      map[string]Approach
+type GuidanceRegistry struct {
+	Entries      map[string]Guidance
 	Keys         []string
 	Descriptions map[string]string
 }
@@ -41,24 +41,24 @@ func ExtractDescription(content string) string {
 	return ""
 }
 
-func compileApproaches(promptsDir string) ApproachRegistry {
-	approachesDir := filepath.Join(promptsDir, "modes", "approaches")
-	entries := make(map[string]Approach)
+func compileGuidance(promptsDir string) GuidanceRegistry {
+	guidanceDir := filepath.Join(promptsDir, "modes", "guidance")
+	entries := make(map[string]Guidance)
 	var keys []string
 	descriptions := make(map[string]string)
 
-	if _, statErr := os.Stat(approachesDir); os.IsNotExist(statErr) {
-		return ApproachRegistry{Entries: entries, Keys: keys, Descriptions: descriptions}
+	if _, statErr := os.Stat(guidanceDir); os.IsNotExist(statErr) {
+		return GuidanceRegistry{Entries: entries, Keys: keys, Descriptions: descriptions}
 	}
 
-	err := filepath.Walk(approachesDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(guidanceDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if info.IsDir() || !strings.HasSuffix(info.Name(), ".md") {
 			return nil
 		}
-		rel, err := filepath.Rel(approachesDir, path)
+		rel, err := filepath.Rel(guidanceDir, path)
 		if err != nil {
 			return err
 		}
@@ -66,12 +66,12 @@ func compileApproaches(promptsDir string) ApproachRegistry {
 		key := KeyFromPath(rel)
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("read approach %s: %w", key, err)
+			return fmt.Errorf("read guidance %s: %w", key, err)
 		}
 		content := strings.TrimRight(string(data), "\n")
 		desc := ExtractDescription(content)
 
-		entries[key] = Approach{Key: key, Content: content, Description: desc}
+		entries[key] = Guidance{Key: key, Content: content, Description: desc}
 		keys = append(keys, key)
 		if desc != "" {
 			descriptions[key] = desc
@@ -79,9 +79,9 @@ func compileApproaches(promptsDir string) ApproachRegistry {
 		return nil
 	})
 	if err != nil {
-		panic(fmt.Sprintf("compile approaches: %v", err))
+		panic(fmt.Sprintf("compile guidance: %v", err))
 	}
 
 	slices.Sort(keys)
-	return ApproachRegistry{Entries: entries, Keys: keys, Descriptions: descriptions}
+	return GuidanceRegistry{Entries: entries, Keys: keys, Descriptions: descriptions}
 }

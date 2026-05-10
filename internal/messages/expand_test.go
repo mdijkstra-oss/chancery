@@ -121,8 +121,8 @@ func TestExpandMessages(t *testing.T) {
 	}
 }
 
-func TestExpandApproaches(t *testing.T) {
-	entries := map[string]prompts.Approach{
+func TestExpandGuidance(t *testing.T) {
+	entries := map[string]prompts.Guidance{
 		"a/b/leaf":    {Key: "a/b/leaf", Content: "## Leaf content"},
 		"a/b/another": {Key: "a/b/another", Content: "## Another content"},
 	}
@@ -134,7 +134,7 @@ func TestExpandApproaches(t *testing.T) {
 	}{
 		{
 			name:     "single marker expanded",
-			messages: []json.RawMessage{msg("system", "<!-- approach: a/b/leaf -->")},
+			messages: []json.RawMessage{msg("system", "<!-- guidance: a/b/leaf -->")},
 			want: []json.RawMessage{
 				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
 			},
@@ -142,9 +142,9 @@ func TestExpandApproaches(t *testing.T) {
 		{
 			name: "multiple markers all expanded",
 			messages: []json.RawMessage{
-				msg("system", "<!-- approach: a/b/leaf -->"),
+				msg("system", "<!-- guidance: a/b/leaf -->"),
 				msg("user", "hello"),
-				msg("system", "<!-- approach: a/b/another -->"),
+				msg("system", "<!-- guidance: a/b/another -->"),
 			},
 			want: []json.RawMessage{
 				typedMsg("system", "[a/b/leaf]\n## Leaf content"),
@@ -154,7 +154,7 @@ func TestExpandApproaches(t *testing.T) {
 		},
 		{
 			name:     "unknown key dropped",
-			messages: []json.RawMessage{msg("system", "<!-- approach: unknown/key -->")},
+			messages: []json.RawMessage{msg("system", "<!-- guidance: unknown/key -->")},
 			want:     nil,
 		},
 		{
@@ -169,10 +169,10 @@ func TestExpandApproaches(t *testing.T) {
 			},
 		},
 		{
-			name: "mixed modes and approaches both work",
+			name: "mixed modes and guidance both work",
 			messages: []json.RawMessage{
 				msg("system", "<!-- prompt: planning -->"),
-				msg("system", "<!-- approach: a/b/leaf -->"),
+				msg("system", "<!-- guidance: a/b/leaf -->"),
 			},
 			want: []json.RawMessage{
 				msg("system", "<!-- prompt: planning -->"),
@@ -180,15 +180,15 @@ func TestExpandApproaches(t *testing.T) {
 			},
 		},
 		{
-			name:     "non-system approach marker unchanged",
-			messages: []json.RawMessage{msg("user", "<!-- approach: a/b/leaf -->")},
-			want:     []json.RawMessage{msg("user", "<!-- approach: a/b/leaf -->")},
+			name:     "non-system guidance marker unchanged",
+			messages: []json.RawMessage{msg("user", "<!-- guidance: a/b/leaf -->")},
+			want:     []json.RawMessage{msg("user", "<!-- guidance: a/b/leaf -->")},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := ExpandApproaches(tc.messages, entries)
+			got := ExpandGuidance(tc.messages, entries)
 			if diff := cmp.Diff(rawSliceToStrings(tc.want), rawSliceToStrings(got)); diff != "" {
 				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}

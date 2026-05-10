@@ -26,7 +26,7 @@ type Registry struct {
 	Agents       map[string]CompiledAgent
 	Configs      map[string]PromptConfig
 	Modes        map[string]string
-	Approaches   ApproachRegistry
+	Guidance     GuidanceRegistry
 	ProviderKeys []string
 	models       map[string]modelEntry
 	providers    map[string]ProviderConfig
@@ -163,7 +163,7 @@ func CompileRegistry(promptsDir string) Registry {
 		Agents:       make(map[string]CompiledAgent),
 		Configs:      cr.configs,
 		Modes:        compileModes(promptsDir),
-		Approaches:   compileApproaches(promptsDir),
+		Guidance:     compileGuidance(promptsDir),
 		ProviderKeys: cr.providerKeys,
 		models:       cr.models,
 		providers:    cr.providers,

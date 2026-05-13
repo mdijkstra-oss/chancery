@@ -28,10 +28,10 @@
   "compacter": {
     "model": "gemini-3-flash-preview"
   },
-  "deep-analysis-find": {
-    "model": "gemini-3-flash-preview",
-    "reasoning_effort": "low"
-  },
+  "deep-analysis-find": [
+    { "model": "gemini-3-flash-preview", "reasoning_effort": "minimal" },
+    { "model": "gpt-5.4-mini", "reasoning_effort": "none" }
+  ],
   "deep-analysis-reason": {
     "model": "gemini-3-flash-preview",
     "reasoning_effort": "low"

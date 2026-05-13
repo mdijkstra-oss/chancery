@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -33,7 +34,13 @@ func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registr
 		return
 	}
 
-	params, promptCfg, err := pipeline.BuildRequestParams(urlPath, req, registry)
+	modelIndex, err := parseModelIndex(r.URL.Query().Get("model"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	params, promptCfg, err := pipeline.BuildRequestParams(urlPath, modelIndex, req, registry)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -103,4 +110,18 @@ func parseTemperature(s string) *float64 {
 		return nil
 	}
 	return &v
+}
+
+func parseModelIndex(s string) (int, error) {
+	if s == "" {
+		return 0, nil
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("invalid model index: %s", s)
+	}
+	if v < 0 {
+		return 0, fmt.Errorf("model index must be non-negative: %d", v)
+	}
+	return v, nil
 }

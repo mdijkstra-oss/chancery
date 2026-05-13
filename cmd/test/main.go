@@ -40,7 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	params, promptCfg, err := pipeline.BuildRequestParams(agentName, req, registry)
+	params, promptCfg, err := pipeline.BuildRequestParams(agentName, 0, req, registry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "build params: %v\n", err)
 		os.Exit(1)

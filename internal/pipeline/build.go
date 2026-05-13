@@ -9,15 +9,15 @@ import (
 	"hermes-logos/internal/protocol"
 )
 
-func BuildRequestParams(agentName string, req protocol.ChatRequest, registry prompts.Registry) (protocol.RequestParams, prompts.PromptConfig, error) {
+func BuildRequestParams(agentName string, modelIndex int, req protocol.ChatRequest, registry prompts.Registry) (protocol.RequestParams, prompts.PromptConfig, error) {
 	agent, ok := registry.Agents[agentName]
 	if !ok {
 		return protocol.RequestParams{}, prompts.PromptConfig{}, fmt.Errorf("unknown agent: %s", agentName)
 	}
 
-	promptCfg, ok := registry.Configs[agentName]
-	if !ok {
-		return protocol.RequestParams{}, prompts.PromptConfig{}, fmt.Errorf("no config for agent: %s", agentName)
+	promptCfg, err := registry.ConfigForAgent(agentName, modelIndex)
+	if err != nil {
+		return protocol.RequestParams{}, prompts.PromptConfig{}, err
 	}
 
 	expanded := messages.ExpandMessages(req.Messages, registry.Modes)

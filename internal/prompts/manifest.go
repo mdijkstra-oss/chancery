@@ -25,11 +25,30 @@ type CompiledAgent struct {
 type Registry struct {
 	Agents       map[string]CompiledAgent
 	Configs      map[string]PromptConfig
+	Variants     map[string][]PromptConfig
 	Modes        map[string]string
 	Guidance     GuidanceRegistry
 	ProviderKeys []string
 	models       map[string]modelEntry
 	providers    map[string]ProviderConfig
+}
+
+func (r Registry) ConfigForAgent(name string, modelIndex int) (PromptConfig, error) {
+	if modelIndex == 0 {
+		cfg, ok := r.Configs[name]
+		if !ok {
+			return PromptConfig{}, fmt.Errorf("no config for agent: %s", name)
+		}
+		return cfg, nil
+	}
+	variants, ok := r.Variants[name]
+	if !ok {
+		return PromptConfig{}, fmt.Errorf("agent %q has no model variants", name)
+	}
+	if modelIndex >= len(variants) {
+		return PromptConfig{}, fmt.Errorf("agent %q model index %d out of range (have %d)", name, modelIndex, len(variants))
+	}
+	return variants[modelIndex], nil
 }
 
 type ModelOverride struct {
@@ -162,6 +181,7 @@ func CompileRegistry(promptsDir string) Registry {
 	registry := Registry{
 		Agents:       make(map[string]CompiledAgent),
 		Configs:      cr.configs,
+		Variants:     cr.variants,
 		Modes:        compileModes(promptsDir),
 		Guidance:     compileGuidance(promptsDir),
 		ProviderKeys: cr.providerKeys,
@@ -257,20 +277,37 @@ func loadProviderFile(path, providerKey string) (ProviderEntry, map[string]model
 	return entry, pf.Models
 }
 
-func loadAgentsConfig(path string) map[string]agentEntry {
+func loadAgentsConfig(path string) map[string]agentConfig {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		panic(fmt.Sprintf("read agents.json: %v", err))
 	}
-	var agents map[string]agentEntry
-	if err := json.Unmarshal(data, &agents); err != nil {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
 		panic(fmt.Sprintf("parse agents.json: %v", err))
+	}
+	agents := make(map[string]agentConfig, len(raw))
+	for key, v := range raw {
+		var arr []agentEntry
+		if json.Unmarshal(v, &arr) == nil {
+			if len(arr) == 0 {
+				panic(fmt.Sprintf("agent %q has empty model array", key))
+			}
+			agents[key] = agentConfig{Variants: arr}
+			continue
+		}
+		var single agentEntry
+		if err := json.Unmarshal(v, &single); err != nil {
+			panic(fmt.Sprintf("parse agent %q: %v", key, err))
+		}
+		agents[key] = agentConfig{Variants: []agentEntry{single}}
 	}
 	return agents
 }
 
 type configResult struct {
 	configs      map[string]PromptConfig
+	variants     map[string][]PromptConfig
 	providerKeys []string
 	models       map[string]modelEntry
 	providers    map[string]ProviderConfig
@@ -285,7 +322,7 @@ func loadConfigDir(promptsDir string) configResult {
 
 	providerEntries := make(map[string]ProviderEntry)
 	allModels := make(map[string]modelEntry)
-	var agents map[string]agentEntry
+	var agents map[string]agentConfig
 
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
@@ -321,23 +358,31 @@ func loadConfigDir(promptsDir string) configResult {
 
 	resolved := resolveModels(allModels)
 	configs := make(map[string]PromptConfig, len(agents))
-	for key, agent := range agents {
-		model, ok := resolved[agent.Model]
-		if !ok {
-			panic(fmt.Sprintf("agent %q references unknown model %q", key, agent.Model))
+	allVariants := make(map[string][]PromptConfig)
+	for key, ac := range agents {
+		var built []PromptConfig
+		for _, agent := range ac.Variants {
+			model, ok := resolved[agent.Model]
+			if !ok {
+				panic(fmt.Sprintf("agent %q references unknown model %q", key, agent.Model))
+			}
+			if model.Provider == "" {
+				panic(fmt.Sprintf("model %q has no provider", agent.Model))
+			}
+			provider, ok := providers[model.Provider]
+			if !ok {
+				panic(fmt.Sprintf("model %q references unknown provider %q", agent.Model, model.Provider))
+			}
+			built = append(built, mergeConfig(model, agent, provider))
 		}
-		if model.Provider == "" {
-			panic(fmt.Sprintf("model %q has no provider", agent.Model))
+		configs[key] = built[0]
+		if len(built) > 1 {
+			allVariants[key] = built
 		}
-		provider, ok := providers[model.Provider]
-		if !ok {
-			panic(fmt.Sprintf("model %q references unknown provider %q", agent.Model, model.Provider))
-		}
-		configs[key] = mergeConfig(model, agent, provider)
 	}
 	resolvePromptPaths(configs, filepath.Join(promptsDir, "shared"))
 	validateSeedProtocols(configs)
-	return configResult{configs: configs, providerKeys: providerKeys, models: resolved, providers: providers}
+	return configResult{configs: configs, variants: allVariants, providerKeys: providerKeys, models: resolved, providers: providers}
 }
 
 func resolvePromptPaths(configs map[string]PromptConfig, sharedDir string) {

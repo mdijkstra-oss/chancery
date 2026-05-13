@@ -86,3 +86,7 @@ type agentEntry struct {
 	CompactAt        int      `json:"compact_at,omitempty"`
 	Dimensions       int      `json:"dimensions,omitempty"`
 }
+
+type agentConfig struct {
+	Variants []agentEntry
+}

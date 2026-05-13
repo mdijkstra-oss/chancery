@@ -21,15 +21,20 @@ edges, ask whether the passage still satisfies the definition without it. If yes
 
 Most sentences will not match any definition.
 
+The reason must state which specific "apply when" condition the passage
+satisfies. If your reason instead describes why the passage does not
+match, remove the entry.
+
 Return JSON:
 {
-  "results": [
-    {
-      "analysis_source_id": "callout-4d327gdb",
-      "start": 12,
-      "end": 14
-    }
-  ]
+"results": [
+  {
+    "analysis_source_id": "callout-4d327gdb",
+    "start": 12,
+    "end": 14,
+    "reasonToKeep": "which apply-when condition is met and why"
+  }
+]
 }
 
 If nothing survives rejection, return JSON { "results": [] }.

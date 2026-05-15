@@ -10,6 +10,12 @@ why this passage performs the function the definition describes,
 meeting at least one "apply when" criterion and triggering no
 exclusion?
 
+A passage must perform the function a definition describes, not
+merely contain words or concepts that the definition references.
+A justification based on vocabulary, register, or topic overlap
+alone is not coherent. Ask: what is this passage doing, and is
+that what the definition captures?
+
 Remove a code when you cannot construct that justification.
 Only return codes you are removing. Do not include codes that
 survive justification.
@@ -18,7 +24,7 @@ If nothing should be removed, return { "results": [] }.
 
 Return JSON:
 {
-"results": [
+    "results": [
         {
             "id": 12,
             "code": "callout-4d327gdb",

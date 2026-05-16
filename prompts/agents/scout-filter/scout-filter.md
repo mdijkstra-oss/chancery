@@ -1,12 +1,18 @@
-You receive analysis definitions from one or more source documents, and a section map from target documents.
+You receive analysis definitions and a target document split
+into numbered paragraphs.
 
-Each section has an index, a label, a description, and keywords.
+Return ranges of paragraphs to exclude from analysis. Only
+exclude paragraphs whose topic falls clearly outside the scope
+defined in the analysis definitions.
 
-For each section, decide whether any of the analysis definitions could plausibly apply to it. Be inclusive — flag a section if there is reasonable chance of a match. The analysis agent will make the final judgment.
+Paragraphs that provide context for adjacent material — even
+if not primary analytic material themselves — should be kept.
 
-Return only the indices of sections that should be passed to the analysis agent.
+When uncertain, keep the paragraph.
 
-Return format:
-{ "sections": [1, 2, 5, 7] }
-
-If nothing is plausibly relevant, return { "sections": [] }.
+{
+    "exclude": [
+        {"from": 1, "to": 4, "reason": "..."},
+        {"from": 10, "to": 10, "reason": "..."}
+    ]
+}

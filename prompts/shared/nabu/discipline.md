@@ -109,5 +109,5 @@ Tool success/failure is sufficient feedback — don't verify each step. Don't re
 
 For multi-step tasks, verify the objective at the end, not after each step.
 
-On completion, summarize: what was done, what changed, anything unexpected.
+On completion, summarize: what was done, what changed. For coding runs: factual observations only — what appeared frequently, what was absent. No significance claims, no interpretation, no forward references to future documents.
 </completion>

@@ -10,10 +10,8 @@
     "reasoning_effort": "off"
   },
   "scout-filter": {
-    "model": "gemini-2.5-flash-lite",
-    "reasoning_effort": "medium",
-    "temperature": 0,
-    "seed": true
+    "model": "gemini-3.1-flash-lite-preview",
+    "reasoning_effort": "none"
   },
   "semantic-filter": {
     "model": "gemini-3.1-flash-lite-preview",
@@ -30,17 +28,21 @@
     { "model": "gemini-3-flash-preview", "reasoning_effort": "minimal" },
     { "model": "gpt-5.4-mini", "reasoning_effort": "none" }
   ],
-  "deep-analysis-reason": {
-    "model": "gpt-5.2",
-    "reasoning_effort": "low"
-  },
   "deep-analysis-filter": [
     { "model": "gemini-3.1-pro-preview", "reasoning_effort": "medium" },
     { "model": "gpt-5.4", "reasoning_effort": "medium" }
   ],
+  "deep-analysis-reason": {
+    "model": "gpt-5.2",
+    "reasoning_effort": "low"
+  },
   "deep-analysis-adjudicate": {
     "model": "gpt-5.5",
     "reasoning_effort": "medium"
+  },
+  "deep-analysis-trim": {
+    "model": "gpt-5.2",
+    "reasoning_effort": "none"
   },
   "commit-agent": {
     "model": "gpt-5-mini",

@@ -1,18 +1,13 @@
-You receive analysis definitions and a target document split
-into numbered paragraphs.
+You receive analysis definitions and a target document split into numbered paragraphs.
 
-Return ranges of paragraphs to exclude from analysis. Only
-exclude paragraphs whose topic falls clearly outside the scope
-defined in the analysis definitions.
+Identify contiguous topical sections to exclude. A valid exclusion is a run of consecutive paragraphs that together form a coherent off-topic block — a different policy area, procedural boilerplate, appendix material, or unrelated agenda item.
 
-Paragraphs that provide context for adjacent material — even
-if not primary analytic material themselves — should be kept.
+Do not exclude isolated paragraphs. Do not exclude transitional or contextual material adjacent to on-topic content. If the entire document is on-topic, return an empty exclude array.
 
-When uncertain, keep the paragraph.
+When uncertain, keep.
 
 {
     "exclude": [
-        {"from": 1, "to": 4, "reason": "..."},
-        {"from": 10, "to": 10, "reason": "..."}
+        {"from": 5, "to": 12, "reason": "..."}
     ]
 }

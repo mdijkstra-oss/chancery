@@ -25,20 +25,16 @@
     "model": "gemini-3-flash-preview"
   },
   "deep-analysis-find": [
-    { "model": "gemini-3-flash-preview", "reasoning_effort": "minimal" },
-    { "model": "gpt-5.4-mini", "reasoning_effort": "none" }
-  ],
-  "deep-analysis-filter": [
-    { "model": "gemini-3.1-pro-preview", "reasoning_effort": "medium" },
-    { "model": "gpt-5.4", "reasoning_effort": "medium" }
+    { "model": "gemini-3.1-pro-preview", "reasoning_effort": "low" },
+    { "model": "gpt-5.4", "reasoning_effort": "low" }
   ],
   "deep-analysis-reason": {
     "model": "gpt-5.2",
-    "reasoning_effort": "low"
+    "reasoning_effort": "none"
   },
   "deep-analysis-adjudicate": {
     "model": "gpt-5.5",
-    "reasoning_effort": "medium"
+    "reasoning_effort": "low"
   },
   "deep-analysis-trim": {
     "model": "gpt-5.2",

@@ -5,12 +5,8 @@ import (
 	"fmt"
 
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers/sse"
 )
-
-type SSEEvent struct {
-	Type string
-	Data string
-}
 
 type EmitState struct {
 	OutputIndex   int
@@ -68,7 +64,7 @@ type compDetails struct {
 	ReasoningTokens int `json:"reasoning_tokens"`
 }
 
-func ChunkToEvents(data []byte, state *EmitState) []SSEEvent {
+func ChunkToEvents(data []byte, state *EmitState) []sse.Event {
 	var env chunkEnvelope
 	if json.Unmarshal(data, &env) != nil || len(env.Choices) == 0 {
 		return nil
@@ -77,7 +73,7 @@ func ChunkToEvents(data []byte, state *EmitState) []SSEEvent {
 		state.ActiveCalls = make(map[int]*activeCall)
 	}
 	choice := env.Choices[0]
-	var events []SSEEvent
+	var events []sse.Event
 
 	if choice.Delta.ReasoningContent != nil && *choice.Delta.ReasoningContent != "" {
 		events = append(events, reasoningDeltaEvent(*choice.Delta.ReasoningContent, state))
@@ -101,16 +97,16 @@ func ChunkToEvents(data []byte, state *EmitState) []SSEEvent {
 	return events
 }
 
-func reasoningDeltaEvent(text string, state *EmitState) SSEEvent {
+func reasoningDeltaEvent(text string, state *EmitState) sse.Event {
 	state.ReasoningText += text
 	data, _ := json.Marshal(map[string]string{"delta": text})
-	return SSEEvent{
+	return sse.Event{
 		Type: "response.reasoning_summary_text.delta",
 		Data: string(data),
 	}
 }
 
-func FlushReasoning(state *EmitState) []SSEEvent {
+func FlushReasoning(state *EmitState) []sse.Event {
 	if state.ReasoningText == "" {
 		return nil
 	}
@@ -130,22 +126,22 @@ func FlushReasoning(state *EmitState) []SSEEvent {
 	data, _ := json.Marshal(map[string]any{"item": item})
 	state.ReasoningText = ""
 	state.OutputIndex++
-	return []SSEEvent{{
+	return []sse.Event{{
 		Type: "response.output_item.done",
 		Data: string(data),
 	}}
 }
 
-func textDeltaEvent(text string) SSEEvent {
+func textDeltaEvent(text string) sse.Event {
 	data, _ := json.Marshal(map[string]string{"delta": text})
-	return SSEEvent{
+	return sse.Event{
 		Type: "response.output_text.delta",
 		Data: string(data),
 	}
 }
 
-func toolCallDeltaEvents(tc toolCallDelta, state *EmitState) []SSEEvent {
-	var events []SSEEvent
+func toolCallDeltaEvents(tc toolCallDelta, state *EmitState) []sse.Event {
+	var events []sse.Event
 	call, exists := state.ActiveCalls[tc.Index]
 	if !exists {
 		call = &activeCall{}
@@ -168,7 +164,7 @@ func toolCallDeltaEvents(tc toolCallDelta, state *EmitState) []SSEEvent {
 				"name":    call.Name,
 			},
 		})
-		events = append(events, SSEEvent{
+		events = append(events, sse.Event{
 			Type: "response.output_item.added",
 			Data: string(addedData),
 		})
@@ -177,7 +173,7 @@ func toolCallDeltaEvents(tc toolCallDelta, state *EmitState) []SSEEvent {
 	if tc.Function != nil && tc.Function.Arguments != "" {
 		call.Arguments += tc.Function.Arguments
 		deltaData, _ := json.Marshal(map[string]string{"delta": tc.Function.Arguments})
-		events = append(events, SSEEvent{
+		events = append(events, sse.Event{
 			Type: "response.function_call_arguments.delta",
 			Data: string(deltaData),
 		})
@@ -186,11 +182,11 @@ func toolCallDeltaEvents(tc toolCallDelta, state *EmitState) []SSEEvent {
 	return events
 }
 
-func FlushActiveCalls(state *EmitState) []SSEEvent {
+func FlushActiveCalls(state *EmitState) []sse.Event {
 	if len(state.ActiveCalls) == 0 {
 		return nil
 	}
-	events := make([]SSEEvent, 0, len(state.ActiveCalls))
+	events := make([]sse.Event, 0, len(state.ActiveCalls))
 	for idx := 0; idx < maxActiveIndex(state.ActiveCalls)+1; idx++ {
 		call, ok := state.ActiveCalls[idx]
 		if !ok {
@@ -204,7 +200,7 @@ func FlushActiveCalls(state *EmitState) []SSEEvent {
 				"arguments": call.Arguments,
 			},
 		})
-		events = append(events, SSEEvent{
+		events = append(events, sse.Event{
 			Type: "response.output_item.done",
 			Data: string(doneData),
 		})
@@ -248,19 +244,6 @@ func ExtractUsage(data []byte) *protocol.UsageResponse {
 	return usage
 }
 
-func BuildCompletedEvent(usage *protocol.UsageResponse) SSEEvent {
-	data, _ := json.Marshal(map[string]any{
-		"response": map[string]any{
-			"status": "completed",
-			"usage":  usage,
-		},
-	})
-	return SSEEvent{
-		Type: "response.completed",
-		Data: string(data),
-	}
-}
-
 func ExtractFinishReason(data []byte) string {
 	var env chunkEnvelope
 	if json.Unmarshal(data, &env) != nil || len(env.Choices) == 0 {
@@ -277,28 +260,12 @@ var finishReasonErrors = map[string]string{
 	"length":         "output truncated: token limit reached",
 }
 
-func FinishReasonToEvent(reason string) *SSEEvent {
+func FinishReasonToEvent(reason string) *sse.Event {
 	message, ok := finishReasonErrors[reason]
 	if !ok {
 		return nil
 	}
-	event := BuildFailedEvent(reason, message)
+	event := sse.BuildFailedEvent(reason, message)
 	return &event
-}
-
-func BuildFailedEvent(errorType, message string) SSEEvent {
-	data, _ := json.Marshal(map[string]any{
-		"response": map[string]any{
-			"status": "failed",
-			"error": map[string]any{
-				"type":    errorType,
-				"message": message,
-			},
-		},
-	})
-	return SSEEvent{
-		Type: "response.failed",
-		Data: string(data),
-	}
 }
 

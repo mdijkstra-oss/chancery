@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/genai"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers/sse"
 )
 
 func TestChunkToEvents(t *testing.T) {
@@ -14,13 +15,13 @@ func TestChunkToEvents(t *testing.T) {
 		name   string
 		chunk  *genai.GenerateContentResponse
 		state  *EmitState
-		check  func(t *testing.T, events []SSEEvent, state *EmitState)
+		check  func(t *testing.T, events []sse.Event, state *EmitState)
 	}{
 		{
 			name:  "nil chunk",
 			chunk: nil,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -36,7 +37,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -62,7 +63,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 3 {
 					t.Fatalf("want 3 events, got %d", len(events))
 				}
@@ -98,7 +99,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 3 {
 					t.Fatalf("want 3 events, got %d", len(events))
 				}
@@ -122,7 +123,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 3 {
 					t.Fatalf("want 3 events, got %d", len(events))
 				}
@@ -143,7 +144,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -170,7 +171,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -189,7 +190,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events for empty part, got %d", len(events))
 				}
@@ -208,7 +209,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -233,7 +234,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events for signature-only part, got %d", len(events))
 				}
@@ -252,7 +253,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{HasThought: true, ThoughtSig: []byte("sig"), ThoughtText: "thought"},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 2 {
 					t.Fatalf("want 2 events (flush + text), got %d", len(events))
 				}
@@ -279,7 +280,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{HasThought: true, ThoughtSig: []byte("sig"), ThoughtText: "thought"},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 3 {
 					t.Fatalf("want 3 events (3 fc), got %d", len(events))
 				}
@@ -295,7 +296,7 @@ func TestChunkToEvents(t *testing.T) {
 				Candidates: []*genai.Candidate{},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -311,7 +312,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 3 {
 					t.Fatalf("want 3 events, got %d", len(events))
 				}
@@ -339,7 +340,7 @@ func TestChunkToEvents(t *testing.T) {
 				}},
 			},
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -607,7 +608,7 @@ func TestBuildCompletedEvent(t *testing.T) {
 		OutputTokens: 50,
 		TotalTokens:  150,
 	}
-	event := BuildCompletedEvent(usage)
+	event := sse.BuildCompletedEvent(usage)
 	if event.Type != "response.completed" {
 		t.Errorf("type = %q, want response.completed", event.Type)
 	}
@@ -619,7 +620,7 @@ func TestBuildCompletedEvent(t *testing.T) {
 }
 
 func TestBuildFailedEvent(t *testing.T) {
-	event := BuildFailedEvent("SAFETY", "output blocked by safety filter")
+	event := sse.BuildFailedEvent("SAFETY", "output blocked by safety filter")
 	if event.Type != "response.failed" {
 		t.Errorf("type = %q, want response.failed", event.Type)
 	}

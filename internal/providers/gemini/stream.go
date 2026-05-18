@@ -83,13 +83,13 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	}
 
 	if streamErr != nil {
-		event := BuildFailedEvent("stream_error", streamErr.Error())
+		event := sse.BuildFailedEvent("stream_error", streamErr.Error())
 		sse.WriteEvent(w, event.Type, event.Data)
 	} else if event := FinishReasonToEvent(lastFinishReason); event != nil {
 		sse.WriteEvent(w, event.Type, event.Data)
 	}
 
-	completed := BuildCompletedEvent(lastUsage)
+	completed := sse.BuildCompletedEvent(lastUsage)
 	sse.WriteEvent(w, completed.Type, completed.Data)
 	sse.Flush(w)
 

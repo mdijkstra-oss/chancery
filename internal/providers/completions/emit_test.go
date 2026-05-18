@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers/sse"
 )
 
 func TestChunkToEvents(t *testing.T) {
@@ -13,13 +14,13 @@ func TestChunkToEvents(t *testing.T) {
 		name  string
 		data  string
 		state *EmitState
-		check func(t *testing.T, events []SSEEvent, state *EmitState)
+		check func(t *testing.T, events []sse.Event, state *EmitState)
 	}{
 		{
 			name:  "text delta",
 			data:  `{"choices":[{"delta":{"content":"hello"},"finish_reason":null}]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -33,7 +34,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "empty content delta ignored",
 			data:  `{"choices":[{"delta":{"content":""},"finish_reason":null}]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -43,7 +44,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "null content delta ignored",
 			data:  `{"choices":[{"delta":{},"finish_reason":null}]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -53,7 +54,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "tool call added",
 			data:  `{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_abc","type":"function","function":{"name":"search","arguments":""}}]},"finish_reason":null}]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -74,7 +75,7 @@ func TestChunkToEvents(t *testing.T) {
 			state: &EmitState{ActiveCalls: map[int]*activeCall{
 				0: {ID: "call_abc", Name: "search", Arguments: ""},
 			}},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -92,7 +93,7 @@ func TestChunkToEvents(t *testing.T) {
 			state: &EmitState{ActiveCalls: map[int]*activeCall{
 				0: {ID: "call_abc", Name: "search", Arguments: `{"q":"test"}`},
 			}},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -111,7 +112,7 @@ func TestChunkToEvents(t *testing.T) {
 				0: {ID: "c1", Name: "search", Arguments: "{}"},
 				1: {ID: "c2", Name: "read", Arguments: `{"f":"a"}`},
 			}},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 2 {
 					t.Fatalf("want 2 events, got %d", len(events))
 				}
@@ -130,7 +131,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "mixed content and tool call in same chunk",
 			data:  `{"choices":[{"delta":{"content":"thinking","tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"fn","arguments":""}}]},"finish_reason":null}]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 2 {
 					t.Fatalf("want 2 events, got %d", len(events))
 				}
@@ -146,7 +147,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "reasoning_content delta",
 			data:  `{"choices":[{"delta":{"reasoning_content":"let me think"},"finish_reason":null}]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -163,7 +164,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "reasoning flushed when content starts",
 			data:  `{"choices":[{"delta":{"content":"answer"},"finish_reason":null}]}`,
 			state: &EmitState{ReasoningText: "I was thinking"},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 2 {
 					t.Fatalf("want 2 events, got %d", len(events))
 				}
@@ -185,7 +186,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "reasoning flushed when tool call starts",
 			data:  `{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"search","arguments":""}}]},"finish_reason":null}]}`,
 			state: &EmitState{ReasoningText: "thinking about tools"},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 2 {
 					t.Fatalf("want 2 events, got %d", len(events))
 				}
@@ -204,7 +205,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "reasoning flushed on finish with no content",
 			data:  `{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 			state: &EmitState{ReasoningText: "orphaned reasoning"},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -220,7 +221,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "empty reasoning_content ignored",
 			data:  `{"choices":[{"delta":{"reasoning_content":""},"finish_reason":null}]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -230,7 +231,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "invalid JSON returns nil",
 			data:  `not json`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -240,7 +241,7 @@ func TestChunkToEvents(t *testing.T) {
 			name:  "no choices returns nil",
 			data:  `{"choices":[]}`,
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -259,12 +260,12 @@ func TestFlushActiveCalls(t *testing.T) {
 	tests := []struct {
 		name  string
 		state *EmitState
-		check func(t *testing.T, events []SSEEvent, state *EmitState)
+		check func(t *testing.T, events []sse.Event, state *EmitState)
 	}{
 		{
 			name:  "no active calls",
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -275,7 +276,7 @@ func TestFlushActiveCalls(t *testing.T) {
 			state: &EmitState{ActiveCalls: map[int]*activeCall{
 				0: {ID: "c1", Name: "search", Arguments: `{"q":"test"}`},
 			}},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -296,7 +297,7 @@ func TestFlushActiveCalls(t *testing.T) {
 				1: {ID: "c2", Name: "read", Arguments: "{}"},
 				0: {ID: "c1", Name: "search", Arguments: "{}"},
 			}},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 2 {
 					t.Fatalf("want 2 events, got %d", len(events))
 				}
@@ -317,12 +318,12 @@ func TestFlushReasoning(t *testing.T) {
 	tests := []struct {
 		name  string
 		state *EmitState
-		check func(t *testing.T, events []SSEEvent, state *EmitState)
+		check func(t *testing.T, events []sse.Event, state *EmitState)
 	}{
 		{
 			name:  "no reasoning text",
 			state: &EmitState{},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 0 {
 					t.Errorf("want 0 events, got %d", len(events))
 				}
@@ -331,7 +332,7 @@ func TestFlushReasoning(t *testing.T) {
 		{
 			name:  "flushes reasoning item",
 			state: &EmitState{ReasoningText: "deep thought"},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 1 {
 					t.Fatalf("want 1 event, got %d", len(events))
 				}
@@ -369,7 +370,7 @@ func TestFlushReasoning(t *testing.T) {
 		{
 			name:  "idempotent after flush",
 			state: &EmitState{ReasoningText: "thought"},
-			check: func(t *testing.T, events []SSEEvent, state *EmitState) {
+			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				second := FlushReasoning(state)
 				if len(second) != 0 {
 					t.Errorf("second flush should return 0 events, got %d", len(second))
@@ -438,7 +439,7 @@ func TestBuildCompletedEvent(t *testing.T) {
 		OutputTokens: 50,
 		TotalTokens:  150,
 	}
-	event := BuildCompletedEvent(usage)
+	event := sse.BuildCompletedEvent(usage)
 	if event.Type != "response.completed" {
 		t.Errorf("type = %q", event.Type)
 	}
@@ -571,7 +572,7 @@ func TestFinishReasonToEvent(t *testing.T) {
 }
 
 func TestBuildFailedEvent(t *testing.T) {
-	event := BuildFailedEvent("rate_limit", "too many requests")
+	event := sse.BuildFailedEvent("rate_limit", "too many requests")
 	if event.Type != "response.failed" {
 		t.Errorf("type = %q", event.Type)
 	}

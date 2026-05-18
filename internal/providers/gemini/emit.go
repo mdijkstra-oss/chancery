@@ -9,12 +9,8 @@ import (
 
 	"google.golang.org/genai"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers/sse"
 )
-
-type SSEEvent struct {
-	Type string
-	Data string
-}
 
 type EmitState struct {
 	OutputIndex int
@@ -25,11 +21,11 @@ type EmitState struct {
 	LeakedBuf   string
 }
 
-func ChunkToEvents(chunk *genai.GenerateContentResponse, state *EmitState) []SSEEvent {
+func ChunkToEvents(chunk *genai.GenerateContentResponse, state *EmitState) []sse.Event {
 	if chunk == nil || len(chunk.Candidates) == 0 || chunk.Candidates[0].Content == nil {
 		return nil
 	}
-	var events []SSEEvent
+	var events []sse.Event
 	for _, part := range chunk.Candidates[0].Content.Parts {
 		partEvents := partToEvents(part, state)
 		events = append(events, partEvents...)
@@ -49,7 +45,7 @@ func isEmptyPart(part *genai.Part) bool {
 		len(part.ThoughtSignature) == 0
 }
 
-func partToEvents(part *genai.Part, state *EmitState) []SSEEvent {
+func partToEvents(part *genai.Part, state *EmitState) []sse.Event {
 	switch {
 	case part.FunctionCall != nil:
 		return functionCallEvents(part.FunctionCall, part.ThoughtSignature, state)
@@ -81,9 +77,9 @@ type textSegment struct {
 var leakedOpenTags = []string{"<thinking>", "<thought>", "<think>"}
 var leakedCloseTags = []string{"</thinking>", "</thought>", "</think>"}
 
-func textEvents(text string, state *EmitState) []SSEEvent {
+func textEvents(text string, state *EmitState) []sse.Event {
 	segments := filterLeakedThinking(text, state)
-	var events []SSEEvent
+	var events []sse.Event
 	for _, seg := range segments {
 		if seg.isReasoning {
 			events = append(events, emitReasoningDelta(seg.content, state)...)
@@ -94,20 +90,20 @@ func textEvents(text string, state *EmitState) []SSEEvent {
 	return events
 }
 
-func emitTextDelta(text string, state *EmitState) []SSEEvent {
+func emitTextDelta(text string, state *EmitState) []sse.Event {
 	flushEvents := flushThought(state)
 	data, _ := json.Marshal(map[string]string{"delta": text})
-	return append(flushEvents, SSEEvent{
+	return append(flushEvents, sse.Event{
 		Type: "response.output_text.delta",
 		Data: string(data),
 	})
 }
 
-func emitReasoningDelta(text string, state *EmitState) []SSEEvent {
+func emitReasoningDelta(text string, state *EmitState) []sse.Event {
 	state.ThoughtText += text
 	state.HasThought = true
 	data, _ := json.Marshal(map[string]string{"delta": text})
-	return []SSEEvent{{
+	return []sse.Event{{
 		Type: "response.reasoning_summary_text.delta",
 		Data: string(data),
 	}}
@@ -187,7 +183,7 @@ func longestPartialSuffix(s string, tags []string) int {
 	return best
 }
 
-func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []SSEEvent {
+func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []sse.Event {
 	if len(sig) == 0 && len(state.ThoughtSig) > 0 {
 		sig = state.ThoughtSig
 		state.ThoughtSig = nil
@@ -204,13 +200,13 @@ func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []
 			"name":    fc.Name,
 		},
 	})
-	added := SSEEvent{
+	added := sse.Event{
 		Type: "response.output_item.added",
 		Data: string(addedData),
 	}
 
 	deltaData, _ := json.Marshal(map[string]string{"delta": string(argsJSON)})
-	delta := SSEEvent{
+	delta := sse.Event{
 		Type: "response.function_call_arguments.delta",
 		Data: string(deltaData),
 	}
@@ -229,7 +225,7 @@ func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []
 		}
 	}
 	doneData, _ := json.Marshal(map[string]any{"item": doneItem})
-	done := SSEEvent{
+	done := sse.Event{
 		Type: "response.output_item.done",
 		Data: string(doneData),
 	}
@@ -238,7 +234,7 @@ func functionCallEvents(fc *genai.FunctionCall, sig []byte, state *EmitState) []
 	return append(flushEvents, added, delta, done)
 }
 
-func thoughtEvents(part *genai.Part, state *EmitState) []SSEEvent {
+func thoughtEvents(part *genai.Part, state *EmitState) []sse.Event {
 	if part.Text != "" {
 		return emitReasoningDelta(part.Text, state)
 	}
@@ -249,7 +245,7 @@ func thoughtEvents(part *genai.Part, state *EmitState) []SSEEvent {
 	return nil
 }
 
-func flushThought(state *EmitState) []SSEEvent {
+func flushThought(state *EmitState) []sse.Event {
 	if !state.HasThought || len(state.ThoughtSig) == 0 {
 		state.HasThought = false
 		state.ThoughtText = ""
@@ -271,7 +267,7 @@ func flushThought(state *EmitState) []SSEEvent {
 	state.HasThought = false
 	state.ThoughtText = ""
 	state.ThoughtSig = nil
-	return []SSEEvent{{
+	return []sse.Event{{
 		Type: "response.output_item.done",
 		Data: string(data),
 	}}
@@ -303,38 +299,9 @@ func ExtractGeminiUsage(chunk *genai.GenerateContentResponse) *protocol.UsageRes
 	return usage
 }
 
-func BuildCompletedEvent(usage *protocol.UsageResponse) SSEEvent {
-	data, _ := json.Marshal(map[string]any{
-		"response": map[string]any{
-			"status": "completed",
-			"usage":  usage,
-		},
-	})
-	return SSEEvent{
-		Type: "response.completed",
-		Data: string(data),
-	}
-}
-
-func BuildFailedEvent(errorType, message string) SSEEvent {
-	data, _ := json.Marshal(map[string]any{
-		"response": map[string]any{
-			"status": "failed",
-			"error": map[string]any{
-				"type":    errorType,
-				"message": message,
-			},
-		},
-	})
-	return SSEEvent{
-		Type: "response.failed",
-		Data: string(data),
-	}
-}
-
-func BuildTextDeltaEvent(text string) SSEEvent {
+func BuildTextDeltaEvent(text string) sse.Event {
 	data, _ := json.Marshal(map[string]string{"delta": text})
-	return SSEEvent{
+	return sse.Event{
 		Type: "response.output_text.delta",
 		Data: string(data),
 	}
@@ -357,12 +324,12 @@ var finishReasonErrors = map[genai.FinishReason]string{
 	genai.FinishReasonSPII:                  "output blocked: sensitive personal information detected",
 }
 
-func FinishReasonToEvent(reason genai.FinishReason) *SSEEvent {
+func FinishReasonToEvent(reason genai.FinishReason) *sse.Event {
 	message, ok := finishReasonErrors[reason]
 	if !ok {
 		return nil
 	}
-	event := BuildFailedEvent(string(reason), message)
+	event := sse.BuildFailedEvent(string(reason), message)
 	return &event
 }
 

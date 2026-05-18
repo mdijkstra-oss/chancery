@@ -2,6 +2,7 @@ package providers
 
 import (
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/providers/anthropic"
 	"hermes-logos/internal/providers/completions"
 	"hermes-logos/internal/providers/gemini"
 	"hermes-logos/internal/providers/openai"
@@ -16,6 +17,8 @@ func StreamForProtocol(p prompts.Protocol) sse.StreamFunc {
 		return gemini.Stream
 	case prompts.ProtocolCompletions:
 		return completions.Stream
+	case prompts.ProtocolAnthropic:
+		return anthropic.Stream
 	default:
 		panic("unknown protocol: " + string(p))
 	}

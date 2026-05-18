@@ -23,6 +23,7 @@ func BuildRequestParams(agentName string, modelIndex int, req protocol.ChatReque
 	expanded := messages.ExpandMessages(req.Messages, registry.Modes)
 	expanded = messages.ExpandGuidance(expanded, registry.Guidance.Entries)
 	expanded = messages.ReorderToolMessages(expanded)
+	expanded, cacheBreakpoints := messages.ExtractCacheBreakpoints(expanded)
 
 	toolNames := protocol.ExtractToolNames(req.Tools)
 	toolPrompt, _, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
@@ -48,9 +49,12 @@ func BuildRequestParams(agentName string, modelIndex int, req protocol.ChatReque
 		LegacyThinking:   promptCfg.LegacyThinking,
 		Temperature:      promptCfg.Temperature,
 		Seed:             promptCfg.Seed,
+		MaxTokens:        promptCfg.MaxTokens,
+		AutoCache:        promptCfg.AutoCache,
 		Tools:            req.Tools,
 		Messages:         expanded,
 		ResponseFormat:   req.ResponseFormat,
+		CacheBreakpoints: cacheBreakpoints,
 	}
 
 	return params, promptCfg, nil

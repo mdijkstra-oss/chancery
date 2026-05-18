@@ -11,51 +11,62 @@ import (
 
 func TestComputeCosts(t *testing.T) {
 	cases := []struct {
-		name                                  string
-		input, cached, output                 int
-		pricing                               prompts.Pricing
-		wantInput, wantCached, wantOutput     float64
+		name                        string
+		input, cached, creation     int
+		output                      int
+		pricing                     prompts.Pricing
+		wantInput, wantCached       float64
+		wantCacheWrite, wantOutput  float64
 	}{
 		{
 			"zero tokens",
-			0, 0, 0,
+			0, 0, 0, 0,
 			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
-			0, 0, 0,
+			0, 0, 0, 0,
 		},
 		{
 			"all uncached",
-			1000, 0, 500,
+			1000, 0, 0, 500,
 			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
-			0.00175, 0, 0.007,
+			0.00175, 0, 0, 0.007,
 		},
 		{
 			"all cached",
-			1000, 1000, 500,
+			1000, 1000, 0, 500,
 			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
-			0, 0.00018, 0.007,
+			0, 0.00018, 0, 0.007,
 		},
 		{
 			"mixed cached and uncached",
-			10000, 6000, 2000,
+			10000, 6000, 0, 2000,
 			prompts.Pricing{Input: 1.75, Output: 14.00, CachedInput: 0.18},
-			0.007, 0.00108, 0.028,
+			0.007, 0.00108, 0, 0.028,
 		},
 		{
 			"embedding pricing",
-			5000, 0, 0,
+			5000, 0, 0, 0,
 			prompts.Pricing{Input: 0.13, Output: 0, CachedInput: 0},
-			0.00065, 0, 0,
+			0.00065, 0, 0, 0,
+		},
+		{
+			"cache write tokens",
+			10000, 2000, 5000, 1000,
+			prompts.Pricing{Input: 3.00, Output: 15.00, CachedInput: 0.30, CacheWriteInput: 3.75},
+			0.009, 0.0006, 0.01875, 0.015,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			gotInput, gotCached, gotOutput := computeCosts(tc.input, tc.cached, tc.output, tc.pricing)
+			gotInput, gotCached, gotCacheWrite, gotOutput := computeCosts(tc.input, tc.cached, tc.creation, tc.output, tc.pricing)
 			if !approxEqual(gotInput, tc.wantInput) {
 				t.Errorf("inputCost = %f, want %f", gotInput, tc.wantInput)
 			}
 			if !approxEqual(gotCached, tc.wantCached) {
 				t.Errorf("cachedCost = %f, want %f", gotCached, tc.wantCached)
+			}
+			if !approxEqual(gotCacheWrite, tc.wantCacheWrite) {
+				t.Errorf("cacheWriteCost = %f, want %f", gotCacheWrite, tc.wantCacheWrite)
 			}
 			if !approxEqual(gotOutput, tc.wantOutput) {
 				t.Errorf("outputCost = %f, want %f", gotOutput, tc.wantOutput)
@@ -221,6 +232,33 @@ func TestBuildCallRecordWithReasoning(t *testing.T) {
 	wantOutputCost := 2000.0 * 14.00 / 1_000_000
 	if !approxEqual(rec.OutputCost, wantOutputCost) {
 		t.Errorf("OutputCost = %f, want %f", rec.OutputCost, wantOutputCost)
+	}
+}
+
+func TestBuildCallRecordWithCacheWrite(t *testing.T) {
+	pricing := prompts.Pricing{Input: 3.00, Output: 15.00, CachedInput: 0.30, CacheWriteInput: 3.75}
+	usage := &protocol.UsageResponse{
+		InputTokens:  10000,
+		OutputTokens: 1000,
+		TotalTokens:  11000,
+		InputTokensDetails: &protocol.PromptTokensDetails{
+			CachedTokens:        2000,
+			CacheCreationTokens: 5000,
+		},
+	}
+
+	rec := BuildCallRecord("qual-coder", "claude-sonnet-4-6", "minimal", "", "user_message", usage, pricing, 3000)
+
+	if rec.CacheWriteTokens != 5000 {
+		t.Errorf("CacheWriteTokens = %d, want %d", rec.CacheWriteTokens, 5000)
+	}
+	wantCacheWriteCost := 5000.0 * 3.75 / 1_000_000
+	if !approxEqual(rec.CacheWriteCost, wantCacheWriteCost) {
+		t.Errorf("CacheWriteCost = %f, want %f", rec.CacheWriteCost, wantCacheWriteCost)
+	}
+	wantInputCost := 3000.0 * 3.00 / 1_000_000
+	if !approxEqual(rec.InputCost, wantInputCost) {
+		t.Errorf("InputCost = %f, want %f (uncached: 10000-2000-5000=3000)", rec.InputCost, wantInputCost)
 	}
 }
 

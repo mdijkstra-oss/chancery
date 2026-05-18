@@ -3,6 +3,7 @@ package prompts
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -462,6 +463,9 @@ func overlayModel(base, child modelEntry) modelEntry {
 	if child.Dimensions != 0 {
 		result.Dimensions = child.Dimensions
 	}
+	if child.MaxTokens != 0 {
+		result.MaxTokens = child.MaxTokens
+	}
 	if child.Prompt != "" {
 		result.Prompt = child.Prompt
 	}
@@ -480,6 +484,9 @@ func overlayModel(base, child modelEntry) modelEntry {
 	if child.LegacyThinking {
 		result.LegacyThinking = child.LegacyThinking
 	}
+	if child.AutoCache {
+		result.AutoCache = child.AutoCache
+	}
 	if child.CompactAt != 0 {
 		result.CompactAt = child.CompactAt
 	}
@@ -490,7 +497,7 @@ func overlayModel(base, child modelEntry) modelEntry {
 }
 
 func hasPricing(p Pricing) bool {
-	return p.Input != 0 || p.Output != 0 || p.CachedInput != 0
+	return p.Input != 0 || p.Output != 0 || p.CachedInput != 0 || p.CacheWriteInput != 0
 }
 
 func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) PromptConfig {
@@ -498,11 +505,13 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 		Model:            model.Name,
 		Prompt:           model.Prompt,
 		Dimensions:       model.Dimensions,
+		MaxTokens:        model.MaxTokens,
 		ReasoningEffort:  model.ReasoningEffort,
 		ReasoningSummary: model.ReasoningSummary,
 		Verbosity:        model.Verbosity,
 		ServiceTier:      model.ServiceTier,
 		LegacyThinking:  model.LegacyThinking,
+		AutoCache:        model.AutoCache,
 		CompactAt:        model.CompactAt,
 		Pricing:          model.Pricing,
 		Provider:         provider,
@@ -528,6 +537,9 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 	if agent.Seed {
 		cfg.Seed = true
 	}
+	if agent.AutoCache != nil {
+		cfg.AutoCache = *agent.AutoCache
+	}
 	if agent.CompactAt != 0 {
 		cfg.CompactAt = agent.CompactAt
 	}
@@ -539,7 +551,7 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 
 func validateProtocol(p Protocol) {
 	switch p {
-	case ProtocolResponses, ProtocolGemini, ProtocolCompletions:
+	case ProtocolResponses, ProtocolGemini, ProtocolCompletions, ProtocolAnthropic:
 	default:
 		panic(fmt.Sprintf("unknown protocol: %q", p))
 	}
@@ -554,7 +566,8 @@ func resolveProviders(entries map[string]ProviderEntry) map[string]ProviderConfi
 		}
 		apiKey := os.Getenv(entry.APIKeyEnv)
 		if apiKey == "" {
-			panic(fmt.Sprintf("provider %q: env var %q is empty", key, entry.APIKeyEnv))
+			slog.Warn("provider skipped: API key not set", "provider", key, "env", entry.APIKeyEnv)
+			continue
 		}
 		providers[key] = ProviderConfig{
 			Key:      key,

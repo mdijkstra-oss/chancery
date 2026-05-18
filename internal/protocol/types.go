@@ -40,7 +40,8 @@ type TextConfig struct {
 }
 
 type PromptTokensDetails struct {
-	CachedTokens int `json:"cached_tokens"`
+	CachedTokens        int `json:"cached_tokens"`
+	CacheCreationTokens int `json:"cache_creation_tokens,omitempty"`
 }
 
 type OutputTokensDetails struct {

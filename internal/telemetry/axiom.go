@@ -23,10 +23,12 @@ type axiomEvent struct {
 	Trigger           string  `json:"trigger,omitempty"`
 	InputTokens       int     `json:"input_tokens"`
 	CachedInputTokens int     `json:"cached_input_tokens"`
+	CacheWriteTokens  int     `json:"cache_write_tokens"`
 	OutputTokens      int     `json:"output_tokens"`
 	ReasoningTokens   int     `json:"reasoning_tokens"`
 	InputCost         float64 `json:"input_cost"`
 	CachedInputCost   float64 `json:"cached_input_cost"`
+	CacheWriteCost    float64 `json:"cache_write_cost"`
 	OutputCost        float64 `json:"output_cost"`
 	ReasoningCost     float64 `json:"reasoning_cost"`
 	TotalCost         float64 `json:"total_cost"`
@@ -47,10 +49,12 @@ func buildAxiomEvent(ctx context.Context, rec CallRecord) axiomEvent {
 		Trigger:           rec.Trigger,
 		InputTokens:       rec.InputTokens,
 		CachedInputTokens: rec.CachedInputTokens,
+		CacheWriteTokens:  rec.CacheWriteTokens,
 		OutputTokens:      rec.OutputTokens,
 		ReasoningTokens:   rec.ReasoningTokens,
 		InputCost:         rec.InputCost,
 		CachedInputCost:   rec.CachedInputCost,
+		CacheWriteCost:    rec.CacheWriteCost,
 		OutputCost:        rec.OutputCost,
 		ReasoningCost:     rec.ReasoningCost,
 		TotalCost:         rec.TotalCost,

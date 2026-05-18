@@ -727,10 +727,6 @@ func TestResolveProvidersPanics(t *testing.T) {
 			name:    "empty api_key_env",
 			entries: map[string]ProviderEntry{"bad": {Protocol: ProtocolResponses, BaseURL: "http://x", APIKeyEnv: ""}},
 		},
-		{
-			name:    "env var not set",
-			entries: map[string]ProviderEntry{"bad": {Protocol: ProtocolResponses, BaseURL: "http://x", APIKeyEnv: "UNSET_VAR_12345"}},
-		},
 	}
 
 	for _, tc := range cases {
@@ -745,6 +741,19 @@ func TestResolveProvidersPanics(t *testing.T) {
 			}()
 			resolveProviders(tc.entries)
 		})
+	}
+}
+
+func TestResolveProvidersSkipsMissingEnv(t *testing.T) {
+	entries := map[string]ProviderEntry{
+		"missing": {Protocol: ProtocolResponses, BaseURL: "http://x", APIKeyEnv: "UNSET_VAR_12345"},
+	}
+	got := resolveProviders(entries)
+	if _, ok := got["missing"]; ok {
+		t.Error("expected provider with missing env var to be skipped")
+	}
+	if len(got) != 0 {
+		t.Errorf("got %d providers, want 0", len(got))
 	}
 }
 

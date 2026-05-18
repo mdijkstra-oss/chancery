@@ -13,9 +13,12 @@ type RequestParams struct {
 	LegacyThinking  bool
 	Temperature      *float64
 	Seed             bool
+	MaxTokens        int
+	AutoCache        bool
 	Tools            []json.RawMessage
 	Messages         []json.RawMessage
 	ResponseFormat   json.RawMessage
+	CacheBreakpoints map[int]bool
 }
 
 func BuildResponsesRequestFromParams(p RequestParams) ResponsesRequest {

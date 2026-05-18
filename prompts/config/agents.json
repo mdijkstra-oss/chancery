@@ -17,11 +17,7 @@
     "model": "gemini-3.1-flash-lite-preview",
     "reasoning_effort": "medium"
   },
-  "write-answer": {
-    "model": "gemini-3-flash-preview",
-    "reasoning_effort": "medium"
-  },
-  "compacter": {
+"compacter": {
     "model": "gemini-3-flash-preview"
   },
   "deep-analysis-find": [
@@ -55,6 +51,10 @@
   },
   "topic-assigner": {
     "model": "gemini-3.1-flash-lite-preview"
+  },
+  "refine-code": {
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium"
   },
   "embeddings": {
     "model": "text-embedding-3-large"

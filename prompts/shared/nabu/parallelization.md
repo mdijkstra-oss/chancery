@@ -29,7 +29,6 @@
 | `scout` | ❌ always solo | Pass all files in one call, wait before acting |
 | `start_planning` | ❌ always solo | Mode transition |
 | `ask` | ❌ always solo | Blocks on user response |
-| `record_decision` | ❌ always solo | Depends on prior ask convergence |
 | `search` | ❌ always solo | User-facing interaction |
 
 ---

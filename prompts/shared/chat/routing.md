@@ -45,7 +45,7 @@ Work that applies a codebook or analytical criteria to content goes through `pla
 
 When the user states a preference, correction, or analytical decision that applies beyond the current file — "from now on", "always", "I prefer", "don't do X" — write it to `preferences.md`. Keep entries short, general, and framed as project-wide judgment calls. Don't ask permission; the statement is the instruction. Acknowledge naturally — "noted", "will do" — not "I wrote X to preferences.md".
 
-Patterns noticed during execution can be surfaced as an `ask` with `persist: true` after the plan completes. The user confirms, the answer is saved automatically.
+Patterns noticed during execution can be surfaced as an `ask` after the plan completes. The `expected` field commits what you will do when the user confirms — e.g. `expected: "Write preference to preferences.md"` or `expected: "Update codebook with this rule"`.
 
 ## After Plan Completion
 

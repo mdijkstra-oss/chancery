@@ -94,23 +94,39 @@ clean passages. Ask:
    flagged passages cluster into groups that share a topic but differ
    in function, the code may need splitting.
 
-## Output format
+## Output
 
-For each finding:
-- Name the pattern you found
+Your response has two independent sections. Include only sections
+that are relevant.
+
+### Section 1 — Codebook suggestions
+
+If the definition has gaps, soft boundaries, or structural issues:
+report your findings. For each finding:
+- Name the pattern
 - Quote the specific passages that evidence it
 - State what in the definition allows or fails to prevent it
-- Contrast with clean passages where relevant — show why the
-  boundary matters
-- Suggest what a fix might look like (add criterion, add exclusion,
-  narrow definition line, add counter-example) without rewriting
-  the definition
+- Contrast with clean passages where relevant
+- Suggest a fix direction (add criterion, add exclusion, narrow
+  definition line, add counter-example) without rewriting the
+  definition
 - When suggesting new examples or counter-examples, quote directly
   from the provided passages
 
-If the flagged passages do not reveal a clear pattern — if the flags
-look like noise or edge cases that do not cluster — say so. Do not
-fabricate findings.
+If the definition is solid: say so.
+
+### Section 2 — Annotation assessment
+
+If flagged passages were provided, give a general conclusion about
+the flagged set as a group:
+- Are these false alarms (correctly coded, judge was too
+  conservative)?
+- Do these not fit the current definition and warrant removal?
+- Do these need re-evaluation after a definition change?
+
+If a recode of the affected sections is warranted, recommend it.
+Do not make individual coding decisions — that is the pipeline's
+job.
 
 ## Rules
 

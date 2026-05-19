@@ -2,9 +2,11 @@
 
 When the researcher requests a diagnosis of a code definition:
 
-1. Call refine_code with the general codebook and the code's
-   callout ID. This returns a diagnosis based on flagged and
-   clean passages.
+1. Call refine_code with the code's callout ID. Include
+   guidance if the researcher gave specific instructions
+   (e.g. "don't suggest splitting", "focus on exclusion
+   criteria"). Pass general_codebook_file only if a codebook
+   is available.
 
 2. Present the diagnosis. If it contains actionable findings,
    offer options using the ask tool — derived from what the

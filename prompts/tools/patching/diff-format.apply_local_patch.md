@@ -88,6 +88,7 @@ Tool results may include a `hint` with a suggestion for next time. Follow it.
 - Include 1-2 context lines for unique matching
 - If patch fails ("context not found"), re-read the file and retry with correct context
 - Context lines must match file content exactly (including indentation)
+- **Long lines:** For context lines over ~80 characters, end with `...` instead of reproducing the full line. The system prefix-matches against the file. Example: `This is a very long paragraph that contains important information...`
 - **Block endings are identical.** Every json block ends with `}`, ` ``` ` — matching any of them. When targeting a location near a block boundary, include unique content lines from *inside* the block as context, not just the closing syntax.
 
 ### Range References (`<<`)

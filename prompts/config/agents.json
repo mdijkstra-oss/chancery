@@ -1,62 +1,94 @@
 {
-  "qual-coder": {
-    "model": "deepseek-v4-pro",
-    "prompt": "",
-    "reasoning_effort": "high",
-    "compact_at": 300000
-  },
   "section-labeler": {
-    "model": "gpt-5-nano",
-    "reasoning_effort": "off"
+    "_comment": "labels document sections with descriptive label+desc fields",
+    "model": "gemini-2.5-flash-lite",
+    "reasoning_effort": "off",
+    "temperature": 0,
+    "seed": true
   },
   "scout-filter": {
-    "model": "gemini-3.1-flash-lite-preview",
-    "reasoning_effort": "none"
+    "_comment": "identifies contiguous off-topic blocks to exclude from documents",
+    "model": "gemini-2.5-flash-lite",
+    "reasoning_effort": "medium",
+    "temperature": 0,
+    "seed": true
+  },
+  "hyde-generator": {
+    "_comment": "generates hypothetical passages for corpus-specific semantic search (HyDE)",
+    "model": "gemini-2.5-flash-lite",
+    "temperature": 0,
+    "seed": true
+  },
+  "topic-assigner": {
+    "_comment": "classifies documents by type and subject facets",
+    "model": "gemini-2.5-flash-lite",
+    "temperature": 0,
+    "seed": true
+  },
+
+  "corpus-describer": {
+    "_comment": "profiles document groups for downstream hyde-generator context",
+    "model": "gemini-3.1-flash-lite-preview"
+  },
+  "generic-hyde": {
+    "_comment": "generates hypothetical passages for search without corpus context",
+    "model": "gemini-3.1-flash-lite-preview"
   },
   "semantic-filter": {
+    "_comment": "selects sentences matching a search intent from numbered sentence lists",
     "model": "gemini-3.1-flash-lite-preview",
     "reasoning_effort": "medium"
   },
-"compacter": {
-    "model": "gemini-3-flash-preview"
+  "embeddings-judge": {
+    "_comment": "post-retrieval relevance filter — judges if snippets match search intent",
+    "model": "gemini-3.1-flash-lite-preview",
+    "reasoning_effort": "none"
   },
+  "embeddings": {
+    "_comment": "vectorization via text-embedding-3-large",
+    "model": "text-embedding-3-large"
+  },
+
   "deep-analysis-find": [
-    { "model": "gemini-3.1-pro-preview", "reasoning_effort": "low" },
+    { "_comment": "step 1: scans sentences for passages matching an analysis definition (two models in parallel)", "model": "gemini-3.1-pro-preview", "reasoning_effort": "low" },
     { "model": "gpt-5.4", "reasoning_effort": "low" }
   ],
   "deep-analysis-reason": {
+    "_comment": "step 2: justifies why each coded passage fits its assigned code",
     "model": "gpt-5.2",
     "reasoning_effort": "none"
   },
   "deep-analysis-adjudicate": {
+    "_comment": "step 3: independent review — keep/remove/ambiguous/conflict judgment",
     "model": "gpt-5.5",
     "reasoning_effort": "low"
   },
   "deep-analysis-trim": {
+    "_comment": "step 4: re-justifies surviving passages after adjudication",
     "model": "gpt-5.2",
     "reasoning_effort": "none"
   },
-  "commit-agent": {
-    "model": "gpt-5-mini",
-    "reasoning_effort": "off"
-  },
-  "hyde-generator": {
-    "model": "gemini-3.1-flash-lite-preview"
-  },
-  "generic-hyde": {
-    "model": "gemini-3.1-flash-lite-preview"
-  },
-  "corpus-describer": {
-    "model": "gemini-3.1-flash-lite-preview"
-  },
-  "topic-assigner": {
-    "model": "gemini-3.1-flash-lite-preview"
+
+  "qual-coder": {
+    "_comment": "main qualitative coding agent — annotates research text against codebook",
+    "model": "deepseek-v4-flash",
+    "prompt": "",
+    "reasoning_effort": "high",
+    "compact_at": 300000
   },
   "refine-code": {
+    "_comment": "reviews codebook definitions against flagged passages for quality",
     "model": "gpt-5.4",
     "reasoning_effort": "medium"
   },
-  "embeddings": {
-    "model": "text-embedding-3-large"
+
+  "compacter": {
+    "_comment": "summarizes conversation history for context compaction",
+    "model": "gemini-3-flash-preview"
+  },
+  "commit-agent": {
+    "_comment": "groups git changes into coherent commits with researcher-language messages",
+    "model": "gpt-5-mini",
+    "reasoning_effort": "off"
   }
 }

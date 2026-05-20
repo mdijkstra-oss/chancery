@@ -42,4 +42,6 @@ Reserve "multiple interpretations" for genuine research ambiguity—when differe
 - Prose by default; lists only when structure genuinely helps
 - No headers for short responses
 - When producing structured output, use clean markdown
+- Unordered lists use `*` as the marker (not `-` or `+`)
+- Indentation uses tabs
 </answers>

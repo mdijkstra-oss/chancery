@@ -64,6 +64,7 @@ func TestIsRetryable(t *testing.T) {
 		want bool
 	}{
 		{"retryable", Retryable(fmt.Errorf("429")), true},
+		{"retryable_with_delay", RetryableWithDelay(fmt.Errorf("429"), 60*time.Second), true},
 		{"plain", fmt.Errorf("500"), false},
 		{"wrapped_retryable", fmt.Errorf("outer: %w", Retryable(fmt.Errorf("429"))), true},
 	}
@@ -71,6 +72,84 @@ func TestIsRetryable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsRetryable(tt.err); got != tt.want {
 				t.Errorf("IsRetryable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractDelay(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want time.Duration
+	}{
+		{"no_delay", Retryable(fmt.Errorf("429")), 0},
+		{"with_delay", RetryableWithDelay(fmt.Errorf("429"), 60*time.Second), 60 * time.Second},
+		{"plain_error", fmt.Errorf("500"), 0},
+		{"wrapped", fmt.Errorf("outer: %w", RetryableWithDelay(fmt.Errorf("429"), 30*time.Second)), 30 * time.Second},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ExtractDelay(tt.err); got != tt.want {
+				t.Errorf("ExtractDelay() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHerdJitter(t *testing.T) {
+	tests := []struct {
+		name string
+		d    time.Duration
+	}{
+		{"one_minute", time.Minute},
+		{"one_hour", time.Hour},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spread := tt.d / 10
+			for range 100 {
+				got := herdJitter(tt.d)
+				if got < tt.d || got >= tt.d+spread {
+					t.Fatalf("herdJitter(%v) = %v, want [%v, %v)", tt.d, got, tt.d, tt.d+spread)
+				}
+			}
+		})
+	}
+}
+
+func TestChooseDelay(t *testing.T) {
+	t.Run("prefers_server_delay", func(t *testing.T) {
+		serverDelay := time.Hour
+		got := chooseDelay(serverDelay, 0)
+		if got < serverDelay || got >= serverDelay+serverDelay/10 {
+			t.Fatalf("chooseDelay with server delay = %v, want [%v, %v)", got, serverDelay, serverDelay+serverDelay/10)
+		}
+	})
+
+	t.Run("falls_back_to_backoff", func(t *testing.T) {
+		got := chooseDelay(0, 0)
+		if got >= backoffDelay(0) {
+			t.Fatalf("chooseDelay without server delay = %v, want < %v", got, backoffDelay(0))
+		}
+	})
+}
+
+func TestParseRetryAfterHeader(t *testing.T) {
+	tests := []struct {
+		name   string
+		header string
+		want   time.Duration
+	}{
+		{"empty", "", 0},
+		{"integer_seconds", "60", 60 * time.Second},
+		{"fractional", "1.5", 1500 * time.Millisecond},
+		{"invalid", "abc", 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ParseRetryAfterHeader(tt.header); got != tt.want {
+				t.Errorf("ParseRetryAfterHeader(%q) = %v, want %v", tt.header, got, tt.want)
 			}
 		})
 	}
@@ -122,6 +201,15 @@ func TestDo(t *testing.T) {
 			wantErr:   true,
 			wantCalls: 2,
 		},
+		{
+			name:        "quota_exhausted_fails_immediately",
+			maxAttempts: 3,
+			fn: func(_ *int) (string, error) {
+				return "", RetryableWithDelay(fmt.Errorf("quota exceeded"), time.Hour)
+			},
+			wantErr:   true,
+			wantCalls: 1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -141,6 +229,23 @@ func TestDo(t *testing.T) {
 				t.Errorf("Do() calls = %d, want %d", counter, tt.wantCalls)
 			}
 		})
+	}
+}
+
+func TestDoQuotaExhaustedRecordsCooldown(t *testing.T) {
+	l := NewLimiter()
+	_, _ = Do(context.Background(), l, "model-x", 3, func() (string, error) {
+		return "", RetryableWithDelay(fmt.Errorf("quota exceeded"), time.Hour)
+	})
+	l.mu.Lock()
+	deadline, ok := l.cooldown["model-x"]
+	l.mu.Unlock()
+	if !ok {
+		t.Fatal("expected cooldown to be recorded for model-x")
+	}
+	remaining := time.Until(deadline)
+	if remaining < 50*time.Minute {
+		t.Fatalf("cooldown remaining = %v, want > 50m", remaining)
 	}
 }
 

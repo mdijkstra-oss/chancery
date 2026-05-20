@@ -43,7 +43,7 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.Prompt
 	}
 
 	start := time.Now()
-	res, err := ratelimit.Do(ctx, limiter, cfg.Provider.Key, 3, func() (openai.EmbedResult, error) {
+	res, err := ratelimit.Do(ctx, limiter, cfg.Model, 3, func() (openai.EmbedResult, error) {
 		return openai.Embed(ctx, req.Input, cfg.Model, cfg.Dimensions, cfg.Provider)
 	})
 	duration := time.Since(start).Milliseconds()

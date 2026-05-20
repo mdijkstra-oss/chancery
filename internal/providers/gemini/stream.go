@@ -42,6 +42,10 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	for chunk, err := range client.Models.GenerateContentStream(ctx, params.Model, contents, config) {
 		if err != nil {
 			if !headersWritten && isRateLimitError(err) {
+				delay := ExtractRetryDelay(err)
+				if delay > 0 {
+					return sse.StreamResult{}, ratelimit.RetryableWithDelay(err, delay)
+				}
 				return sse.StreamResult{}, ratelimit.Retryable(err)
 			}
 			if !headersWritten {

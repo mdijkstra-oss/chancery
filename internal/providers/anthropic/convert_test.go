@@ -154,28 +154,61 @@ func TestToolsToAnthropic(t *testing.T) {
 
 func TestBuildThinkingConfig(t *testing.T) {
 	cases := []struct {
-		name      string
-		effort    string
-		maxTokens int
-		wantType  string
-		wantBudget int
+		name     string
+		effort   string
+		wantType string
 	}{
-		{"empty effort", "", 8192, "disabled", 0},
-		{"off effort", "off", 8192, "disabled", 0},
-		{"minimal effort", "minimal", 8192, "adaptive", 0},
-		{"low effort", "low", 8192, "enabled", 2048},
-		{"medium effort", "medium", 8192, "enabled", 8192},
-		{"high effort", "high", 16384, "enabled", 16384},
+		{"empty effort", "", "disabled"},
+		{"off effort", "off", "disabled"},
+		{"none effort", "none", "disabled"},
+		{"minimal effort", "minimal", "adaptive"},
+		{"low effort", "low", "adaptive"},
+		{"medium effort", "medium", "adaptive"},
+		{"high effort", "high", "adaptive"},
+		{"max effort", "max", "adaptive"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg := buildThinkingConfig(tc.effort, tc.maxTokens)
+			cfg := buildThinkingConfig(tc.effort)
 			if cfg.Type != tc.wantType {
 				t.Errorf("type = %q, want %q", cfg.Type, tc.wantType)
 			}
-			if cfg.BudgetTokens != tc.wantBudget {
-				t.Errorf("budget = %d, want %d", cfg.BudgetTokens, tc.wantBudget)
+		})
+	}
+}
+
+func TestBuildOutputConfig(t *testing.T) {
+	cases := []struct {
+		name       string
+		effort     string
+		wantNil    bool
+		wantEffort string
+	}{
+		{"empty effort", "", true, ""},
+		{"off effort", "off", true, ""},
+		{"none effort", "none", true, ""},
+		{"minimal maps to low", "minimal", false, "low"},
+		{"low effort", "low", false, "low"},
+		{"medium effort", "medium", false, "medium"},
+		{"high effort", "high", false, "high"},
+		{"max effort", "max", false, "max"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := buildOutputConfig(tc.effort)
+			if tc.wantNil {
+				if cfg != nil {
+					t.Errorf("got %+v, want nil", cfg)
+				}
+				return
+			}
+			if cfg == nil {
+				t.Fatal("got nil, want non-nil")
+			}
+			if cfg.Effort != tc.wantEffort {
+				t.Errorf("effort = %q, want %q", cfg.Effort, tc.wantEffort)
 			}
 		})
 	}
@@ -275,99 +308,12 @@ func TestBuildRequest(t *testing.T) {
 	}
 }
 
-func TestApplyAutoCache(t *testing.T) {
-	cases := []struct {
-		name       string
-		messages   []Message
-		wantCached int
-	}{
-		{
-			"single message no-op",
-			[]Message{{Role: "user", Content: []ContentBlock{{Type: "text", Text: "hi"}}}},
-			-1,
-		},
-		{
-			"two messages stamps penultimate",
-			[]Message{
-				{Role: "user", Content: []ContentBlock{{Type: "text", Text: "first"}}},
-				{Role: "assistant", Content: []ContentBlock{{Type: "text", Text: "reply"}}},
-			},
-			0,
-		},
-		{
-			"three messages stamps second",
-			[]Message{
-				{Role: "user", Content: []ContentBlock{{Type: "text", Text: "one"}}},
-				{Role: "assistant", Content: []ContentBlock{{Type: "text", Text: "two"}}},
-				{Role: "user", Content: []ContentBlock{{Type: "text", Text: "three"}}},
-			},
-			1,
-		},
-		{
-			"empty messages no-op",
-			nil,
-			-1,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			applyAutoCache(tc.messages)
-			for i, msg := range tc.messages {
-				for _, block := range msg.Content {
-					hasCacheControl := block.CacheControl != nil
-					if i == tc.wantCached && !hasCacheControl {
-						t.Errorf("message %d: expected cache_control", i)
-					}
-					if i != tc.wantCached && hasCacheControl {
-						t.Errorf("message %d: unexpected cache_control", i)
-					}
-				}
-			}
-		})
-	}
-}
-
-func TestBuildRequestAutoCache(t *testing.T) {
+func TestBuildRequestExplicitBreakpoints(t *testing.T) {
 	params := protocol.RequestParams{
-		Model:           "claude-sonnet-4-6",
-		SystemPrompt:    "be helpful",
-		ReasoningEffort: "minimal",
-		MaxTokens:       16384,
-		AutoCache:       true,
-		Messages: []json.RawMessage{
-			json.RawMessage(`{"role":"user","content":"first"}`),
-			json.RawMessage(`{"role":"assistant","content":"reply"}`),
-			json.RawMessage(`{"role":"user","content":"second"}`),
-		},
-	}
-
-	req := BuildRequest(params, defaultProvider())
-	if req.System[0].CacheControl == nil {
-		t.Error("system should have cache_control with auto_cache")
-	}
-	if len(req.Messages) != 3 {
-		t.Fatalf("message count = %d, want 3", len(req.Messages))
-	}
-	penultimate := req.Messages[1]
-	lastBlock := penultimate.Content[len(penultimate.Content)-1]
-	if lastBlock.CacheControl == nil {
-		t.Error("penultimate message should have cache_control")
-	}
-	last := req.Messages[2]
-	lastBlockFinal := last.Content[len(last.Content)-1]
-	if lastBlockFinal.CacheControl != nil {
-		t.Error("last message should not have cache_control")
-	}
-}
-
-func TestBuildRequestExplicitBreakpointsOverrideAutoCache(t *testing.T) {
-	params := protocol.RequestParams{
-		Model:           "claude-sonnet-4-6",
-		SystemPrompt:    "be helpful",
-		ReasoningEffort: "minimal",
-		MaxTokens:       16384,
-		AutoCache:       true,
+		Model:            "claude-sonnet-4-6",
+		SystemPrompt:     "be helpful",
+		ReasoningEffort:  "minimal",
+		MaxTokens:        16384,
 		CacheBreakpoints: map[int]bool{0: true},
 		Messages: []json.RawMessage{
 			json.RawMessage(`{"role":"user","content":"first"}`),
@@ -377,14 +323,16 @@ func TestBuildRequestExplicitBreakpointsOverrideAutoCache(t *testing.T) {
 	}
 
 	req := BuildRequest(params, defaultProvider())
+	if req.System[0].CacheControl == nil {
+		t.Error("system should have cache_control when breakpoints exist")
+	}
 	first := req.Messages[0]
 	if first.Content[0].CacheControl == nil {
-		t.Error("explicit breakpoint message should have cache_control")
+		t.Error("breakpointed message should have cache_control")
 	}
 	penultimate := req.Messages[1]
-	lastBlock := penultimate.Content[len(penultimate.Content)-1]
-	if lastBlock.CacheControl != nil {
-		t.Error("penultimate should not have auto-cache when explicit breakpoints exist")
+	if penultimate.Content[0].CacheControl != nil {
+		t.Error("non-breakpointed message should not have cache_control")
 	}
 }
 

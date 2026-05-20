@@ -55,7 +55,11 @@ func Embed(ctx context.Context, input []string, model string, dimensions int, pr
 		return EmbedResult{}, fmt.Errorf("read response: %w", err)
 	}
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return EmbedResult{}, ratelimit.Retryable(fmt.Errorf("openai returned status %d: %s", resp.StatusCode, string(respBody)))
+		err := fmt.Errorf("openai returned status %d: %s", resp.StatusCode, string(respBody))
+		if d := ratelimit.ParseRetryAfterHeader(resp.Header.Get("Retry-After")); d > 0 {
+			return EmbedResult{}, ratelimit.RetryableWithDelay(err, d)
+		}
+		return EmbedResult{}, ratelimit.Retryable(err)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return EmbedResult{}, fmt.Errorf("openai returned status %d: %s", resp.StatusCode, string(respBody))

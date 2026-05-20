@@ -28,7 +28,11 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == http.StatusTooManyRequests {
-			return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("openai returned status %d: %s", resp.StatusCode, body))
+			err := fmt.Errorf("openai returned status %d: %s", resp.StatusCode, body)
+			if d := ratelimit.ParseRetryAfterHeader(resp.Header.Get("Retry-After")); d > 0 {
+				return sse.StreamResult{}, ratelimit.RetryableWithDelay(err, d)
+			}
+			return sse.StreamResult{}, ratelimit.Retryable(err)
 		}
 		return sse.StreamResult{}, fmt.Errorf("openai returned status %d: %s", resp.StatusCode, body)
 	}

@@ -39,7 +39,11 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("anthropic: rate limited (429)"))
+		err := fmt.Errorf("anthropic: rate limited (429)")
+		if d := ratelimit.ParseRetryAfterHeader(resp.Header.Get("Retry-After")); d > 0 {
+			return sse.StreamResult{}, ratelimit.RetryableWithDelay(err, d)
+		}
+		return sse.StreamResult{}, ratelimit.Retryable(err)
 	}
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)

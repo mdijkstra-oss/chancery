@@ -14,6 +14,11 @@
       "pricing": { "input": 0.50, "output": 3.00, "cached_input": 0.05 },
       "reasoning_effort": "minimal"
     },
+    "gemini-3.5-flash": {
+      "name": "gemini-3.5-flash",
+      "pricing": { "input": 1.50, "output": 9.00, "cached_input": 0.15 },
+      "reasoning_effort": "low"
+    },
     "gemini-3.1-flash-lite-preview": {
       "name": "gemini-3.1-flash-lite-preview",
       "pricing": { "input": 0.25, "output": 1.50, "cached_input": 0.025 },

@@ -1,17 +1,11 @@
 {
   "section-labeler": {
     "_comment": "labels document sections with descriptive label+desc fields",
-    "model": "gemini-2.5-flash-lite",
-    "reasoning_effort": "off",
-    "temperature": 0,
-    "seed": true
+    "model": "gemini-3.1-flash-lite-preview"
   },
   "scout-filter": {
     "_comment": "identifies contiguous off-topic blocks to exclude from documents",
-    "model": "gemini-2.5-flash-lite",
-    "reasoning_effort": "medium",
-    "temperature": 0,
-    "seed": true
+    "model": "gemini-3.1-flash-lite-preview"
   },
   "hyde-generator": {
     "_comment": "generates hypothetical passages for corpus-specific semantic search (HyDE)",
@@ -50,25 +44,27 @@
   },
 
   "deep-analysis-find": [
-    { "_comment": "step 1: scans sentences for passages matching an analysis definition (two models in parallel)", "model": "gemini-3.1-pro-preview", "reasoning_effort": "low" },
-    { "model": "gpt-5.4", "reasoning_effort": "low" }
+    {
+      "_comment": "step 1: scans sentences for passages matching an analysis definition (two models in parallel)",
+      "model": "gemini-3.5-flash",
+      "reasoning_effort": "low"
+    },
+    {
+      "model": "gpt-5.4",
+      "reasoning_effort": "low"
+    }
   ],
-  "deep-analysis-reason": {
-    "_comment": "step 2: justifies why each coded passage fits its assigned code",
-    "model": "gpt-5.2",
-    "reasoning_effort": "none"
-  },
-  "deep-analysis-adjudicate": {
-    "_comment": "step 3: independent review — keep/remove/ambiguous/conflict judgment",
-    "model": "gpt-5.5",
-    "reasoning_effort": "low"
-  },
-  "deep-analysis-trim": {
-    "_comment": "step 4: re-justifies surviving passages after adjudication",
-    "model": "gpt-5.2",
-    "reasoning_effort": "none"
-  },
-
+  "deep-analysis-filter": [
+    {
+      "_comment": "step 3: independent review — keep/remove/ambiguous/conflict judgment",
+      "model": "gpt-5.5",
+      "reasoning_effort": "medium"
+    },
+    {
+      "model": "claude-opus-4-6",
+      "reasoning_effort": "medium"
+    }
+  ],
   "qual-coder": {
     "_comment": "main qualitative coding agent — annotates research text against codebook",
     "model": "deepseek-v4-flash",

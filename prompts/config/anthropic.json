@@ -2,24 +2,22 @@
   "protocol": "anthropic",
   "base_url": "https://api.anthropic.com",
   "api_key_env": "ANTHROPIC_API_KEY",
+  "_desc": "Not very useful for agentic loops for now - will need to set longer cache limits + extra cost incurring there",
   "models": {
     "claude-opus-4-6": {
       "name": "claude-opus-4-6",
-      "auto_cache": true,
       "pricing": { "input": 5.00, "output": 25.00, "cached_input": 0.50, "cache_write_input": 6.25 },
       "reasoning_effort": "minimal"
     },
     "claude-sonnet-4-6": {
       "name": "claude-sonnet-4-6",
-      "auto_cache": true,
       "pricing": { "input": 3.00, "output": 15.00, "cached_input": 0.30, "cache_write_input": 3.75 },
       "reasoning_effort": "minimal"
     },
     "claude-haiku-4-5": {
       "name": "claude-haiku-4-5",
-      "auto_cache": true,
       "pricing": { "input": 1.00, "output": 5.00, "cached_input": 0.10, "cache_write_input": 1.25 },
-      "reasoning_effort": "minimal"
+      "reasoning_effort": "none"
     }
   }
 }

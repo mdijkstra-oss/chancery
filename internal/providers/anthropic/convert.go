@@ -14,8 +14,9 @@ type Request struct {
 	Messages    []Message         `json:"messages"`
 	Tools       []Tool            `json:"tools,omitempty"`
 	ToolChoice  any               `json:"tool_choice,omitempty"`
-	Thinking    *ThinkingConfig   `json:"thinking,omitempty"`
-	Temperature *float64          `json:"temperature,omitempty"`
+	Thinking     *ThinkingConfig   `json:"thinking,omitempty"`
+	OutputConfig *OutputConfig     `json:"output_config,omitempty"`
+	Temperature  *float64          `json:"temperature,omitempty"`
 	Stream      bool              `json:"stream"`
 }
 
@@ -54,8 +55,11 @@ type Tool struct {
 }
 
 type ThinkingConfig struct {
-	Type         string `json:"type"`
-	BudgetTokens int    `json:"budget_tokens,omitempty"`
+	Type string `json:"type"`
+}
+
+type OutputConfig struct {
+	Effort string `json:"effort"`
 }
 
 type messagePeek struct {
@@ -86,17 +90,13 @@ type toolPeek struct {
 }
 
 func BuildRequest(params protocol.RequestParams, provider prompts.ProviderConfig) Request {
-	hasExplicitBreakpoints := params.CacheBreakpoints != nil
-	shouldCache := hasExplicitBreakpoints || params.AutoCache
+	hasBreakpoints := params.CacheBreakpoints != nil
 
-	system := SystemToAnthropic(params.SystemPrompt, shouldCache)
+	system := SystemToAnthropic(params.SystemPrompt, hasBreakpoints)
 	messages := MessagesToAnthropic(params.Messages, params.CacheBreakpoints)
-
-	if params.AutoCache && !hasExplicitBreakpoints {
-		applyAutoCache(messages)
-	}
 	tools := ToolsToAnthropic(params.Tools)
-	thinking := buildThinkingConfig(params.ReasoningEffort, params.MaxTokens)
+	thinking := buildThinkingConfig(params.ReasoningEffort)
+	outputConfig := buildOutputConfig(params.ReasoningEffort)
 	toolChoice := buildToolChoice(params.ToolChoice)
 
 	maxTokens := params.MaxTokens
@@ -105,13 +105,14 @@ func BuildRequest(params protocol.RequestParams, provider prompts.ProviderConfig
 	}
 
 	req := Request{
-		Model:     params.Model,
-		MaxTokens: maxTokens,
-		System:    system,
-		Messages:  messages,
-		Tools:     tools,
-		Thinking:  thinking,
-		Stream:    true,
+		Model:        params.Model,
+		MaxTokens:    maxTokens,
+		System:       system,
+		Messages:     messages,
+		Tools:        tools,
+		Thinking:     thinking,
+		OutputConfig: outputConfig,
+		Stream:       true,
 	}
 
 	if toolChoice != nil {
@@ -286,35 +287,29 @@ func ToolsToAnthropic(tools []json.RawMessage) []Tool {
 	return result
 }
 
-func applyAutoCache(messages []Message) {
-	if len(messages) < 2 {
-		return
-	}
-	target := &messages[len(messages)-2]
-	if len(target.Content) > 0 {
-		target.Content[len(target.Content)-1].CacheControl = &CacheControl{Type: "ephemeral"}
-	}
-}
-
-var effortBudgetMap = map[string]int{
-	"low":    2048,
-	"medium": 8192,
-	"high":   16384,
-}
-
-func buildThinkingConfig(effort string, maxTokens int) *ThinkingConfig {
+func buildThinkingConfig(effort string) *ThinkingConfig {
 	switch effort {
-	case "", "off":
+	case "", "off", "none":
 		return &ThinkingConfig{Type: "disabled"}
-	case "minimal":
-		return &ThinkingConfig{Type: "adaptive"}
 	default:
-		budget, ok := effortBudgetMap[effort]
-		if !ok {
-			budget = 8192
-		}
-		return &ThinkingConfig{Type: "enabled", BudgetTokens: budget}
+		return &ThinkingConfig{Type: "adaptive"}
 	}
+}
+
+var effortMap = map[string]string{
+	"minimal": "low",
+	"low":     "low",
+	"medium":  "medium",
+	"high":    "high",
+	"max":     "max",
+}
+
+func buildOutputConfig(effort string) *OutputConfig {
+	mapped, ok := effortMap[effort]
+	if !ok {
+		return nil
+	}
+	return &OutputConfig{Effort: mapped}
 }
 
 func buildToolChoice(choice string) any {

@@ -70,7 +70,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registr
 
 	start := time.Now()
 	streamFn := providers.StreamForProtocol(promptCfg.Provider.Protocol)
-	result, err := ratelimit.Do(r.Context(), limiter, promptCfg.Provider.Key, 3, func() (sse.StreamResult, error) {
+	result, err := ratelimit.Do(r.Context(), limiter, params.Model, 3, func() (sse.StreamResult, error) {
 		return streamFn(r.Context(), w, params, promptCfg.Provider)
 	})
 	duration := time.Since(start).Milliseconds()

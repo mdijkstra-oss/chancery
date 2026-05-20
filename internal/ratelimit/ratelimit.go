@@ -6,12 +6,14 @@ import (
 	"log/slog"
 	"math"
 	"math/rand/v2"
+	"strconv"
 	"sync"
 	"time"
 )
 
 type RetryableError struct {
-	Err error
+	Err   error
+	Delay time.Duration
 }
 
 func (e *RetryableError) Error() string { return e.Err.Error() }
@@ -26,9 +28,32 @@ func Retryable(err error) error {
 	return &RetryableError{Err: err}
 }
 
+func RetryableWithDelay(err error, delay time.Duration) error {
+	return &RetryableError{Err: err, Delay: delay}
+}
+
 func IsRetryable(err error) bool {
 	var re *RetryableError
 	return errors.As(err, &re)
+}
+
+func ExtractDelay(err error) time.Duration {
+	var re *RetryableError
+	if errors.As(err, &re) {
+		return re.Delay
+	}
+	return 0
+}
+
+func ParseRetryAfterHeader(header string) time.Duration {
+	if header == "" {
+		return 0
+	}
+	secs, err := strconv.ParseFloat(header, 64)
+	if err != nil {
+		return 0
+	}
+	return time.Duration(secs * float64(time.Second))
 }
 
 func NewLimiter() *Limiter {
@@ -51,8 +76,21 @@ func Do[T any](ctx context.Context, l *Limiter, key string, maxAttempts int, fn 
 			var zero T
 			return zero, err
 		}
-		delay := fullJitter(backoffDelay(attempt))
+		serverDelay := ExtractDelay(err)
+		delay := chooseDelay(serverDelay, attempt)
 		l.recordCooldown(key, delay)
+		if serverDelay > maxRetryWait {
+			slog.InfoContext(ctx, "rate limited, quota exhausted",
+				"component", "ratelimit",
+				slog.Group("data",
+					slog.String("key", key),
+					slog.Duration("server_delay", serverDelay),
+					slog.Duration("cooldown", delay),
+				),
+			)
+			var zero T
+			return zero, err
+		}
 		slog.InfoContext(ctx, "rate limited, backing off",
 			"component", "ratelimit",
 			slog.Group("data",
@@ -71,6 +109,7 @@ func Do[T any](ctx context.Context, l *Limiter, key string, maxAttempts int, fn 
 }
 
 const maxBackoff = 30 * time.Second
+const maxRetryWait = 2 * time.Minute
 
 func backoffDelay(attempt int) time.Duration {
 	d := time.Duration(500*math.Pow(2, float64(attempt))) * time.Millisecond
@@ -78,6 +117,21 @@ func backoffDelay(attempt int) time.Duration {
 		return maxBackoff
 	}
 	return d
+}
+
+func chooseDelay(serverDelay time.Duration, attempt int) time.Duration {
+	if serverDelay > 0 {
+		return herdJitter(serverDelay)
+	}
+	return fullJitter(backoffDelay(attempt))
+}
+
+func herdJitter(d time.Duration) time.Duration {
+	spread := d / 10
+	if spread <= 0 {
+		return d
+	}
+	return d + time.Duration(rand.Int64N(int64(spread)))
 }
 
 func fullJitter(d time.Duration) time.Duration {

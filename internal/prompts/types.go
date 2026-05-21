@@ -49,6 +49,7 @@ type PromptConfig struct {
 	Temperature      *float64       `json:"temperature,omitempty"`
 	Seed             bool           `json:"seed,omitempty"`
 	AutoCache        bool           `json:"auto_cache,omitempty"`
+	CacheTTL         int            `json:"cache_ttl,omitempty"`
 	Pricing          Pricing        `json:"pricing"`
 	CompactAt        int            `json:"compact_at,omitempty"`
 	Provider         ProviderConfig `json:"provider"`
@@ -77,6 +78,7 @@ type modelEntry struct {
 	LegacyThinking  bool    `json:"legacy_thinking,omitempty"`
 	CompactAt        int     `json:"compact_at,omitempty"`
 	AutoCache        bool    `json:"auto_cache,omitempty"`
+	CacheTTL         int     `json:"cache_ttl,omitempty"`
 	Pricing          Pricing `json:"pricing"`
 }
 
@@ -90,6 +92,7 @@ type agentEntry struct {
 	Temperature      *float64 `json:"temperature,omitempty"`
 	Seed             bool     `json:"seed,omitempty"`
 	AutoCache        *bool    `json:"auto_cache,omitempty"`
+	CacheTTL         int      `json:"cache_ttl,omitempty"`
 	CompactAt        int      `json:"compact_at,omitempty"`
 	Dimensions       int      `json:"dimensions,omitempty"`
 }

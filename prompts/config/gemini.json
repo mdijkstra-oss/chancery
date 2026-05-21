@@ -5,19 +5,22 @@
   "models": {
     "gemini-3.1-pro-preview": {
       "name": "gemini-3.1-pro-preview",
-      "pricing": { "input": 2.00, "output": 12.00, "cached_input": 0.20 },
+      "pricing": { "input": 2.00, "output": 12.00, "cached_input": 0.20, "cache_write_input": 2.00 },
       "reasoning_effort": "low",
-      "todo": "LIMIT TOKENS DUE TO MORE EXPENSIVE ABOVE THRESHOLD"
+      "todo": "LIMIT TOKENS DUE TO MORE EXPENSIVE ABOVE THRESHOLD",
+      "_cache_ttl": 600
     },
     "gemini-3-flash-preview": {
       "name": "gemini-3-flash-preview",
-      "pricing": { "input": 0.50, "output": 3.00, "cached_input": 0.05 },
-      "reasoning_effort": "minimal"
+      "pricing": { "input": 0.50, "output": 3.00, "cached_input": 0.05, "cache_write_input": 0.50 },
+      "reasoning_effort": "minimal",
+      "_cache_ttl": 600
     },
     "gemini-3.5-flash": {
       "name": "gemini-3.5-flash",
-      "pricing": { "input": 1.50, "output": 9.00, "cached_input": 0.15 },
-      "reasoning_effort": "low"
+      "pricing": { "input": 1.50, "output": 9.00, "cached_input": 0.15, "cache_write_input": 1.50 },
+      "reasoning_effort": "low",
+      "cache_ttl": 600
     },
     "gemini-3.1-flash-lite-preview": {
       "name": "gemini-3.1-flash-lite-preview",

@@ -1,7 +1,9 @@
 package gemini
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"strings"
@@ -46,6 +48,16 @@ func ExtractLeadingSystem(messages []json.RawMessage) ([]string, []json.RawMessa
 		leading = append(leading, m.Content)
 	}
 	return leading, nil
+}
+
+func StripLeadingSystem(messages []json.RawMessage) []json.RawMessage {
+	for i, raw := range messages {
+		var m messagePeek
+		if json.Unmarshal(raw, &m) != nil || m.Role != "system" {
+			return messages[i:]
+		}
+	}
+	return nil
 }
 
 func hasConversationTurn(messages []json.RawMessage) bool {
@@ -387,4 +399,40 @@ func applyResponseFormat(cfg *genai.GenerateContentConfig, responseFormat json.R
 			}
 		}
 	}
+}
+
+func LastBreakpointIndex(breakpoints map[int]bool) int {
+	max := -1
+	for idx := range breakpoints {
+		if idx > max {
+			max = idx
+		}
+	}
+	return max
+}
+
+func SplitAtLastBreakpoint(messages []json.RawMessage, breakpoints map[int]bool) (prefix, tail []json.RawMessage) {
+	idx := LastBreakpointIndex(breakpoints)
+	if idx < 0 || idx >= len(messages) {
+		return nil, messages
+	}
+	splitAt := idx + 1
+	return messages[:splitAt:splitAt], messages[splitAt:]
+}
+
+func ContentHash(model, systemPrompt string, tools []json.RawMessage, messages []json.RawMessage) string {
+	h := sha256.New()
+	h.Write([]byte(model))
+	h.Write([]byte{0})
+	h.Write([]byte(systemPrompt))
+	h.Write([]byte{0})
+	for _, tool := range tools {
+		h.Write(tool)
+		h.Write([]byte{0})
+	}
+	for _, msg := range messages {
+		h.Write(msg)
+		h.Write([]byte{0})
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }

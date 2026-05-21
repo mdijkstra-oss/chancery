@@ -15,6 +15,7 @@ type RequestParams struct {
 	Seed             bool
 	MaxTokens        int
 	AutoCache        bool
+	CacheTTL         int
 	Tools            []json.RawMessage
 	Messages         []json.RawMessage
 	ResponseFormat   json.RawMessage

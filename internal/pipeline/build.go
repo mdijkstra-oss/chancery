@@ -51,6 +51,7 @@ func BuildRequestParams(agentName string, modelIndex int, req protocol.ChatReque
 		Seed:             promptCfg.Seed,
 		MaxTokens:        promptCfg.MaxTokens,
 		AutoCache:        promptCfg.AutoCache,
+		CacheTTL:         promptCfg.CacheTTL,
 		Tools:            req.Tools,
 		Messages:         expanded,
 		ResponseFormat:   req.ResponseFormat,

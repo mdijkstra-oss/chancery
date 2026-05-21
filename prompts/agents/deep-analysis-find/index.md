@@ -5,10 +5,11 @@ Only numbered sentences are codable.
 Scan the numbered sentences for passages that perform the function
 the definition describes.
 
-Your default is that nothing matches. A passage earns its code only
-when you can clearly justify that it meets the definition's apply-when
-criteria and triggers no exclusion. If the justification is not clear
-within a few considerations, the passage does not match.
+Most sentences will not match the definition. Exclude passages where
+you cannot connect the passage's function to the definition at all.
+Include passages where you can articulate a plausible case that the
+definition applies — a specific reason grounded in the definition,
+not a vague topical overlap.
 
 A passage is a contiguous range [start, end] of sentence numbers.
 Start and end at the first and last sentence that is necessary for
@@ -26,17 +27,15 @@ Matching rules:
 - If two passages overlap, keep only the one that most precisely
   performs the function.
 
-Most sentences will not match the definition.
-
 Return JSON:
-{
-  "results": [
-    {
-      "start": 12,
-      "end": 14,
-      "reasonToKeep": "..."
-    }
-]
+  {
+    "results": [
+      {
+        "start": 12,
+        "end": 14,
+        "reasonToKeep": "..."
+      }
+    ]
 }
 
 If nothing matches, return JSON { "results": [] }.

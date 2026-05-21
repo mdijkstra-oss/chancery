@@ -963,6 +963,165 @@ func TestEnsureThoughtSignatures(t *testing.T) {
 	}
 }
 
+func TestLastBreakpointIndex(t *testing.T) {
+	tests := []struct {
+		name        string
+		breakpoints map[int]bool
+		want        int
+	}{
+		{"nil map", nil, -1},
+		{"empty map", map[int]bool{}, -1},
+		{"single entry", map[int]bool{3: true}, 3},
+		{"multiple entries", map[int]bool{1: true, 5: true, 3: true}, 5},
+		{"zero index", map[int]bool{0: true}, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := LastBreakpointIndex(tt.breakpoints)
+			if got != tt.want {
+				t.Errorf("LastBreakpointIndex() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSplitAtLastBreakpoint(t *testing.T) {
+	msgs := toRawMessages([]string{
+		`{"role":"system","content":"sys"}`,
+		`{"role":"user","content":"chunk1"}`,
+		`{"role":"user","content":"chunk2"}`,
+		`{"role":"user","content":"tail"}`,
+	})
+
+	tests := []struct {
+		name           string
+		breakpoints    map[int]bool
+		wantPrefixLen  int
+		wantTailLen    int
+	}{
+		{"nil breakpoints", nil, 0, 4},
+		{"empty breakpoints", map[int]bool{}, 0, 4},
+		{"split at index 1", map[int]bool{1: true}, 2, 2},
+		{"split at last of multiple", map[int]bool{0: true, 2: true}, 3, 1},
+		{"split at end", map[int]bool{3: true}, 4, 0},
+		{"index out of range", map[int]bool{10: true}, 0, 4},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prefix, tail := SplitAtLastBreakpoint(msgs, tt.breakpoints)
+			if len(prefix) != tt.wantPrefixLen {
+				t.Errorf("prefix len = %d, want %d", len(prefix), tt.wantPrefixLen)
+			}
+			if len(tail) != tt.wantTailLen {
+				t.Errorf("tail len = %d, want %d", len(tail), tt.wantTailLen)
+			}
+			if tt.wantPrefixLen+tt.wantTailLen == len(msgs) && tt.wantPrefixLen > 0 {
+				if len(prefix)+len(tail) != len(msgs) {
+					t.Error("prefix + tail should equal original length")
+				}
+			}
+		})
+	}
+}
+
+func TestStripLeadingSystem(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   []string
+		wantLen int
+	}{
+		{
+			"all system returns nil",
+			[]string{
+				`{"type":"message","role":"system","content":"a"}`,
+				`{"type":"message","role":"system","content":"b"}`,
+			},
+			0,
+		},
+		{
+			"strips leading system keeps rest",
+			[]string{
+				`{"type":"message","role":"system","content":"sys1"}`,
+				`{"type":"message","role":"system","content":"sys2"}`,
+				`{"type":"message","role":"user","content":"hello"}`,
+				`{"type":"message","role":"assistant","content":"hi"}`,
+			},
+			2,
+		},
+		{
+			"no system messages",
+			[]string{
+				`{"type":"message","role":"user","content":"hello"}`,
+				`{"type":"message","role":"assistant","content":"hi"}`,
+			},
+			2,
+		},
+		{
+			"empty input",
+			nil,
+			0,
+		},
+		{
+			"single system",
+			[]string{`{"type":"message","role":"system","content":"only"}`},
+			0,
+		},
+		{
+			"system then user then system",
+			[]string{
+				`{"type":"message","role":"system","content":"leading"}`,
+				`{"type":"message","role":"user","content":"q"}`,
+				`{"type":"message","role":"system","content":"trailing"}`,
+			},
+			2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := StripLeadingSystem(toRawMessages(tt.input))
+			if len(got) != tt.wantLen {
+				t.Errorf("len = %d, want %d", len(got), tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestContentHash(t *testing.T) {
+	tools := toRawMessages([]string{`{"name":"search"}`})
+	msgs := toRawMessages([]string{`{"role":"user","content":"hello"}`})
+
+	h1 := ContentHash("gemini-3.5-flash", "sys", tools, msgs)
+	h2 := ContentHash("gemini-3.5-flash", "sys", tools, msgs)
+	if h1 != h2 {
+		t.Error("same inputs should produce same hash")
+	}
+
+	h3 := ContentHash("gemini-2.5-flash", "sys", tools, msgs)
+	if h1 == h3 {
+		t.Error("different model should produce different hash")
+	}
+
+	h4 := ContentHash("gemini-3.5-flash", "different", tools, msgs)
+	if h1 == h4 {
+		t.Error("different system prompt should produce different hash")
+	}
+
+	h5 := ContentHash("gemini-3.5-flash", "sys", nil, msgs)
+	if h1 == h5 {
+		t.Error("different tools should produce different hash")
+	}
+
+	diffMsgs := toRawMessages([]string{`{"role":"user","content":"bye"}`})
+	h6 := ContentHash("gemini-3.5-flash", "sys", tools, diffMsgs)
+	if h1 == h6 {
+		t.Error("different messages should produce different hash")
+	}
+
+	if len(h1) != 64 {
+		t.Errorf("hash length = %d, want 64 (sha256 hex)", len(h1))
+	}
+}
+
 func assertTextPart(t *testing.T, content *genai.Content, want string) {
 	t.Helper()
 	if len(content.Parts) == 0 {

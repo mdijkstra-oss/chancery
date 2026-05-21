@@ -487,6 +487,9 @@ func overlayModel(base, child modelEntry) modelEntry {
 	if child.AutoCache {
 		result.AutoCache = child.AutoCache
 	}
+	if child.CacheTTL != 0 {
+		result.CacheTTL = child.CacheTTL
+	}
 	if child.CompactAt != 0 {
 		result.CompactAt = child.CompactAt
 	}
@@ -512,6 +515,7 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 		ServiceTier:      model.ServiceTier,
 		LegacyThinking:  model.LegacyThinking,
 		AutoCache:        model.AutoCache,
+		CacheTTL:         model.CacheTTL,
 		CompactAt:        model.CompactAt,
 		Pricing:          model.Pricing,
 		Provider:         provider,
@@ -539,6 +543,9 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 	}
 	if agent.AutoCache != nil {
 		cfg.AutoCache = *agent.AutoCache
+	}
+	if agent.CacheTTL != 0 {
+		cfg.CacheTTL = agent.CacheTTL
 	}
 	if agent.CompactAt != 0 {
 		cfg.CompactAt = agent.CompactAt

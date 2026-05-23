@@ -69,7 +69,11 @@ For each passage evaluate in this order:
     - If overlapping passages exist for the same code, this
       passage stands on its own unique content.
 
-State reason in the language of the corpus text. Which can differ from the code definitions.
+Reason format:
+- Write reasons in the corpus language. Keep codebook terminology (code names, apply-when labels, definition terms) in their original language. One to two sentences.
+- One to two sentences max.
+- Structure: [what the passage says] + [why that meets/fails the code].
+- Quote the key phrase, then state the judgment link.
 
 Return JSON:
 {

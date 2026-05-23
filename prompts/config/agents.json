@@ -67,9 +67,9 @@
   ],
   "qual-coder": {
     "_comment": "main qualitative coding agent — annotates research text against codebook",
-    "model": "deepseek-v4-flash",
+    "model": "deepseek-v4-pro",
     "prompt": "",
-    "reasoning_effort": "max",
+    "reasoning_effort": "high",
     "compact_at": 300000
   },
   "refine-code": {

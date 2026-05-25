@@ -19,10 +19,11 @@ definition holds is the correct and expected result.
 You receive:
 1. General codebook rules (the framework governing all codes)
 2. The code definition being reviewed
-3. Other code definitions from the codebook (may be empty) — for
-   detecting overlap, misassignment, and boundary confusion between
-   codes. Only analyze cross-code issues for codes actually provided;
-   do not speculate about codes you have not seen.
+3. Other code definitions from the codebook (may be empty) — each
+   carrying its own callout id — for detecting overlap, misassignment,
+   and boundary confusion between codes. Only analyze cross-code issues
+   for codes actually provided; do not speculate about codes you have
+   not seen.
 4. Up to N coded passages flagged as ambiguous. Each is presented as an
    `<annotation id="..." code="...">…</annotation>` tag — carrying a stable
    annotation id and the code — set within surrounding `<context>`, followed
@@ -200,12 +201,17 @@ For each finding:
 - State its strength: how many flagged passages evidence it, and
   whether it is structural (the definition itself is broken) or an
   edge refinement (a fuzzy boundary on an otherwise-sound code)
-- Cite the specific passages that evidence it by their annotation `id`,
-  so each is traceable; you may include the short visible text from the
-  tag for readability
+- Evidence it with a representative sample of the strongest cases — the
+  clearest offenders — cited by annotation `id` only (no retyped text;
+  the id resolves to the passage where it is shown). Do not list every
+  passage: the strength line already carries the count. Keep the sample
+  small (a few ids). If the cases cluster into distinct sub-patterns,
+  name each group and give one or two representative ids per group rather
+  than enumerating the whole set.
 - State what in the definition allows or fails to prevent it
-- Contrast with clean passages where relevant, and confirm the
-  suggested fix would not exclude them
+- Where it sharpens the contrast, cite one or two representative clean
+  passages by `id` (not the whole clean set), and confirm the suggested
+  fix would not wrongly exclude them
 - Suggest a fix direction (add criterion, add exclusion, narrow
   definition line, add counter-example, add cross-code
   disambiguation rule) without rewriting the definition. Prefer a
@@ -218,8 +224,10 @@ For each finding:
   no span for a later step to reconstruct. Every example or counter-example
   you propose must be an annotation id present in the provided passages; if
   you cannot point to one, do not propose it.
-- When identifying cross-code issues, name the other code(s)
-  involved
+- When identifying cross-code issues, reference the other code(s) by
+  their callout `id` — the same discipline you use for passages, not a
+  free-text name. Output the id; do not rename or describe the code, so
+  no later step has to resolve a name to an id.
 
 If the definition is adequate, say so directly and stop. "The
 definition holds; the flagged passages are false alarms, coding
@@ -230,12 +238,15 @@ definition problem to fill this section.
 ### Section 2 — Annotation assessment
 
 If flagged passages were provided, give a general conclusion about
-the flagged set as a group:
+the flagged set. Group them by what is going on rather than walking
+through each one — if several share a disposition, treat them as one
+group, name it, and cite a representative id or two, not the whole list:
 - Are these false alarms (correctly coded, judge was too
   conservative)?
 - Do these not fit the current definition and warrant removal?
 - Do these need re-evaluation after a definition change?
-- Should any be recoded under a different code? If so, which one?
+- Should any be recoded under a different code? If so, which one — by
+  its callout `id`?
 
 If a recode of the affected sections is warranted, recommend it.
 Do not make individual coding decisions — that is the pipeline's
@@ -249,7 +260,9 @@ job.
 - Refer to any passage you cite — as evidence or as a proposed example —
   by its annotation `id`, never by retyped text as the source of truth.
   The id expands to the annotation's exact text downstream; a typed quote
-  can drift and would be copied as-is by the next step.
+  can drift and would be copied as-is by the next step. Refer to any other
+  code the same way — by its callout `id`, never by a name a later step
+  would have to resolve.
 - A single observation is tentative; only a pattern repeated across
   passages — or gross structural breakage — warrants a definition
   change.

@@ -1,11 +1,11 @@
 {
   "section-labeler": {
     "_comment": "labels document sections with descriptive label+desc fields",
-    "model": "gemini-3.1-flash-lite-preview"
+    "model": "gemini-3.1-flash-lite"
   },
   "scout-filter": {
     "_comment": "identifies contiguous off-topic blocks to exclude from documents",
-    "model": "gemini-3.1-flash-lite-preview"
+    "model": "gemini-3.1-flash-lite"
   },
   "hyde-generator": {
     "_comment": "generates hypothetical passages for corpus-specific semantic search (HyDE)",
@@ -22,20 +22,20 @@
 
   "corpus-describer": {
     "_comment": "profiles document groups for downstream hyde-generator context",
-    "model": "gemini-3.1-flash-lite-preview"
+    "model": "gemini-3.1-flash-lite"
   },
   "generic-hyde": {
     "_comment": "generates hypothetical passages for search without corpus context",
-    "model": "gemini-3.1-flash-lite-preview"
+    "model": "gemini-3.1-flash-lite"
   },
   "semantic-filter": {
     "_comment": "selects sentences matching a search intent from numbered sentence lists",
-    "model": "gemini-3.1-flash-lite-preview",
+    "model": "gemini-3.1-flash-lite",
     "reasoning_effort": "medium"
   },
   "embeddings-judge": {
     "_comment": "post-retrieval relevance filter — judges if snippets match search intent",
-    "model": "gemini-3.1-flash-lite-preview",
+    "model": "gemini-3.1-flash-lite",
     "reasoning_effort": "none"
   },
   "embeddings": {
@@ -80,7 +80,7 @@
 
   "compacter": {
     "_comment": "summarizes conversation history for context compaction",
-    "model": "gemini-3-flash-preview"
+    "model": "gemini-3-flash"
   },
   "commit-agent": {
     "_comment": "groups git changes into coherent commits with researcher-language messages",

@@ -74,7 +74,7 @@
   },
   "refine-code": {
     "_comment": "reviews codebook definitions against flagged passages for quality",
-    "model": "gpt-5.4",
+    "model": "claude-opus-4-6",
     "reasoning_effort": "medium"
   },
 

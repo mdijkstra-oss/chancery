@@ -19,6 +19,11 @@ researcher to ignore you. Report only what the evidence forces.
 Read the disagreeing coders' reasoning. Figure out why they
 diverged — what in the definition allowed two plausible readings.
 
+Also check that the definition is internally consistent — the
+definition line, inclusion criteria, exclusion criteria, and
+scope notes should all describe the same code. If they diverge
+in scope, flag the mismatch.
+
 Three possible outcomes:
 
 1. **The definition is fine.** The disagreement is a false alarm
@@ -71,8 +76,16 @@ the corpus — not a bare word or short fragment. Fragments teach
 coders to match on vocabulary rather than function. If any
 examples or counter-examples are fragments, flag them and suggest
 replacements from the available passages (by annotation `id`).
-Counter-examples should include a brief note on why the passage
-falls outside the code.
+
+Examples should be self-explanatory — the passage clearly
+performs the function in the definition line without needing
+surrounding context or implicit reasoning to connect it. If the
+example would need a note explaining why it qualifies, it is not
+a good example even if it is correctly coded.
+
+Counter-examples should be passages that look close but clearly
+fall outside, each with a brief note on why. They illustrate
+what the exclusion criteria mean in practice.
 
 ### Section 2 — Annotation assessment
 
@@ -92,3 +105,6 @@ one individually:
   passages, or a structural gap in the definition, is actionable.
 - Write in the same language as the code definition.
 - "The definition holds" is a valid and expected result.
+
+## Formatting
+- Use [text to quote](file://[annotation-id]) to reference coded passages.

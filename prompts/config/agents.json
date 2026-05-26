@@ -58,11 +58,11 @@
     {
       "_comment": "step 3: independent review — keep/remove/ambiguous/conflict judgment",
       "model": "gpt-5.5",
-      "reasoning_effort": "medium"
+      "reasoning_effort": "low"
     },
     {
       "model": "claude-opus-4-6",
-      "reasoning_effort": "medium"
+      "reasoning_effort": "low"
     }
   ],
   "qual-coder": {
@@ -75,7 +75,7 @@
   "refine-code": {
     "_comment": "reviews codebook definitions against flagged passages for quality",
     "model": "claude-opus-4-6",
-    "reasoning_effort": "medium"
+    "reasoning_effort": "high"
   },
 
   "compacter": {

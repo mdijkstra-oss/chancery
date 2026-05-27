@@ -30,13 +30,9 @@
   },
   "semantic-filter": {
     "_comment": "selects sentences matching a search intent from numbered sentence lists",
-    "model": "gemini-3.1-flash-lite",
-    "reasoning_effort": "medium"
-  },
-  "embeddings-judge": {
-    "_comment": "post-retrieval relevance filter — judges if snippets match search intent",
-    "model": "gemini-3.1-flash-lite",
-    "reasoning_effort": "none"
+    "model": "gemini-2.5-flash-lite",
+    "temperature": 0,
+    "seed": true
   },
   "embeddings": {
     "_comment": "vectorization via text-embedding-3-large",

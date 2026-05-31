@@ -5,7 +5,8 @@
   },
   "scout-filter": {
     "_comment": "identifies contiguous off-topic blocks to exclude from documents",
-    "model": "gemini-3.1-flash-lite"
+    "model": "deepseek-v4-flash",
+    "reasoning_effort": "none"
   },
   "hyde-generator": {
     "_comment": "generates hypothetical passages for corpus-specific semantic search (HyDE)",
@@ -28,9 +29,14 @@
     "_comment": "generates hypothetical passages for search without corpus context",
     "model": "gemini-3.1-flash-lite"
   },
+  "file-hyde": {
+    "_comment": "generates highlight and hypothetical passages from a file for similarity search",
+    "model": "gemini-3.1-flash-lite"
+  },
   "intent-generator": {
     "_comment": "converts a code definition into a concise search intent for semantic retrieval",
-    "model": "deepseek-v4-flash"
+    "model": "deepseek-v4-flash",
+    "reasoning_effort": "none"
   },
   "semantic-filter": {
     "_comment": "selects sentences matching a search intent from numbered sentence lists",
@@ -74,7 +80,7 @@
   "refine-code": {
     "_comment": "reviews codebook definitions against flagged passages for quality",
     "model": "claude-opus-4-6",
-    "reasoning_effort": "high"
+    "reasoning_effort": "medium"
   },
 
   "compacter": {

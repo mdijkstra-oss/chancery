@@ -61,7 +61,7 @@
   ],
   "deep-analysis-filter": [
     {
-      "_comment": "step 3: independent review — keep/remove/ambiguous/conflict judgment",
+      "_comment": "step 2: independent review — keep/remove judgment per code",
       "model": "gpt-5.5",
       "reasoning_effort": "low"
     },
@@ -70,6 +70,11 @@
       "reasoning_effort": "low"
     }
   ],
+  "deep-analysis-adjudicate": {
+    "_comment": "step 3: tie-breaker over filter's contested items with cross-code awareness — keep/reject/inconsistent verdict",
+    "model": "claude-opus-4-6",
+    "reasoning_effort": "medium"
+  },
   "qual-coder": {
     "_comment": "main qualitative coding agent — annotates research text against codebook",
     "model": "deepseek-v4-pro",

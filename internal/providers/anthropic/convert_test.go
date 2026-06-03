@@ -2,6 +2,7 @@ package anthropic
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"hermes-logos/internal/prompts"
@@ -305,6 +306,207 @@ func TestBuildRequest(t *testing.T) {
 	}
 	if req.Thinking == nil || req.Thinking.Type != "adaptive" {
 		t.Error("expected adaptive thinking for minimal effort")
+	}
+}
+
+func TestBuildOutputFormat(t *testing.T) {
+	cases := []struct {
+		name    string
+		raw     string
+		wantNil bool
+	}{
+		{"nil raw", "", true},
+		{"empty object", `{}`, true},
+		{"json_object type only", `{"type":"json_object"}`, true},
+		{
+			"json_schema with schema",
+			`{"type":"json_schema","json_schema":{"name":"r","schema":{"type":"object"},"strict":true}}`,
+			false,
+		},
+		{
+			"json_schema missing schema body",
+			`{"type":"json_schema","json_schema":{"name":"r"}}`,
+			true,
+		},
+		{"invalid json", `not json`, true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var raw json.RawMessage
+			if tc.raw != "" {
+				raw = json.RawMessage(tc.raw)
+			}
+			got := buildOutputFormat(raw)
+			if tc.wantNil {
+				if got != nil {
+					t.Errorf("got %+v, want nil", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("got nil, want non-nil")
+			}
+			if got.Type != "json_schema" {
+				t.Errorf("type = %q, want json_schema", got.Type)
+			}
+			if len(got.Schema) == 0 {
+				t.Error("schema should be populated")
+			}
+		})
+	}
+}
+
+func TestSanitizeSchemaForAnthropic(t *testing.T) {
+	cases := []struct {
+		name      string
+		input     string
+		mustHave  []string
+		mustNotHave []string
+	}{
+		{
+			name:        "strips min/max from integer",
+			input:       `{"type":"integer","minimum":1,"maximum":100}`,
+			mustNotHave: []string{`"minimum"`, `"maximum"`},
+			mustHave:    []string{`"type":"integer"`},
+		},
+		{
+			name:        "strips multipleOf and exclusive bounds from number",
+			input:       `{"type":"number","exclusiveMinimum":0,"multipleOf":0.5}`,
+			mustNotHave: []string{`"exclusiveMinimum"`, `"multipleOf"`},
+			mustHave:    []string{`"type":"number"`},
+		},
+		{
+			name:        "strips min/maxLength from string",
+			input:       `{"type":"string","minLength":1,"maxLength":50}`,
+			mustNotHave: []string{`"minLength"`, `"maxLength"`},
+			mustHave:    []string{`"type":"string"`},
+		},
+		{
+			name:        "strips maxItems and clamps minItems",
+			input:       `{"type":"array","minItems":3,"maxItems":10,"items":{"type":"string"}}`,
+			mustNotHave: []string{`"maxItems"`, `"minItems":3`},
+			mustHave:    []string{`"type":"array"`},
+		},
+		{
+			name:        "preserves minItems 0",
+			input:       `{"type":"array","minItems":0,"items":{"type":"string"}}`,
+			mustHave:    []string{`"minItems":0`},
+		},
+		{
+			name:        "preserves minItems 1",
+			input:       `{"type":"array","minItems":1,"items":{"type":"string"}}`,
+			mustHave:    []string{`"minItems":1`},
+		},
+		{
+			name:        "recurses into nested properties",
+			input:       `{"type":"object","properties":{"id":{"type":"integer","minimum":1}}}`,
+			mustNotHave: []string{`"minimum"`},
+			mustHave:    []string{`"type":"integer"`},
+		},
+		{
+			name:        "recurses through array items",
+			input:       `{"type":"array","items":{"type":"object","properties":{"n":{"type":"integer","minimum":1,"maximum":9}}}}`,
+			mustNotHave: []string{`"minimum"`, `"maximum"`},
+		},
+		{
+			name:        "leaves enum untouched",
+			input:       `{"type":"string","enum":["keep","reject","inconsistent"]}`,
+			mustHave:    []string{`"enum"`, `"keep"`, `"reject"`, `"inconsistent"`},
+		},
+		{
+			name:     "preserves required and additionalProperties",
+			input:    `{"type":"object","required":["x"],"additionalProperties":false,"properties":{"x":{"type":"string"}}}`,
+			mustHave: []string{`"required"`, `"additionalProperties":false`},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := sanitizeSchemaForAnthropic(json.RawMessage(tc.input))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			s := string(out)
+			for _, need := range tc.mustHave {
+				if !strings.Contains(s, need) {
+					t.Errorf("expected %q in %s", need, s)
+				}
+			}
+			for _, forbidden := range tc.mustNotHave {
+				if strings.Contains(s, forbidden) {
+					t.Errorf("unexpected %q in %s", forbidden, s)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildRequestPassesResponseFormat(t *testing.T) {
+	params := protocol.RequestParams{
+		Model:           "claude-opus-4-7",
+		SystemPrompt:    "judge",
+		ReasoningEffort: "medium",
+		MaxTokens:       8192,
+		Messages:        []json.RawMessage{json.RawMessage(`{"role":"user","content":"hi"}`)},
+		ResponseFormat: json.RawMessage(
+			`{"type":"json_schema","json_schema":{"name":"r","schema":{"type":"object","properties":{"x":{"type":"string"}}},"strict":true}}`,
+		),
+	}
+
+	req := BuildRequest(params, defaultProvider())
+	if req.OutputConfig == nil {
+		t.Fatal("output_config should be set")
+	}
+	if req.OutputConfig.Effort != "medium" {
+		t.Errorf("effort = %q, want medium", req.OutputConfig.Effort)
+	}
+	if req.OutputConfig.Format == nil {
+		t.Fatal("output_config.format should be set")
+	}
+	if req.OutputConfig.Format.Type != "json_schema" {
+		t.Errorf("format.type = %q, want json_schema", req.OutputConfig.Format.Type)
+	}
+	if len(req.OutputConfig.Format.Schema) == 0 {
+		t.Error("format.schema should be populated")
+	}
+}
+
+func TestBuildRequestResponseFormatWithoutEffort(t *testing.T) {
+	params := protocol.RequestParams{
+		Model:           "claude-opus-4-7",
+		Messages:        []json.RawMessage{json.RawMessage(`{"role":"user","content":"hi"}`)},
+		ReasoningEffort: "off",
+		ResponseFormat: json.RawMessage(
+			`{"type":"json_schema","json_schema":{"schema":{"type":"object"}}}`,
+		),
+	}
+
+	req := BuildRequest(params, defaultProvider())
+	if req.OutputConfig == nil {
+		t.Fatal("output_config should be set even without effort")
+	}
+	if req.OutputConfig.Effort != "" {
+		t.Errorf("effort = %q, want empty", req.OutputConfig.Effort)
+	}
+	if req.OutputConfig.Format == nil {
+		t.Fatal("format should be set")
+	}
+}
+
+func TestBuildRequestNoResponseFormatLeavesConfigUnchanged(t *testing.T) {
+	params := protocol.RequestParams{
+		Model:           "claude-opus-4-7",
+		ReasoningEffort: "low",
+		Messages:        []json.RawMessage{json.RawMessage(`{"role":"user","content":"hi"}`)},
+	}
+
+	req := BuildRequest(params, defaultProvider())
+	if req.OutputConfig == nil {
+		t.Fatal("output_config should be set from effort")
+	}
+	if req.OutputConfig.Format != nil {
+		t.Errorf("format should be nil when no response_format provided, got %+v", req.OutputConfig.Format)
 	}
 }
 

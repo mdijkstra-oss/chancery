@@ -59,7 +59,13 @@ type ThinkingConfig struct {
 }
 
 type OutputConfig struct {
-	Effort string `json:"effort"`
+	Effort string        `json:"effort,omitempty"`
+	Format *OutputFormat `json:"format,omitempty"`
+}
+
+type OutputFormat struct {
+	Type   string          `json:"type"`
+	Schema json.RawMessage `json:"schema,omitempty"`
 }
 
 type messagePeek struct {
@@ -97,6 +103,7 @@ func BuildRequest(params protocol.RequestParams, provider prompts.ProviderConfig
 	tools := ToolsToAnthropic(params.Tools)
 	thinking := buildThinkingConfig(params.ReasoningEffort)
 	outputConfig := buildOutputConfig(params.ReasoningEffort)
+	outputConfig = attachOutputFormat(outputConfig, params.ResponseFormat)
 	toolChoice := buildToolChoice(params.ToolChoice)
 
 	maxTokens := params.MaxTokens
@@ -310,6 +317,97 @@ func buildOutputConfig(effort string) *OutputConfig {
 		return nil
 	}
 	return &OutputConfig{Effort: mapped}
+}
+
+func attachOutputFormat(cfg *OutputConfig, raw json.RawMessage) *OutputConfig {
+	format := buildOutputFormat(raw)
+	if format == nil {
+		return cfg
+	}
+	if cfg == nil {
+		cfg = &OutputConfig{}
+	}
+	cfg.Format = format
+	return cfg
+}
+
+func buildOutputFormat(raw json.RawMessage) *OutputFormat {
+	if raw == nil {
+		return nil
+	}
+	var peek struct {
+		Type       string `json:"type"`
+		JSONSchema *struct {
+			Schema json.RawMessage `json:"schema"`
+		} `json:"json_schema"`
+	}
+	if err := json.Unmarshal(raw, &peek); err != nil {
+		return nil
+	}
+	if peek.Type != "json_schema" || peek.JSONSchema == nil || len(peek.JSONSchema.Schema) == 0 {
+		return nil
+	}
+	sanitized, err := sanitizeSchemaForAnthropic(peek.JSONSchema.Schema)
+	if err != nil {
+		return nil
+	}
+	return &OutputFormat{Type: "json_schema", Schema: sanitized}
+}
+
+func sanitizeSchemaForAnthropic(raw json.RawMessage) (json.RawMessage, error) {
+	var node interface{}
+	if err := json.Unmarshal(raw, &node); err != nil {
+		return nil, err
+	}
+	stripUnsupportedSchemaKeywords(node)
+	return json.Marshal(node)
+}
+
+func stripUnsupportedSchemaKeywords(node interface{}) {
+	switch v := node.(type) {
+	case map[string]interface{}:
+		stripKeywordsForType(v)
+		for _, child := range v {
+			stripUnsupportedSchemaKeywords(child)
+		}
+	case []interface{}:
+		for _, item := range v {
+			stripUnsupportedSchemaKeywords(item)
+		}
+	}
+}
+
+func stripKeywordsForType(node map[string]interface{}) {
+	t, _ := node["type"].(string)
+	switch t {
+	case "integer", "number":
+		delete(node, "minimum")
+		delete(node, "maximum")
+		delete(node, "exclusiveMinimum")
+		delete(node, "exclusiveMaximum")
+		delete(node, "multipleOf")
+	case "string":
+		delete(node, "minLength")
+		delete(node, "maxLength")
+	case "array":
+		delete(node, "maxItems")
+		clampMinItems(node)
+	}
+}
+
+func clampMinItems(node map[string]interface{}) {
+	v, ok := node["minItems"]
+	if !ok {
+		return
+	}
+	n, ok := v.(float64)
+	if !ok {
+		delete(node, "minItems")
+		return
+	}
+	if n != 0 && n != 1 {
+		delete(node, "minItems")
+	}
 }
 
 func buildToolChoice(choice string) any {

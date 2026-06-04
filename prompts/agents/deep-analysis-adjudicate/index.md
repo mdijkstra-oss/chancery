@@ -9,9 +9,10 @@ For each contested item, return one of three verdicts.
 **reject** — the keep-case fails. One of:
 - the passage does not perform the function the definition describes (the remove-case prevails);
 - a neighboring code applied to the same or overlapping span fits more precisely, making this assignment redundant;
-- the fit to this code is weak or incidental while a stronger fit to a different code exists.
+- the fit to this code is weak or incidental while a stronger fit to a different code exists AND has been selected in the same or overlapping space.
 
-**inconsistent** — the codebook itself is the problem. The code's definition is internally contradictory, conflicts with the framework, or fails to specify what it captures with enough precision to judge this dispute. Use sparingly — only when the law is unclear, not when the passage is borderline.
+**inconsistent** — the definition lacks the precision to resolve this dispute. The passage is a genuine edge case that the codebook does not adequately distinguish. This is not a borderline passage — it is a gap in the definition. Use only when you can name what the
+definition fails to specify. The referral must identify the ambiguity precisely enough for the codebook author to fix it.
 
 Cross-code clause: when two codes are assigned to the same or overlapping span, prefer the one that captures a function the other does not. Reject the redundant one. "Meh fit here, real fit there" is grounds to reject the meh.
 

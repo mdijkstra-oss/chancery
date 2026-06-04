@@ -44,6 +44,12 @@ Three possible outcomes:
    reveals a boundary the definition does not address at all.
    The fix is a new rule.
 
+Locked passages are researcher-confirmed ground truth. They represent
+correct applications of the code — do not question them. If the code
+definition appears to conflict with a locked passage, the definition
+needs adjustment, not the passage. Use locked passages as positive
+anchors when evaluating proposed fixes.
+
 For outcomes 2 and 3, check your proposed fix against the clean
 passages. If a clean passage clearly fits the code and your fix
 would exclude it, the fix goes too far. But if a clean passage

@@ -16,7 +16,7 @@ Specify section by line range and source files containing criteria. Results alwa
 
 post_action controls whether annotations are also written to the file:
 - `return` — results only
-- `annotate_as_code` — clears existing annotations for the dimension's code IDs within the analyzed sections, then writes fresh annotations from the results. Do not manually clear or remove annotations before calling — the tool handles it.
+- `annotate_as_code` — clears existing annotations for the dimension's code IDs within the analyzed sections, then writes fresh annotations from the results. Do not manually clear or remove annotations before calling — the tool handles it. Locked annotations are never cleared or overwritten — new annotations overlapping with locked text are silently dropped.
 - `annotate_as_comment` — writes comment annotations without clearing existing ones
 
 One section per call — parallelize for multiple sections.

@@ -9,9 +9,11 @@ the definition describes.
 
 Most sentences will not match the definition. Exclude passages where
 you cannot connect the passage's function to the definition at all.
-Include passages where you can articulate a plausible case that the
-definition applies — a specific reason grounded in the definition,
-not a vague topical overlap.
+Include a passage only when you can identify which specific
+"apply when" criterion it satisfies and point to the words
+in the passage that perform that function. A general thematic
+connection is not sufficient — the passage must meet a stated
+criterion, not merely be "about" the same topic.
 
 A passage is a contiguous range [start, end] of prefixed sentence numbers
 within a single file. Passages cannot span across files or across chunk

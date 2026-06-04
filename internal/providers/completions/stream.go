@@ -13,6 +13,7 @@ import (
 
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers/httpx"
 	"hermes-logos/internal/providers/sse"
 	"hermes-logos/internal/ratelimit"
 )
@@ -22,8 +23,11 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	if err != nil {
 		return sse.StreamResult{}, fmt.Errorf("build request: %w", err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpx.Client.Do(req)
 	if err != nil {
+		if httpx.IsConnectTimeout(err) {
+			return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("completions: connect timeout: %w", err))
+		}
 		return sse.StreamResult{}, fmt.Errorf("execute request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -39,12 +43,15 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	sse.SetHeaders(w)
 	sse.Flush(w)
 
+	body := httpx.WithStallTimeout(resp.Body, httpx.StallTimeout)
+	defer body.Close()
+
 	state := &EmitState{}
 	var lastUsage *protocol.UsageResponse
 	var lastFinishReason string
 	var streamErr error
 
-	scanner := bufio.NewScanner(resp.Body)
+	scanner := bufio.NewScanner(body)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" || !strings.HasPrefix(line, "data: ") {

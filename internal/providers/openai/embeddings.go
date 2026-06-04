@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/providers/httpx"
 	"hermes-logos/internal/ratelimit"
 )
 
@@ -44,8 +45,11 @@ func Embed(ctx context.Context, input []string, model string, dimensions int, pr
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+provider.APIKey)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpx.Client.Do(req)
 	if err != nil {
+		if httpx.IsConnectTimeout(err) {
+			return EmbedResult{}, ratelimit.Retryable(fmt.Errorf("openai embed: connect timeout: %w", err))
+		}
 		return EmbedResult{}, fmt.Errorf("execute request: %w", err)
 	}
 	defer resp.Body.Close()

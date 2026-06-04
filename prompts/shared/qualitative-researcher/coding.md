@@ -15,6 +15,13 @@ The plan does not pre-assign codes to sections. Which codes apply is decided ins
 
 When the codebook grows large, suggest splitting codes across multiple files by theme or family — codes are discovered across all files, so placement is organizational, not functional. A codebook with 30+ codes in one file becomes harder to navigate than three focused files (`economic_factors.md`, `social_dynamics.md`, `process_issues.md`). Tag all split files with a shared tag (e.g., `#codebook`) to keep the group discoverable — no index files pointing to other docs.
 
+## Locked annotations
+
+Locked annotations are researcher-confirmed. They cannot be modified
+or removed by tools. During coding (apply_deep_analysis), locked
+annotations in a section are preserved — new annotations that overlap
+with locked text are dropped, and locked annotations are never cleared.
+
 ## When not to code
 
 Not every passage needs a code. Deep analysis handles this judgment internally — it won't force-fit, and it can return color-only annotations or skip passages entirely. The main agent's job is to decide whether to delegate at all: if the user asks to code a section, delegate. If the user asks a question that doesn't require coding, answer directly.

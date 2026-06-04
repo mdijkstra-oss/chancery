@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/providers/httpx"
 	"hermes-logos/internal/providers/sse"
 	"hermes-logos/internal/protocol"
 	"hermes-logos/internal/ratelimit"
@@ -20,8 +21,11 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	if err != nil {
 		return sse.StreamResult{}, fmt.Errorf("build request: %w", err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpx.Client.Do(req)
 	if err != nil {
+		if httpx.IsConnectTimeout(err) {
+			return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("openai: connect timeout: %w", err))
+		}
 		return sse.StreamResult{}, fmt.Errorf("execute request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -40,7 +44,9 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	sse.SetHeaders(w)
 	sse.Flush(w)
 
-	return relaySSE(ctx, w, bufio.NewScanner(resp.Body), params.Model), nil
+	body := httpx.WithStallTimeout(resp.Body, httpx.StallTimeout)
+	defer body.Close()
+	return relaySSE(ctx, w, bufio.NewScanner(body), params.Model), nil
 }
 
 func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner, model string) sse.StreamResult {

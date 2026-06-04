@@ -13,6 +13,7 @@ import (
 
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers/httpx"
 	"hermes-logos/internal/providers/sse"
 	"hermes-logos/internal/ratelimit"
 )
@@ -32,8 +33,11 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	httpReq.Header.Set("anthropic-version", "2023-06-01")
 	httpReq.Header.Set("content-type", "application/json")
 
-	resp, err := http.DefaultClient.Do(httpReq)
+	resp, err := httpx.Client.Do(httpReq)
 	if err != nil {
+		if httpx.IsConnectTimeout(err) {
+			return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("anthropic: connect timeout: %w", err))
+		}
 		return sse.StreamResult{}, fmt.Errorf("anthropic: send request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -53,11 +57,14 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	sse.SetHeaders(w)
 	sse.Flush(w)
 
+	stream := httpx.WithStallTimeout(resp.Body, httpx.StallTimeout)
+	defer stream.Close()
+
 	state := &EmitState{}
 	var lastUsage *protocol.UsageResponse
 	var lastMessageDeltaData []byte
 
-	scanner := bufio.NewScanner(resp.Body)
+	scanner := bufio.NewScanner(stream)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
 	var currentEventType string
 

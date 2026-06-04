@@ -13,6 +13,7 @@ import (
 	"google.golang.org/genai"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
+	"hermes-logos/internal/providers/httpx"
 	"hermes-logos/internal/providers/sse"
 	"hermes-logos/internal/ratelimit"
 )
@@ -21,8 +22,9 @@ var globalCacheStore = NewCacheStore()
 
 func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  provider.APIKey,
-		Backend: genai.BackendGeminiAPI,
+		APIKey:     provider.APIKey,
+		Backend:    genai.BackendGeminiAPI,
+		HTTPClient: httpx.Client,
 	})
 	if err != nil {
 		return sse.StreamResult{}, fmt.Errorf("create gemini client: %w", err)
@@ -65,6 +67,9 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 					return sse.StreamResult{}, ratelimit.RetryableWithDelay(err, delay)
 				}
 				return sse.StreamResult{}, ratelimit.Retryable(err)
+			}
+			if !headersWritten && httpx.IsConnectTimeout(err) {
+				return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("gemini: connect timeout: %w", err))
 			}
 			if !headersWritten {
 				return sse.StreamResult{}, fmt.Errorf("gemini stream: %w", err)

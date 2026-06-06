@@ -38,11 +38,17 @@
     "model": "deepseek-v4-flash",
     "reasoning_effort": "none"
   },
-  "semantic-filter": {
-    "_comment": "selects sentences matching a search intent from numbered sentence lists",
-    "model": "deepseek-v4-flash",
-    "reasoning_effort": "none"
-  },
+  "semantic-filter": [
+    {
+      "_comment": "selects sentences matching a search intent from numbered sentence lists (two models in parallel, union of picks)",
+      "model": "claude-sonnet-4-6",
+      "reasoning_effort": "none"
+    },
+    {
+      "model": "gpt-5.4",
+      "reasoning_effort": "none"
+    }
+  ],
   "embeddings": {
     "_comment": "vectorization via text-embedding-3-large",
     "model": "text-embedding-3-large"
@@ -51,12 +57,12 @@
   "deep-analysis-find": [
     {
       "_comment": "step 1: scans sentences for passages matching an analysis definition (two models in parallel)",
-      "model": "gemini-3.5-flash",
-      "reasoning_effort": "low"
+      "model": "claude-sonnet-4-6",
+      "reasoning_effort": "none"
     },
     {
       "model": "gpt-5.4",
-      "reasoning_effort": "low"
+      "reasoning_effort": "none"
     }
   ],
   "deep-analysis-filter": [

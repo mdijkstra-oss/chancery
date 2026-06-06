@@ -41,11 +41,11 @@
   "semantic-filter": [
     {
       "_comment": "selects sentences matching a search intent from numbered sentence lists (two models in parallel, union of picks)",
-      "model": "claude-sonnet-4-6",
+      "model": "claude-haiku-4-5",
       "reasoning_effort": "none"
     },
     {
-      "model": "gpt-5.4",
+      "model": "gpt-5.2",
       "reasoning_effort": "none"
     }
   ],

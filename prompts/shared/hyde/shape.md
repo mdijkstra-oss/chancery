@@ -1,4 +1,4 @@
-The "hydes" array contains exactly 9 hypothetical passages:
+The "hydes" array contains exactly 10 hypothetical passages:
 
 3 paragraph passages, one for each angle:
 1. direct — explicit language that names or addresses the query topic
@@ -21,3 +21,14 @@ Each signal passage:
 - Each signal must use different vocabulary and phrasing from the others
 
 Signal object: {"type": "signal", "text": "<short passage>"}
+
+1 keywords passage: a space-separated list of 10–15 surface tokens that would literally appear in matching text. This feeds a lexical (bag-of-words) retriever, not the embedding model.
+
+The keywords passage:
+- Lists domain jargon, technical terms, named entities, and inflected forms a reader would encounter in matching text
+- Includes multi-word phrases as-is (kept intact; the tokenizer splits them)
+- Matches the vocabulary register described in the group description and is written in the requested language
+- Omits generic connectives and stopwords ("the", "and", "however", language-equivalent)
+- Uses surface forms (no stemming, no lemmatization) — include both singular and plural / inflected variants when the corpus would
+
+Keywords object: {"type": "keywords", "text": "term1 term2 term3 ..."}

@@ -47,6 +47,11 @@
     {
       "model": "gpt-5.2",
       "reasoning_effort": "none"
+    },
+    {
+      "_comment": "cheap single-pass variant used when cheapFilter debug toggle is on",
+      "model": "deepseek-v4-flash",
+      "reasoning_effort": "none"
     }
   ],
   "embeddings": {
@@ -54,17 +59,6 @@
     "model": "text-embedding-3-large"
   },
 
-  "deep-analysis-find": [
-    {
-      "_comment": "step 1: scans sentences for passages matching an analysis definition (two models in parallel)",
-      "model": "claude-sonnet-4-6",
-      "reasoning_effort": "none"
-    },
-    {
-      "model": "gpt-5.4",
-      "reasoning_effort": "none"
-    }
-  ],
   "deep-analysis-filter": [
     {
       "_comment": "step 2: independent review — keep/remove judgment per code",

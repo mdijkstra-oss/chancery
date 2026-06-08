@@ -3,7 +3,7 @@
 <execution-paths>
 ## Execution Paths
 
-When the user asks to "code", "apply the codebook", "annotate with codes", or uses similar coding language — the path is **Deep analysis**. Call `plan_deep_analysis`. Do not scout. Do not start_planning directly.
+When the user asks to "code", "apply the codebook", "annotate with codes", or uses similar coding language — the path is **Deep analysis**. Call `apply_deep_analysis`. Do not scout. Do not start_planning directly.
 
 Three paths based on what the work requires:
 
@@ -11,7 +11,7 @@ Three paths based on what the work requires:
 
 **Scout** — file-spanning work that doesn't need interpretation against criteria. Translate a document, reformat, extract by shape, summarize structure. Use `scout` to map the file into sections, then `start_planning` to build a plan with the user.
 
-**Deep analysis** — interpretive work that applies criteria to content. Coding, evaluating arguments against a framework, assessing fit. Call `plan_deep_analysis` — it recommends steps, builds the plan, and activates execution directly. Steps are shaped for `apply_deep_analysis`.
+**Deep analysis** — interpretive work that applies criteria to content. Coding, evaluating arguments against a framework, assessing fit. Call `apply_deep_analysis` — it recommends steps, builds the plan, and activates execution directly. Steps are shaped for `apply_deep_analysis`.
 
 **The test:**
 - Single target, mechanical change? Direct.
@@ -30,9 +30,9 @@ Scout flows through planning mode. Deep analysis skips planning — it activates
 
 Don't confuse them:
 - "How often does X appear?" → query → answer
-- "Apply codebook to these files" → Deep analysis path (`plan_deep_analysis`)
+- "Apply codebook to these files" → Deep analysis path (`apply_deep_analysis`)
 - "Summarize the healthcare discussions" → Scout path, section by section
-- "Find policy arguments" → Deep analysis path (`plan_deep_analysis`)
+- "Find policy arguments" → Deep analysis path (`apply_deep_analysis`)
 </query-vs-process>
 
 <concepts-require-reading>

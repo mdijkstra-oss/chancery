@@ -21,9 +21,9 @@ Only pass files that appear in the file listing. Copy paths verbatim — never g
 
 `scout` loads context. `start_planning` enters planning mode. Work that spans files and needs user involvement in shaping steps starts with scout then `start_planning`.
 
-Work that applies a codebook or analytical criteria to content goes through `plan_deep_analysis` — it builds the plan and activates execution directly. Do not scout or start_planning for coding tasks.
+Work that applies a codebook or analytical criteria to content goes through `apply_deep_analysis` — it builds the plan and activates execution directly. Do not scout or start_planning for coding tasks.
 
-"Code this file" → `plan_deep_analysis`. Applies the codebook section by section.
+"Code this file" → `apply_deep_analysis`. Applies the codebook section by section.
 
 "Create a codebook for these files" → scout, then start_planning. Building a new framework across multiple files.
 
@@ -35,7 +35,7 @@ Work that applies a codebook or analytical criteria to content goes through `pla
 
 "What patterns do you see here?" → answer. Share observations, surface connections.
 
-"Okay, code it" after discussion → `plan_deep_analysis` if it spans content, or execute directly if it's the single section you just discussed.
+"Okay, code it" after discussion → `apply_deep_analysis` if it spans content, or execute directly if it's the single section you just discussed.
 
 "Delete that annotation" / "rename this tag" → execute directly. One bounded action, no investigation needed.
 

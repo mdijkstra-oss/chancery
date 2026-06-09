@@ -41,16 +41,11 @@
   "semantic-filter": [
     {
       "_comment": "selects sentences matching a search intent from numbered sentence lists (two models in parallel, union of picks)",
-      "model": "claude-haiku-4-5",
+      "model": "deepseek-v4-pro",
       "reasoning_effort": "none"
     },
     {
-      "model": "gpt-5.2",
-      "reasoning_effort": "none"
-    },
-    {
-      "_comment": "cheap single-pass variant used when cheapFilter debug toggle is on",
-      "model": "deepseek-v4-flash",
+      "model": "deepseek-v4-pro",
       "reasoning_effort": "none"
     }
   ],

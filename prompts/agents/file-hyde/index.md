@@ -2,4 +2,4 @@
 
 [hyde/shape.md]
 
-Output: `{"highlight": "<definition paragraph verbatim>", "hydes": [...]}`. Return valid JSON only.
+Output: `{"hydes": [...]}`. Return valid JSON only.

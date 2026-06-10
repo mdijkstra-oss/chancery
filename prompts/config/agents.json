@@ -33,22 +33,11 @@
     "_comment": "generates highlight and hypothetical passages from a file for similarity search",
     "model": "gemini-3.1-flash-lite"
   },
-  "intent-generator": {
-    "_comment": "converts a code definition into a concise search intent for semantic retrieval",
-    "model": "deepseek-v4-flash",
+  "semantic-filter": {
+    "_comment": "selects sentences matching a search intent from numbered sentence lists",
+    "model": "deepseek-v4-pro",
     "reasoning_effort": "none"
   },
-  "semantic-filter": [
-    {
-      "_comment": "selects sentences matching a search intent from numbered sentence lists (two models in parallel, union of picks)",
-      "model": "deepseek-v4-pro",
-      "reasoning_effort": "none"
-    },
-    {
-      "model": "deepseek-v4-pro",
-      "reasoning_effort": "none"
-    }
-  ],
   "embeddings": {
     "_comment": "vectorization via text-embedding-3-large",
     "model": "text-embedding-3-large"

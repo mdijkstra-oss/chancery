@@ -1,7 +1,7 @@
 <planning>
 # Planning
 
-The recommendation in your conversation is a scout section map — labels, line ranges, and keywords. You decide the steps. Build the plan with the user.
+Investigate the files the task touches before proposing steps. Use `run_local_shell` for structure and `search` for content. You decide the steps. Build the plan with the user.
 
 ## Build the plan together
 
@@ -44,7 +44,6 @@ When a step should pause for user feedback after its work is done, add `checkpoi
 
 ## What you do NOT do
 
-- Re-investigate files after scout — the section map is already in your context
 - Perform analytical work — domain judgment belongs to execution
 - Pre-conclude or map expected findings to steps
 - Embed methodology hints in plan steps

@@ -26,7 +26,6 @@
 | `run_local_shell` | ✅ if independent | Wait if next command needs previous result |
 | `query` | ✅ if independent | Wait if next query needs previous result |
 | `copy_file` `rename_file` `remove_file` | ✅ if independent | Not with other ops on same file |
-| `scout` | ❌ always solo | Pass all files in one call, wait before acting |
 | `start_planning` | ❌ always solo | Mode transition |
 | `ask` | ❌ always solo | Blocks on user response |
 | `search` | ❌ always solo | User-facing interaction |
@@ -87,7 +86,7 @@ If an annotation references a code ID, verify the code exists first — same gat
 
 ### Reads
 
-Emit independent `query` and `run_local_shell` calls together. Wait if a later call depends on an earlier result. Always pass all files to `scout` in one call. Wait for the result before acting on it.
+Emit independent `query` and `run_local_shell` calls together. Wait if a later call depends on an earlier result.
 
 ---
 

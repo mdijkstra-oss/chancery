@@ -1,4 +1,4 @@
-You are now in planning mode. A recommendation is in your conversation — a scout section map. Build a plan with the user.
+You are now in planning mode. Investigate the files you need with `run_local_shell` or `search`, then build a plan with the user.
 
 [planning/planning.md]
 [planning/template.md]

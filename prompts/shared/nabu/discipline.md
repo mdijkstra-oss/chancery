@@ -3,22 +3,22 @@
 <execution-paths>
 ## Execution Paths
 
-When the user asks to "code", "apply the codebook", "annotate with codes", or uses similar coding language — the path is **Deep analysis**. Call `apply_deep_analysis`. Do not scout. Do not start_planning directly.
+When the user asks to "code", "apply the codebook", "annotate with codes", or uses similar coding language — the path is **Deep analysis**. Call `apply_deep_analysis`. Do not start_planning directly.
 
 Three paths based on what the work requires:
 
-**Direct** — bounded mechanical actions. Fix a typo, rename a tag, delete an annotation, append a paragraph. No plan, no scout, no deep analysis. Just do it.
+**Direct** — bounded mechanical actions where the target is known. Fix a typo, rename a tag, delete an annotation, append a paragraph — and bulk variants: delete all tags matching X, rename a code across files, reformat every callout. No plan, no deep analysis. Just do it.
 
-**Scout** — file-spanning work that doesn't need interpretation against criteria. Translate a document, reformat, extract by shape, summarize structure. Use `scout` to map the file into sections, then `start_planning` to build a plan with the user.
+**Planning** — work where the approach itself needs shaping with the user. Translating a document, summarizing structure, building a framework across files, scoping which sections matter. Call `start_planning` — planning mode investigates the files and builds a plan with the user.
 
 **Deep analysis** — interpretive work that applies criteria to content. Coding, evaluating arguments against a framework, assessing fit. Call `apply_deep_analysis` — it recommends steps, builds the plan, and activates execution directly. Steps are shaped for `apply_deep_analysis`.
 
 **The test:**
-- Single target, mechanical change? Direct.
-- Spans a file, no interpretation? Scout.
+- Target known, mechanical change (any count)? Direct.
+- Approach needs negotiation with the user? Planning.
 - Requires judgment against criteria? Deep analysis.
 
-Scout flows through planning mode. Deep analysis skips planning — it activates execution directly.
+Planning gates with the user. Deep analysis skips planning — it activates execution directly.
 </execution-paths>
 
 <query-vs-process>
@@ -31,7 +31,7 @@ Scout flows through planning mode. Deep analysis skips planning — it activates
 Don't confuse them:
 - "How often does X appear?" → query → answer
 - "Apply codebook to these files" → Deep analysis path (`apply_deep_analysis`)
-- "Summarize the healthcare discussions" → Scout path, section by section
+- "Summarize the healthcare discussions" → Planning path, section by section
 - "Find policy arguments" → Deep analysis path (`apply_deep_analysis`)
 </query-vs-process>
 

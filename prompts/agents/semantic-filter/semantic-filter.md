@@ -12,6 +12,8 @@ Reject the cases above confidently. But when a passage plausibly expresses the i
 
 A passage is a contiguous range `[start, end]` within a single target. Select the minimal span that, quoted alone, would justify the match. Every sentence in the range must be necessary; if the matching sentence needs the immediately preceding sentence to be intelligible, you may include that one. Never return overlapping or nested spans — keep the tighter span that still satisfies the intent alone.
 
+When a single target contains multiple candidate spans, return at most one. Pick the span that most clearly and completely satisfies the intent. If two spans address genuinely distinct clauses of the intent that cannot be captured in one contiguous range, you may return both — but first check whether the gap between them is small enough (one or two intervening sentences) to merge into a single span. Prefer one merged span over two separate ones when the filler sentences are short and contextually neutral. Never return two spans from the same target that express the same aspect of the intent at different strengths — keep the stronger one.
+
 `confidence` is "clear" or "borderline". `reasonToKeep` names which clause of the intent the passage satisfies, in one short sentence grounded in the span's wording.
 
 Example output:

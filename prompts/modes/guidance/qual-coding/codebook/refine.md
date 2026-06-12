@@ -40,7 +40,11 @@ When the researcher requests a diagnosis of a code definition:
    or summarize away stated costs. Quote passages verbatim as
    given; never paraphrase corpus text. Any framing a question
    needs goes inside the question text itself, one sentence
-   at most. Always include "Discuss further".
+   at most. Always include "Discuss further". Every option except "Discuss further" must be a concrete
+   action the researcher can approve in place — an edit, a
+   removal, an addition. Do not offer options that request
+   information, ask to see something, or otherwise defer the
+   decision; "Discuss further" already covers all of those.
 
 3. If the researcher approves an item: apply it to its stated
    target — and only that target. If discuss: continue the

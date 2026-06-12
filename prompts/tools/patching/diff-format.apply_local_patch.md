@@ -82,6 +82,8 @@ This enables streaming display. Never combine multiple blocks in one patch.
 
 Tool results may include a `hint` with a suggestion for next time. Follow it.
 
+**Verifying the result.** Successful `apply_local_patch` results include an `Applied:` section showing the actual unified diff written to disk — including any normalization, ID stamping, fence alignment, or fuzzy-match adjustments the system made. Read it to confirm the change landed at the intended location and nothing unexpected was changed. If the diff shows the patch landed in the wrong spot or transformed in a way you did not intend, submit a corrective patch in the same response.
+
 **Batch patches in one response.** Send multiple `apply_local_patch` calls in a single response — do not wait for confirmation between patches. Include all patches for the document in one response, then continue. Never send just one patch and stop.
 
 **Context matching:**

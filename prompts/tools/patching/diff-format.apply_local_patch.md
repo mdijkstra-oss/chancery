@@ -58,7 +58,7 @@ When appending, do NOT anchor to previous content — just use `+` lines only. N
 {
   "type": "update_file",
   "path": "interview_1.md",
-  "diff": "@@\n ## Key Findings\n \n-Found the process confusing\n+Found the onboarding process confusing at first, but adapted quickly"
+  "diff": "@@\n ## Key Findings\n \n The interview revealed several themes.\n \n-Found the process confusing\n+Found the onboarding process confusing at first, but adapted quickly"
 }
 ```
 
@@ -85,9 +85,9 @@ Tool results may include a `hint` with a suggestion for next time. Follow it.
 **Batch patches in one response.** Send multiple `apply_local_patch` calls in a single response — do not wait for confirmation between patches. Include all patches for the document in one response, then continue. Never send just one patch and stop.
 
 **Context matching:**
-- Include 1-2 context lines for unique matching
-- If patch fails ("context not found"), re-read the file and retry with correct context
-- Context lines must match file content exactly (including indentation)
+- Include at least 3 non-blank context/remove lines per hunk for unique matching. Each line must align consecutively against the file.
+- If patch fails ("context not found"), re-read the file and retry with correct context. Do not paraphrase — quote real lines from the file.
+- Context lines must match file content (whitespace/list-markers/casing tolerated; missing or paraphrased words are not).
 - **Long lines:** For context lines over ~80 characters, end with `...` instead of reproducing the full line. The system prefix-matches against the file. Example: `This is a very long paragraph that contains important information...`
 - **Block endings are identical.** Every json block ends with `}`, ` ``` ` — matching any of them. When targeting a location near a block boundary, include unique content lines from *inside* the block as context, not just the closing syntax.
 
@@ -208,21 +208,4 @@ If you try to change an immutable field, the patch is rejected with: `"id: immut
 Use the typed patch tools (`patch_callout`, `patch_attributes`, etc.) — not `apply_local_patch`. The system rejects `apply_local_patch` diffs that modify content inside a JSON block.
 
 When referencing an existing block, use its actual ID — not a placeholder.
-
-### Fuzzy matching
-
-**If a patch fails with "not found":** The text you specified doesn't match the file exactly. This is often a casing or whitespace issue. Retry using `FUZZY[[text here]]` to match approximately:
-
-```diff
-- FUZZY[[some Heading]]
-+ ## Some Heading (Corrected)
-```
-
-The system will find the closest match in the file.
-
-**Rules for FUZZY:**
-- Only use after an exact match fails
-- Use ONLY for the search text (old text), not the replacement
-- Keep the fuzzy text as specific as possible to avoid wrong matches
-- It's a utility to help you over the hump, not the excuse to write sloppily
 </json-blocks>

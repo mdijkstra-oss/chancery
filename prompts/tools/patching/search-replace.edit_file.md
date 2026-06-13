@@ -1,62 +1,83 @@
 <edit>
 ## edit_file
 
-Replace a unique substring in an existing file. Match resolves in two stages: exact substring first; if not found, token-strict (case-insensitive, punctuation- and diacritic-insensitive, Unicode-aware).
+Find a unique span in a file and replace it. Match resolves in two stages: exact substring first; if not found, token-strict (case-insensitive, punctuation- and diacritic-insensitive, Unicode-aware).
 
 ### When to use
 - Modify markdown prose, headings, lists, tables.
-- Append by anchoring on a unique trailing passage and adding new text after it.
+- Append by anchoring on a unique trailing passage and writing the new tail in `replacement`.
 - Delete a passage by setting `replacement` to an empty string.
 
 Not for:
 - Anything inside a `json-*` block — use the typed tools (`patch_<type>`, `add_<type>`, `delete_<type>`).
 - Creating a new file — use `create_file`.
 
-### Matching rules
-- The needle must resolve to exactly one location. Ambiguous → error: add more surrounding context, or use `...`.
-- `...` (literal three dots, once per needle) elides the middle of a range. Format: `before ... after`. Each anchor must resolve uniquely; the replacement replaces the entire span from `before.start` to `after.end`.
-- Anchors are matched on the raw content. Whitespace inside an anchor is significant unless the token-strict fallback engages.
+### Match shapes
+
+Pass exactly one `match` object. The discriminator `type` chooses the shape.
+
+**`full_anchor`** — you can quote the exact text to replace.
+```
+"match": { "type": "full_anchor", "anchor": "..." }
+```
+The whole matched span becomes the edit target. The anchor is replaced by `replacement`.
+
+**`spanned_anchor`** — the span is too long or messy to quote, but the start and end edges are easy to pin down uniquely.
+```
+"match": { "type": "spanned_anchor", "anchor_start": "...", "anchor_end": "..." }
+```
+The replaced span runs from the start of `anchor_start` through the end of `anchor_end`. Both anchors are inside the replaced span (not preserved). `anchor_end` is searched in the content **after** `anchor_start`'s end.
+
+Pick `full_anchor` whenever you can. Reach for `spanned_anchor` only when the middle is long or contains text you don't want to reproduce verbatim.
+
+### Anchor rules
+- Each anchor must resolve to exactly one location. Multiple matches → error with line context per match.
+- Anchors compare on raw bytes for exact-substring, then fall back to token-strict normalization. Whitespace inside an anchor is significant unless the token fallback engages.
 
 ### Block boundaries
-- The matched span cannot overlap a `json-*` block. The tool refuses with the responsible typed tool to use.
-- The `replacement` cannot introduce a `json-*` fence. Use `add_<type>` / `patch_<type>` to place and populate structured blocks.
+- The matched span cannot overlap a `json-*` block. JSON-block bytes are invisible to anchor matching — if your anchor only exists inside a block, you'll get "not found".
+- `replacement` cannot introduce a `json-*` fence. Use `add_<type>` / `patch_<type>` to place structured blocks.
 
 ### Examples
 
 Simple replace:
 ```
-needle:      "Found the process confusing"
-replacement: "Found the onboarding process confusing at first, but adapted quickly"
+"match": { "type": "full_anchor", "anchor": "Found the process confusing" }
+"replacement": "Found the onboarding process confusing at first, but adapted quickly"
 ```
 
-Range with ellipsis:
+Range with edge anchors:
 ```
-needle:      "## Follow-up Questions\nDraft list...How will we measure adoption?"
-replacement: "## Follow-up Questions\n\nFinalized list — see attached."
+"match": {
+  "type": "spanned_anchor",
+  "anchor_start": "## Follow-up Questions",
+  "anchor_end":   "How will we measure adoption?"
+}
+"replacement": "## Follow-up Questions\n\nFinalized list — see attached."
 ```
 
 Append after a unique closing:
 ```
-needle:      "## Conclusion\nReady for review."
-replacement: "## Conclusion\nReady for review.\n\n## Next Steps\nSchedule a follow-up."
+"match": { "type": "full_anchor", "anchor": "## Conclusion\nReady for review." }
+"replacement": "## Conclusion\nReady for review.\n\n## Next Steps\nSchedule a follow-up."
 ```
 
 Delete a passage:
 ```
-needle:      "Outdated paragraph that no longer applies.\n"
-replacement: ""
+"match": { "type": "full_anchor", "anchor": "Outdated paragraph that no longer applies.\n" }
+"replacement": ""
 ```
 
 ### Discipline
 - One logical change per call. Send several `edit_file` calls in one response for independent edits.
-- Same file, overlapping needles: sequence them across responses — later edits must see the prior result.
+- Same file, overlapping anchors: sequence them across responses — later edits must see the prior result.
 - Edits to structured-block fields go through their typed tool, not here.
 
 ### Recovery
-- "needle matches multiple locations" → grow the needle, or wrap it in `before ... after` to anchor a range.
-- "needle not found" → re-read the file; quote real text rather than paraphrasing.
-- "block is read-only" → switch to the named `patch_<type>` / `delete_<type>` tool.
-- "Cannot create `json-*` block" → use `add_<type>` then `patch_<type>`.
+- "anchor matches multiple locations" — grow the anchor, or switch to `spanned_anchor` and pin both edges.
+- "not found" — re-read the file; quote real text rather than paraphrasing.
+- "anchor_end not found following anchor_start" — verify the end text actually appears after the start text.
+- "Cannot create `json-*` block" — use `add_<type>` then `patch_<type>`.
 </edit>
 
 <document-attributes>

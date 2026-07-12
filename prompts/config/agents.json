@@ -1,4 +1,8 @@
 {
+  "cv": {
+    "_comment": "portfolio chat for mdijkstra.dev — answers visitor questions about Matthijn using content pushed from the frontend",
+    "model": "gemini-2.5-flash"
+  },
   "section-labeler": {
     "_comment": "labels document sections with descriptive label+desc fields",
     "model": "gemini-3.1-flash-lite"

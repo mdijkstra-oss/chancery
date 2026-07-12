@@ -1,7 +1,8 @@
 {
   "cv": {
     "_comment": "portfolio chat for mdijkstra.dev — answers visitor questions about Matthijn using content pushed from the frontend",
-    "model": "gemini-2.5-flash"
+    "model": "deepseek-v4-flash",
+    "reasoning_effort": "none"
   },
   "section-labeler": {
     "_comment": "labels document sections with descriptive label+desc fields",

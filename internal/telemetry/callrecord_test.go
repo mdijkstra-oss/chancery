@@ -1,22 +1,58 @@
 package telemetry
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"log/slog"
 	"math"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"hermes-logos/internal/logging"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
 )
 
+type usageLogData struct {
+	Endpoint          string  `json:"endpoint"`
+	Model             string  `json:"model"`
+	Reasoning         string  `json:"reasoning"`
+	ServiceTier       string  `json:"service_tier"`
+	Trigger           string  `json:"trigger"`
+	InputTokens       int     `json:"input_tokens"`
+	CachedInputTokens int     `json:"cached_input_tokens"`
+	CacheWriteTokens  int     `json:"cache_write_tokens"`
+	OutputTokens      int     `json:"output_tokens"`
+	ReasoningTokens   int     `json:"reasoning_tokens"`
+	InputCost         float64 `json:"input_cost"`
+	CachedInputCost   float64 `json:"cached_input_cost"`
+	CacheWriteCost    float64 `json:"cache_write_cost"`
+	OutputCost        float64 `json:"output_cost"`
+	ReasoningCost     float64 `json:"reasoning_cost"`
+	TotalCost         float64 `json:"total_cost"`
+	DurationMs        int64   `json:"duration_ms"`
+	InputCount        int     `json:"input_count"`
+}
+
+type usageLogRecord struct {
+	Message     string       `json:"msg"`
+	Environment string       `json:"environment"`
+	Component   string       `json:"component"`
+	RequestID   string       `json:"request_id"`
+	SessionID   string       `json:"session_id"`
+	ProjectID   string       `json:"project_id"`
+	Data        usageLogData `json:"data"`
+}
+
 func TestComputeCosts(t *testing.T) {
 	cases := []struct {
-		name                        string
-		input, cached, creation     int
-		output                      int
-		pricing                     prompts.Pricing
-		wantInput, wantCached       float64
-		wantCacheWrite, wantOutput  float64
+		name                       string
+		input, cached, creation    int
+		output                     int
+		pricing                    prompts.Pricing
+		wantInput, wantCached      float64
+		wantCacheWrite, wantOutput float64
 	}{
 		{
 			"zero tokens",
@@ -292,6 +328,79 @@ func TestBuildEmbeddingCallRecord(t *testing.T) {
 	}
 	if !approxEqual(rec.InputCost, 0.00065) {
 		t.Errorf("InputCost = %f, want %f", rec.InputCost, 0.00065)
+	}
+}
+
+func TestLogCallRecord(t *testing.T) {
+	var output bytes.Buffer
+	originalLogger := slog.Default()
+	t.Cleanup(func() {
+		slog.SetDefault(originalLogger)
+	})
+
+	handler := logging.NewContextHandler(slog.NewJSONHandler(&output, nil))
+	slog.SetDefault(slog.New(handler).With("environment", "test"))
+
+	ctx := logging.WithAttr(context.Background(), "request_id", "req-123")
+	ctx = logging.WithAttr(ctx, "session_id", "sess-456")
+	ctx = logging.WithAttr(ctx, "project_id", "proj-789")
+	rec := CallRecord{
+		Endpoint:          "qual-coder",
+		Model:             "gpt-5",
+		Reasoning:         "high",
+		ServiceTier:       "priority",
+		Trigger:           "shell",
+		InputTokens:       10000,
+		CachedInputTokens: 6000,
+		CacheWriteTokens:  1000,
+		OutputTokens:      2000,
+		ReasoningTokens:   500,
+		InputCost:         0.007,
+		CachedInputCost:   0.001,
+		CacheWriteCost:    0.002,
+		OutputCost:        0.028,
+		ReasoningCost:     0.007,
+		TotalCost:         0.045,
+		DurationMs:        1234,
+		InputCount:        4,
+	}
+
+	LogCallRecord(ctx, rec)
+
+	var got usageLogRecord
+	if err := json.Unmarshal(output.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal usage log: %v", err)
+	}
+	want := usageLogRecord{
+		Message:     "call completed",
+		Environment: "test",
+		Component:   "usage",
+		RequestID:   "req-123",
+		SessionID:   "sess-456",
+		ProjectID:   "proj-789",
+		Data: usageLogData{
+			Endpoint:          rec.Endpoint,
+			Model:             rec.Model,
+			Reasoning:         rec.Reasoning,
+			ServiceTier:       rec.ServiceTier,
+			Trigger:           rec.Trigger,
+			InputTokens:       rec.InputTokens,
+			CachedInputTokens: rec.CachedInputTokens,
+			CacheWriteTokens:  rec.CacheWriteTokens,
+			OutputTokens:      rec.OutputTokens,
+			ReasoningTokens:   rec.ReasoningTokens,
+			InputCost:         rec.InputCost,
+			CachedInputCost:   rec.CachedInputCost,
+			CacheWriteCost:    rec.CacheWriteCost,
+			OutputCost:        rec.OutputCost,
+			ReasoningCost:     rec.ReasoningCost,
+			TotalCost:         rec.TotalCost,
+			DurationMs:        rec.DurationMs,
+			InputCount:        rec.InputCount,
+		},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("usage log mismatch (-want +got):\n%s", diff)
 	}
 }
 

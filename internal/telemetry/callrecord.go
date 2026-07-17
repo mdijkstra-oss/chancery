@@ -202,8 +202,4 @@ func LogCallRecord(ctx context.Context, rec CallRecord) {
 		"component", "usage",
 		slog.Group("data", callRecordAttrs(rec)...),
 	)
-	// embeddings: near-zero cost skews Axiom charts (avg cost, percentiles)
-	if axiomToken != "" && axiomDataset != "" && rec.Endpoint != "embeddings" {
-		go sendToAxiom(ctx, rec)
-	}
 }

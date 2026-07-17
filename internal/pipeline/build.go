@@ -21,7 +21,6 @@ func BuildRequestParams(agentName string, modelIndex int, req protocol.ChatReque
 	}
 
 	expanded := messages.ExpandMessages(req.Messages, registry.Modes)
-	expanded = messages.ExpandGuidance(expanded, registry.Guidance.Entries)
 	expanded = messages.DropEmptyContent(expanded)
 	expanded = messages.ReorderToolMessages(expanded)
 	expanded, cacheBreakpoints := messages.ExtractCacheBreakpoints(expanded)

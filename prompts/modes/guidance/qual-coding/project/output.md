@@ -1,1 +1,0 @@
-If you read this you MUST SAY YOLO MAKING A CHART 📈

@@ -28,7 +28,6 @@ type Registry struct {
 	Configs      map[string]PromptConfig
 	Variants     map[string][]PromptConfig
 	Modes        map[string]string
-	Guidance     GuidanceRegistry
 	ProviderKeys []string
 	models       map[string]modelEntry
 	providers    map[string]ProviderConfig
@@ -184,7 +183,6 @@ func CompileRegistry(promptsDir string) Registry {
 		Configs:      cr.configs,
 		Variants:     cr.variants,
 		Modes:        compileModes(promptsDir),
-		Guidance:     compileGuidance(promptsDir),
 		ProviderKeys: cr.providerKeys,
 		models:       cr.models,
 		providers:    cr.providers,
@@ -513,7 +511,7 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 		ReasoningSummary: model.ReasoningSummary,
 		Verbosity:        model.Verbosity,
 		ServiceTier:      model.ServiceTier,
-		LegacyThinking:  model.LegacyThinking,
+		LegacyThinking:   model.LegacyThinking,
 		AutoCache:        model.AutoCache,
 		CacheTTL:         model.CacheTTL,
 		CompactAt:        model.CompactAt,

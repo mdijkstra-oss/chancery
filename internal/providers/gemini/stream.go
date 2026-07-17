@@ -84,7 +84,7 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 			headersWritten = true
 		}
 		if feedback := ExtractPromptFeedback(chunk); feedback != "" {
-			event := BuildTextDeltaEvent(feedback)
+			event := sse.TextDeltaEvent(feedback)
 			sse.WriteEvent(w, event.Type, event.Data)
 		}
 		if reason := ExtractFinishReason(chunk); reason != "" {

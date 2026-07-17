@@ -1,7 +1,7 @@
 {
   "cv": {
     "_comment": "portfolio chat for mdijkstra.dev — answers visitor questions about Matthijn using content pushed from the frontend",
-    "model": "deepseek-v4-flash",
+    "model": "gemini-3.5-flash",
     "reasoning_effort": "none"
   },
   "section-labeler": {
@@ -79,7 +79,7 @@
 
   "compacter": {
     "_comment": "summarizes conversation history for context compaction",
-    "model": "gemini-3-flash"
+    "model": "gemini-3.5-flash"
   },
   "commit-agent": {
     "_comment": "groups git changes into coherent commits with researcher-language messages",

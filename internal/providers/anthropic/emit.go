@@ -130,13 +130,13 @@ func handleContentBlockDelta(data []byte, state *EmitState) []sse.Event {
 	}
 	switch p.Delta.Type {
 	case "text_delta":
-		return []sse.Event{buildTextDeltaEvent(p.Delta.Text)}
+		return []sse.Event{sse.TextDeltaEvent(p.Delta.Text)}
 	case "input_json_delta":
 		state.ToolCallJSON += p.Delta.PartialJSON
 		return []sse.Event{buildFunctionCallArgsDeltaEvent(state.OutputIndex, p.Delta.PartialJSON)}
 	case "thinking_delta":
 		state.ThinkingText += p.Delta.Thinking
-		return []sse.Event{buildReasoningDeltaEvent(p.Delta.Thinking)}
+		return []sse.Event{sse.ReasoningDeltaEvent(p.Delta.Thinking)}
 	case "signature_delta":
 		state.ThinkingSig += p.Delta.Signature
 		return nil
@@ -223,16 +223,6 @@ func ExtractUsage(state *EmitState, finalData []byte) *protocol.UsageResponse {
 		}
 	}
 	return usage
-}
-
-func buildTextDeltaEvent(text string) sse.Event {
-	data, _ := json.Marshal(map[string]string{"delta": text})
-	return sse.Event{Type: "response.output_text.delta", Data: string(data)}
-}
-
-func buildReasoningDeltaEvent(text string) sse.Event {
-	data, _ := json.Marshal(map[string]string{"delta": text})
-	return sse.Event{Type: "response.reasoning_summary_text.delta", Data: string(data)}
 }
 
 func buildReasoningDoneEvent(outputIndex int, thinking, signature string) sse.Event {

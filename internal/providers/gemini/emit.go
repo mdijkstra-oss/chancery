@@ -14,7 +14,6 @@ import (
 
 type EmitState struct {
 	OutputIndex int
-	ThoughtText string
 	ThoughtSig  []byte
 	HasThought  bool
 	Suppressing bool
@@ -92,21 +91,12 @@ func textEvents(text string, state *EmitState) []sse.Event {
 
 func emitTextDelta(text string, state *EmitState) []sse.Event {
 	flushEvents := flushThought(state)
-	data, _ := json.Marshal(map[string]string{"delta": text})
-	return append(flushEvents, sse.Event{
-		Type: "response.output_text.delta",
-		Data: string(data),
-	})
+	return append(flushEvents, sse.TextDeltaEvent(text))
 }
 
 func emitReasoningDelta(text string, state *EmitState) []sse.Event {
-	state.ThoughtText += text
 	state.HasThought = true
-	data, _ := json.Marshal(map[string]string{"delta": text})
-	return []sse.Event{{
-		Type: "response.reasoning_summary_text.delta",
-		Data: string(data),
-	}}
+	return []sse.Event{sse.ReasoningDeltaEvent(text)}
 }
 
 func filterLeakedThinking(text string, state *EmitState) []textSegment {
@@ -248,7 +238,6 @@ func thoughtEvents(part *genai.Part, state *EmitState) []sse.Event {
 func flushThought(state *EmitState) []sse.Event {
 	if !state.HasThought || len(state.ThoughtSig) == 0 {
 		state.HasThought = false
-		state.ThoughtText = ""
 		state.ThoughtSig = nil
 		return nil
 	}
@@ -265,7 +254,6 @@ func flushThought(state *EmitState) []sse.Event {
 	data, _ := json.Marshal(map[string]any{"item": item})
 	state.OutputIndex++
 	state.HasThought = false
-	state.ThoughtText = ""
 	state.ThoughtSig = nil
 	return []sse.Event{{
 		Type: "response.output_item.done",
@@ -299,14 +287,6 @@ func ExtractGeminiUsage(chunk *genai.GenerateContentResponse) *protocol.UsageRes
 	return usage
 }
 
-func BuildTextDeltaEvent(text string) sse.Event {
-	data, _ := json.Marshal(map[string]string{"delta": text})
-	return sse.Event{
-		Type: "response.output_text.delta",
-		Data: string(data),
-	}
-}
-
 func ExtractFinishReason(chunk *genai.GenerateContentResponse) genai.FinishReason {
 	if chunk == nil || len(chunk.Candidates) == 0 {
 		return ""
@@ -315,8 +295,8 @@ func ExtractFinishReason(chunk *genai.GenerateContentResponse) genai.FinishReaso
 }
 
 var finishReasonErrors = map[genai.FinishReason]string{
-	genai.FinishReasonMaxTokens:            "output truncated: token limit reached",
-	genai.FinishReasonSafety:               "output blocked by safety filter",
+	genai.FinishReasonMaxTokens:             "output truncated: token limit reached",
+	genai.FinishReasonSafety:                "output blocked by safety filter",
 	genai.FinishReasonRecitation:            "output blocked by recitation filter",
 	genai.FinishReasonMalformedFunctionCall: "malformed function call",
 	genai.FinishReasonBlocklist:             "output blocked by blocklist filter",
@@ -325,12 +305,7 @@ var finishReasonErrors = map[genai.FinishReason]string{
 }
 
 func FinishReasonToEvent(reason genai.FinishReason) *sse.Event {
-	message, ok := finishReasonErrors[reason]
-	if !ok {
-		return nil
-	}
-	event := sse.BuildFailedEvent(string(reason), message)
-	return &event
+	return sse.FinishReasonToEvent(finishReasonErrors, reason)
 }
 
 func ExtractPromptFeedback(chunk *genai.GenerateContentResponse) string {

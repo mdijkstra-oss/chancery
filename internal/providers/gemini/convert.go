@@ -286,7 +286,7 @@ func BuildConfig(params protocol.RequestParams, leadingSystem []string) *genai.G
 		cfg.ToolConfig = buildToolConfig(params.ToolChoice)
 	}
 
-	if params.ReasoningEffort != "" && params.ReasoningEffort != "off" {
+	if !isReasoningOff(params.ReasoningEffort) {
 		cfg.ThinkingConfig = buildThinkingConfig(params.ReasoningEffort, params.LegacyThinking)
 	}
 
@@ -314,6 +314,10 @@ func joinSystemText(prompt string, leading []string) string {
 	return strings.Join(parts, "\n\n")
 }
 
+func isReasoningOff(effort string) bool {
+	return effort == "" || effort == "off" || effort == "none"
+}
+
 func buildThinkingConfig(effort string, legacy bool) *genai.ThinkingConfig {
 	tc := &genai.ThinkingConfig{IncludeThoughts: true}
 	if legacy {
@@ -335,7 +339,7 @@ var effortLevelMap = map[string]genai.ThinkingLevel{
 func effortToLevel(effort string) genai.ThinkingLevel {
 	level, ok := effortLevelMap[effort]
 	if !ok {
-		return genai.ThinkingLevelMedium
+		panic("unknown reasoning effort: " + effort)
 	}
 	return level
 }
@@ -350,7 +354,7 @@ var effortBudgetMap = map[string]int32{
 func effortToBudget(effort string) int32 {
 	budget, ok := effortBudgetMap[effort]
 	if !ok {
-		return 8192
+		panic("unknown reasoning effort: " + effort)
 	}
 	return budget
 }

@@ -708,26 +708,6 @@ func TestBuildThinkingConfig(t *testing.T) {
 				}
 			},
 		},
-		{
-			name:   "unknown effort defaults to medium level",
-			effort: "unknown",
-			legacy: false,
-			check: func(t *testing.T, tc *genai.ThinkingConfig) {
-				if tc.ThinkingLevel != genai.ThinkingLevelMedium {
-					t.Errorf("level = %q, want MEDIUM", tc.ThinkingLevel)
-				}
-			},
-		},
-		{
-			name:   "unknown effort defaults to medium budget",
-			effort: "unknown",
-			legacy: true,
-			check: func(t *testing.T, tc *genai.ThinkingConfig) {
-				if tc.ThinkingBudget == nil || *tc.ThinkingBudget != 8192 {
-					t.Errorf("budget = %v, want 8192", tc.ThinkingBudget)
-				}
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -736,6 +716,54 @@ func TestBuildThinkingConfig(t *testing.T) {
 				t.Error("expected IncludeThoughts=true")
 			}
 			tt.check(t, tc)
+		})
+	}
+}
+
+func TestBuildThinkingConfigUnknownEffortPanics(t *testing.T) {
+	tests := []struct {
+		name   string
+		effort string
+		legacy bool
+	}{
+		{"level path", "unknown", false},
+		{"budget path", "unknown", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("buildThinkingConfig(%q, %v) did not panic", tt.effort, tt.legacy)
+				}
+			}()
+			buildThinkingConfig(tt.effort, tt.legacy)
+		})
+	}
+}
+
+func TestBuildConfigReasoningOff(t *testing.T) {
+	tests := []struct {
+		name            string
+		effort          string
+		wantThinkingNil bool
+	}{
+		{"none disables thinking", "none", true},
+		{"off disables thinking", "off", true},
+		{"empty disables thinking", "", true},
+		{"minimal enables thinking", "minimal", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := BuildConfig(protocol.RequestParams{ReasoningEffort: tt.effort}, nil)
+			if tt.wantThinkingNil {
+				if cfg.ThinkingConfig != nil {
+					t.Errorf("ThinkingConfig = %+v, want nil", cfg.ThinkingConfig)
+				}
+				return
+			}
+			if cfg.ThinkingConfig == nil {
+				t.Fatal("ThinkingConfig = nil, want thinking enabled")
+			}
 		})
 	}
 }

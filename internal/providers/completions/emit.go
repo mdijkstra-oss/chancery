@@ -81,7 +81,7 @@ func ChunkToEvents(data []byte, state *EmitState) []sse.Event {
 
 	if choice.Delta.Content != nil && *choice.Delta.Content != "" {
 		events = append(events, FlushReasoning(state)...)
-		events = append(events, textDeltaEvent(*choice.Delta.Content))
+		events = append(events, sse.TextDeltaEvent(*choice.Delta.Content))
 	}
 
 	for _, tc := range choice.Delta.ToolCalls {
@@ -99,11 +99,7 @@ func ChunkToEvents(data []byte, state *EmitState) []sse.Event {
 
 func reasoningDeltaEvent(text string, state *EmitState) sse.Event {
 	state.ReasoningText += text
-	data, _ := json.Marshal(map[string]string{"delta": text})
-	return sse.Event{
-		Type: "response.reasoning_summary_text.delta",
-		Data: string(data),
-	}
+	return sse.ReasoningDeltaEvent(text)
 }
 
 func FlushReasoning(state *EmitState) []sse.Event {
@@ -130,14 +126,6 @@ func FlushReasoning(state *EmitState) []sse.Event {
 		Type: "response.output_item.done",
 		Data: string(data),
 	}}
-}
-
-func textDeltaEvent(text string) sse.Event {
-	data, _ := json.Marshal(map[string]string{"delta": text})
-	return sse.Event{
-		Type: "response.output_text.delta",
-		Data: string(data),
-	}
 }
 
 func toolCallDeltaEvents(tc toolCallDelta, state *EmitState) []sse.Event {
@@ -261,11 +249,5 @@ var finishReasonErrors = map[string]string{
 }
 
 func FinishReasonToEvent(reason string) *sse.Event {
-	message, ok := finishReasonErrors[reason]
-	if !ok {
-		return nil
-	}
-	event := sse.BuildFailedEvent(reason, message)
-	return &event
+	return sse.FinishReasonToEvent(finishReasonErrors, reason)
 }
-

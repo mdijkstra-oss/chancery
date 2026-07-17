@@ -2,7 +2,6 @@ package gemini
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -63,21 +62,4 @@ func parseGoogleDuration(s string) time.Duration {
 		return 0
 	}
 	return time.Duration(n) * time.Second
-}
-
-func FormatRetryDelay(d time.Duration) string {
-	if d <= 0 {
-		return ""
-	}
-	h := int(d.Hours())
-	m := int(d.Minutes()) % 60
-	s := int(d.Seconds()) % 60
-	switch {
-	case h > 0:
-		return fmt.Sprintf("%dh%dm%ds", h, m, s)
-	case m > 0:
-		return fmt.Sprintf("%dm%ds", m, s)
-	default:
-		return fmt.Sprintf("%ds", s)
-	}
 }

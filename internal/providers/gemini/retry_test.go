@@ -95,24 +95,3 @@ func TestExtractRetryDelay(t *testing.T) {
 		})
 	}
 }
-
-func TestFormatRetryDelay(t *testing.T) {
-	tests := []struct {
-		name  string
-		input time.Duration
-		want  string
-	}{
-		{"zero", 0, ""},
-		{"seconds_only", 45 * time.Second, "45s"},
-		{"minutes_and_seconds", 90 * time.Second, "1m30s"},
-		{"hours", 4422 * time.Second, "1h13m42s"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := FormatRetryDelay(tt.input)
-			if got != tt.want {
-				t.Errorf("FormatRetryDelay(%v) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}

@@ -12,10 +12,10 @@ import (
 
 func TestChunkToEvents(t *testing.T) {
 	tests := []struct {
-		name   string
-		chunk  *genai.GenerateContentResponse
-		state  *EmitState
-		check  func(t *testing.T, events []sse.Event, state *EmitState)
+		name  string
+		chunk *genai.GenerateContentResponse
+		state *EmitState
+		check func(t *testing.T, events []sse.Event, state *EmitState)
 	}{
 		{
 			name:  "nil chunk",
@@ -252,7 +252,7 @@ func TestChunkToEvents(t *testing.T) {
 					},
 				}},
 			},
-			state: &EmitState{HasThought: true, ThoughtSig: []byte("sig"), ThoughtText: "thought"},
+			state: &EmitState{HasThought: true, ThoughtSig: []byte("sig")},
 			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 2 {
 					t.Fatalf("want 2 events (flush + text), got %d", len(events))
@@ -279,7 +279,7 @@ func TestChunkToEvents(t *testing.T) {
 					},
 				}},
 			},
-			state: &EmitState{HasThought: true, ThoughtSig: []byte("sig"), ThoughtText: "thought"},
+			state: &EmitState{HasThought: true, ThoughtSig: []byte("sig")},
 			check: func(t *testing.T, events []sse.Event, state *EmitState) {
 				if len(events) != 3 {
 					t.Fatalf("want 3 events (3 fc), got %d", len(events))
@@ -361,12 +361,12 @@ func TestChunkToEvents(t *testing.T) {
 
 func TestFilterLeakedThinking(t *testing.T) {
 	tests := []struct {
-		name           string
-		text           string
-		state          *EmitState
-		want           []textSegment
+		name            string
+		text            string
+		state           *EmitState
+		want            []textSegment
 		wantSuppressing bool
-		wantLeakedBuf  string
+		wantLeakedBuf   string
 	}{
 		{
 			name:  "no tags",
@@ -471,10 +471,10 @@ func TestFilterLeakedThinking(t *testing.T) {
 			want:  []textSegment{{"<div>content</div>", false}},
 		},
 		{
-			name:            "multiple blocks",
-			text:            "a<think>b</think>c<thought>d</thought>e",
-			state:           &EmitState{},
-			want:            []textSegment{{"a", false}, {"b", true}, {"c", false}, {"d", true}, {"e", false}},
+			name:  "multiple blocks",
+			text:  "a<think>b</think>c<thought>d</thought>e",
+			state: &EmitState{},
+			want:  []textSegment{{"a", false}, {"b", true}, {"c", false}, {"d", true}, {"e", false}},
 		},
 	}
 	for _, tt := range tests {

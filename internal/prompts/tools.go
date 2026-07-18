@@ -7,12 +7,13 @@ import (
 	"strings"
 )
 
-func LoadToolSegments(toolsDir string, tools []string) ([]Segment, error) {
-	return loadToolDir(toolsDir, toolsDir, tools)
+func LoadToolSegments(configRoot string, tools []string) ([]Segment, error) {
+	toolsDir := filepath.Join(configRoot, "tools")
+	return loadToolDir(configRoot, toolsDir, toolsDir, tools)
 }
 
-func LoadToolPrompts(toolsDir string, tools []string) (string, []string, error) {
-	segments, err := LoadToolSegments(toolsDir, tools)
+func LoadToolPrompts(configRoot string, tools []string) (string, []string, error) {
+	segments, err := LoadToolSegments(configRoot, tools)
 	if err != nil {
 		return "", nil, err
 	}
@@ -25,8 +26,15 @@ func LoadToolPrompts(toolsDir string, tools []string) (string, []string, error) 
 	return strings.Join(texts, "\n\n"), sources, nil
 }
 
-func loadToolDir(baseDir, dir string, available []string) ([]Segment, error) {
-	entries, err := os.ReadDir(dir)
+func loadToolDir(configRoot, baseDir, dir string, available []string) ([]Segment, error) {
+	resolvedDir, err := resolveConfigPath(configRoot, dir)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	entries, err := os.ReadDir(resolvedDir)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
@@ -41,12 +49,16 @@ func loadToolDir(baseDir, dir string, available []string) ([]Segment, error) {
 	var segments []Segment
 	for _, name := range names {
 		path := filepath.Join(dir, name)
-		info, err := os.Stat(path)
+		resolvedPath, err := resolveConfigPath(configRoot, path)
+		if err != nil {
+			return nil, err
+		}
+		info, err := os.Stat(resolvedPath)
 		if err != nil {
 			return nil, err
 		}
 		if info.IsDir() {
-			sub, err := loadToolDir(baseDir, path, available)
+			sub, err := loadToolDir(configRoot, baseDir, path, available)
 			if err != nil {
 				return nil, err
 			}
@@ -56,7 +68,7 @@ func loadToolDir(baseDir, dir string, available []string) ([]Segment, error) {
 		if req := parseToolRequirement(name); req != "" && !toolSet[req] {
 			continue
 		}
-		data, err := os.ReadFile(path)
+		data, err := readConfigFile(configRoot, path)
 		if err != nil {
 			return nil, err
 		}

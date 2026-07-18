@@ -1,23 +1,27 @@
-include .env
+-include .env
 export
 
-RUN_CMD := go run cmd/main.go
+CONFIG ?=
+RUN_CMD := go run ./cmd --config "$(CONFIG)"
 
 kill:
 	@-lsof -ti:8081 | xargs kill -9 2>/dev/null || true
 
 start: kill
-	@$(RUN_CMD)
+	@$(RUN_CMD) serve
 
-start-prod:
-	@set -a && . ./.prod.env && set +a && $(RUN_CMD)
+start-prod: kill
+	@set -a && . ./.prod.env && set +a && $(RUN_CMD) serve
+
+validate:
+	@$(RUN_CMD) validate
+
+list:
+	@$(RUN_CMD) list
 
 .PHONY: dev
 dev:
-	@watchexec -q -e go,md,json -r make start
-
-prompt:
-	@go run ./cmd/generate $(ARGS)
+	@watchexec -q -e go,md,yaml -r make start CONFIG="$(CONFIG)"
 
 build:
-	go build -o main cmd/main.go
+	go build -o main ./cmd

@@ -15,25 +15,26 @@ type Segment struct {
 }
 
 type Pricing struct {
-	Input           float64 `json:"input"`
-	Output          float64 `json:"output"`
-	CachedInput     float64 `json:"cached_input"`
-	CacheWriteInput float64 `json:"cache_write_input"`
+	Input           float64 `json:"input" yaml:"input"`
+	Output          float64 `json:"output" yaml:"output"`
+	CachedInput     float64 `json:"cached_input" yaml:"cached_input"`
+	CacheWriteInput float64 `json:"cache_write_input" yaml:"cache_write_input"`
 }
 
 type ProviderEntry struct {
-	Protocol  Protocol `json:"protocol"`
-	BaseURL   string   `json:"base_url"`
-	APIKeyEnv string   `json:"api_key_env"`
-	Strict    bool     `json:"strict,omitempty"`
+	Protocol  Protocol `json:"protocol" yaml:"protocol"`
+	BaseURL   string   `json:"base_url" yaml:"base_url"`
+	APIKeyEnv string   `json:"api_key_env" yaml:"api_key_env"`
+	Strict    bool     `json:"strict,omitempty" yaml:"strict,omitempty"`
 }
 
 type ProviderConfig struct {
-	Key      string
-	Protocol Protocol
-	BaseURL  string
-	APIKey   string
-	Strict   bool
+	Key       string
+	Protocol  Protocol
+	BaseURL   string
+	APIKeyEnv string
+	APIKey    string
+	Strict    bool
 }
 
 type PromptConfig struct {
@@ -45,7 +46,7 @@ type PromptConfig struct {
 	ReasoningSummary string         `json:"reasoning_summary"`
 	Verbosity        string         `json:"verbosity"`
 	ServiceTier      string         `json:"service_tier,omitempty"`
-	LegacyThinking  bool           `json:"legacy_thinking,omitempty"`
+	LegacyThinking   bool           `json:"legacy_thinking,omitempty"`
 	Temperature      *float64       `json:"temperature,omitempty"`
 	Seed             bool           `json:"seed,omitempty"`
 	AutoCache        bool           `json:"auto_cache,omitempty"`
@@ -56,47 +57,56 @@ type PromptConfig struct {
 }
 
 type providerFile struct {
-	Protocol  Protocol              `json:"protocol"`
-	BaseURL   string                `json:"base_url"`
-	APIKeyEnv string                `json:"api_key_env"`
-	Strict    bool                  `json:"strict,omitempty"`
-	Models    map[string]modelEntry `json:"models"`
+	Protocol  Protocol              `yaml:"protocol"`
+	BaseURL   string                `yaml:"base_url"`
+	APIKeyEnv string                `yaml:"api_key_env"`
+	Strict    bool                  `yaml:"strict,omitempty"`
+	Models    map[string]modelEntry `yaml:"models"`
+}
+
+type providersFile struct {
+	Providers map[string]providerFile `yaml:"providers"`
 }
 
 type modelEntry struct {
-	Extends          string  `json:"extends,omitempty"`
-	Provider         string  `json:"provider,omitempty"`
-	Name             string  `json:"name,omitempty"`
-	Prompt           string  `json:"prompt,omitempty"`
-	Type             string  `json:"type,omitempty"`
-	Dimensions       int     `json:"dimensions,omitempty"`
-	MaxTokens        int     `json:"max_tokens,omitempty"`
-	ReasoningEffort  string  `json:"reasoning_effort,omitempty"`
-	ReasoningSummary string  `json:"reasoning_summary,omitempty"`
-	Verbosity        string  `json:"verbosity,omitempty"`
-	ServiceTier      string  `json:"service_tier,omitempty"`
-	LegacyThinking  bool    `json:"legacy_thinking,omitempty"`
-	CompactAt        int     `json:"compact_at,omitempty"`
-	AutoCache        bool    `json:"auto_cache,omitempty"`
-	CacheTTL         int     `json:"cache_ttl,omitempty"`
-	Pricing          Pricing `json:"pricing"`
+	Extends          string  `yaml:"extends,omitempty"`
+	Provider         string  `yaml:"provider,omitempty"`
+	Name             string  `yaml:"name,omitempty"`
+	Prompt           string  `yaml:"prompt,omitempty"`
+	Type             string  `yaml:"type,omitempty"`
+	Dimensions       int     `yaml:"dimensions,omitempty"`
+	MaxTokens        int     `yaml:"max_tokens,omitempty"`
+	ReasoningEffort  string  `yaml:"reasoning_effort,omitempty"`
+	ReasoningSummary string  `yaml:"reasoning_summary,omitempty"`
+	Verbosity        string  `yaml:"verbosity,omitempty"`
+	ServiceTier      string  `yaml:"service_tier,omitempty"`
+	LegacyThinking   bool    `yaml:"legacy_thinking,omitempty"`
+	CompactAt        int     `yaml:"compact_at,omitempty"`
+	AutoCache        bool    `yaml:"auto_cache,omitempty"`
+	CacheTTL         int     `yaml:"cache_ttl,omitempty"`
+	Pricing          Pricing `yaml:"pricing"`
 }
 
 type agentEntry struct {
-	Model            string   `json:"model"`
-	Prompt           *string  `json:"prompt,omitempty"`
-	ReasoningEffort  string   `json:"reasoning_effort,omitempty"`
-	ReasoningSummary string   `json:"reasoning_summary,omitempty"`
-	Verbosity        string   `json:"verbosity,omitempty"`
-	ServiceTier      string   `json:"service_tier,omitempty"`
-	Temperature      *float64 `json:"temperature,omitempty"`
-	Seed             bool     `json:"seed,omitempty"`
-	AutoCache        *bool    `json:"auto_cache,omitempty"`
-	CacheTTL         int      `json:"cache_ttl,omitempty"`
-	CompactAt        int      `json:"compact_at,omitempty"`
-	Dimensions       int      `json:"dimensions,omitempty"`
+	Model            string   `yaml:"model,omitempty"`
+	Prompt           *string  `yaml:"prompt,omitempty"`
+	ReasoningEffort  string   `yaml:"reasoning_effort,omitempty"`
+	ReasoningSummary string   `yaml:"reasoning_summary,omitempty"`
+	Verbosity        string   `yaml:"verbosity,omitempty"`
+	ServiceTier      string   `yaml:"service_tier,omitempty"`
+	LegacyThinking   *bool    `yaml:"legacy_thinking,omitempty"`
+	Temperature      *float64 `yaml:"temperature,omitempty"`
+	Seed             *bool    `yaml:"seed,omitempty"`
+	AutoCache        *bool    `yaml:"auto_cache,omitempty"`
+	CacheTTL         int      `yaml:"cache_ttl,omitempty"`
+	CompactAt        int      `yaml:"compact_at,omitempty"`
+	Dimensions       int      `yaml:"dimensions,omitempty"`
+	MaxTokens        int      `yaml:"max_tokens,omitempty"`
 }
 
-type agentConfig struct {
-	Variants []agentEntry
+type agentFrontmatter struct {
+	agentEntry  `yaml:",inline"`
+	Description string                `yaml:"description,omitempty"`
+	Models      map[string]agentEntry `yaml:"models,omitempty"`
+	Default     string                `yaml:"default,omitempty"`
 }

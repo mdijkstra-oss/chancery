@@ -2,14 +2,12 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"hermes-logos/internal/pipeline"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
@@ -17,6 +15,8 @@ import (
 	"hermes-logos/internal/providers/sse"
 	"hermes-logos/internal/ratelimit"
 	"hermes-logos/internal/telemetry"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func NewChatHandler(registry prompts.Registry, limiter *ratelimit.Limiter) http.HandlerFunc {
@@ -34,13 +34,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registr
 		return
 	}
 
-	modelIndex, err := parseModelIndex(r.URL.Query().Get("model"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	params, promptCfg, err := pipeline.BuildRequestParams(urlPath, modelIndex, req, registry)
+	params, promptCfg, err := pipeline.BuildRequestParams(urlPath, req, registry)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -110,18 +104,4 @@ func parseTemperature(s string) *float64 {
 		return nil
 	}
 	return &v
-}
-
-func parseModelIndex(s string) (int, error) {
-	if s == "" {
-		return 0, nil
-	}
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		return 0, fmt.Errorf("invalid model index: %s", s)
-	}
-	if v < 0 {
-		return 0, fmt.Errorf("model index must be non-negative: %d", v)
-	}
-	return v, nil
 }

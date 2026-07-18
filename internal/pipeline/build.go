@@ -2,23 +2,18 @@ package pipeline
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"hermes-logos/internal/messages"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
 )
 
-func BuildRequestParams(agentName string, modelIndex int, req protocol.ChatRequest, registry prompts.Registry) (protocol.RequestParams, prompts.PromptConfig, error) {
-	agent, ok := registry.Agents[agentName]
-	if !ok {
-		return protocol.RequestParams{}, prompts.PromptConfig{}, fmt.Errorf("unknown agent: %s", agentName)
-	}
-
-	promptCfg, err := registry.ConfigForAgent(agentName, modelIndex)
+func BuildRequestParams(agentReference string, req protocol.ChatRequest, registry prompts.Registry) (protocol.RequestParams, prompts.PromptConfig, error) {
+	resolved, err := registry.ResolveAgent(agentReference)
 	if err != nil {
 		return protocol.RequestParams{}, prompts.PromptConfig{}, err
 	}
+	promptCfg := resolved.Config
 
 	expanded := messages.ExpandMessages(req.Messages, registry.Modes)
 	expanded = messages.DropEmptyContent(expanded)
@@ -26,12 +21,12 @@ func BuildRequestParams(agentName string, modelIndex int, req protocol.ChatReque
 	expanded, cacheBreakpoints := messages.ExtractCacheBreakpoints(expanded)
 
 	toolNames := protocol.ExtractToolNames(req.Tools)
-	toolPrompt, _, err := prompts.LoadToolPrompts(filepath.Join(prompts.PromptsDir, "tools"), toolNames)
+	toolPrompt, _, err := prompts.LoadToolPrompts(registry.Root, toolNames)
 	if err != nil {
 		return protocol.RequestParams{}, prompts.PromptConfig{}, fmt.Errorf("load tool prompts: %w", err)
 	}
 
-	fullPrompt := agent.Prompt
+	fullPrompt := resolved.Prompt.Prompt
 	if promptCfg.Prompt != "" {
 		fullPrompt = promptCfg.Prompt + "\n\n" + fullPrompt
 	}

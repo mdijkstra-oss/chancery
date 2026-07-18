@@ -14,13 +14,6 @@ type Segment struct {
 	Content string
 }
 
-type Pricing struct {
-	Input           float64 `json:"input" yaml:"input"`
-	Output          float64 `json:"output" yaml:"output"`
-	CachedInput     float64 `json:"cached_input" yaml:"cached_input"`
-	CacheWriteInput float64 `json:"cache_write_input" yaml:"cache_write_input"`
-}
-
 type ProviderEntry struct {
 	Protocol  Protocol `json:"protocol" yaml:"protocol"`
 	BaseURL   string   `json:"base_url" yaml:"base_url"`
@@ -51,7 +44,6 @@ type PromptConfig struct {
 	Seed             bool           `json:"seed,omitempty"`
 	AutoCache        bool           `json:"auto_cache,omitempty"`
 	CacheTTL         int            `json:"cache_ttl,omitempty"`
-	Pricing          Pricing        `json:"pricing"`
 	CompactAt        int            `json:"compact_at,omitempty"`
 	Provider         ProviderConfig `json:"provider"`
 }
@@ -69,22 +61,21 @@ type providersFile struct {
 }
 
 type modelEntry struct {
-	Extends          string  `yaml:"extends,omitempty"`
-	Provider         string  `yaml:"provider,omitempty"`
-	Name             string  `yaml:"name,omitempty"`
-	Prompt           string  `yaml:"prompt,omitempty"`
-	Type             string  `yaml:"type,omitempty"`
-	Dimensions       int     `yaml:"dimensions,omitempty"`
-	MaxTokens        int     `yaml:"max_tokens,omitempty"`
-	ReasoningEffort  string  `yaml:"reasoning_effort,omitempty"`
-	ReasoningSummary string  `yaml:"reasoning_summary,omitempty"`
-	Verbosity        string  `yaml:"verbosity,omitempty"`
-	ServiceTier      string  `yaml:"service_tier,omitempty"`
-	LegacyThinking   bool    `yaml:"legacy_thinking,omitempty"`
-	CompactAt        int     `yaml:"compact_at,omitempty"`
-	AutoCache        bool    `yaml:"auto_cache,omitempty"`
-	CacheTTL         int     `yaml:"cache_ttl,omitempty"`
-	Pricing          Pricing `yaml:"pricing"`
+	Extends          string `yaml:"extends,omitempty"`
+	Provider         string `yaml:"provider,omitempty"`
+	Name             string `yaml:"name,omitempty"`
+	Prompt           string `yaml:"prompt,omitempty"`
+	Type             string `yaml:"type,omitempty"`
+	Dimensions       int    `yaml:"dimensions,omitempty"`
+	MaxTokens        int    `yaml:"max_tokens,omitempty"`
+	ReasoningEffort  string `yaml:"reasoning_effort,omitempty"`
+	ReasoningSummary string `yaml:"reasoning_summary,omitempty"`
+	Verbosity        string `yaml:"verbosity,omitempty"`
+	ServiceTier      string `yaml:"service_tier,omitempty"`
+	LegacyThinking   bool   `yaml:"legacy_thinking,omitempty"`
+	CompactAt        int    `yaml:"compact_at,omitempty"`
+	AutoCache        bool   `yaml:"auto_cache,omitempty"`
+	CacheTTL         int    `yaml:"cache_ttl,omitempty"`
 }
 
 type agentEntry struct {

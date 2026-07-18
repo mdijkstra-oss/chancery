@@ -1,6 +1,6 @@
 # External configuration
 
-`hermes-logos` ships without agents, prompts, providers, model names, or pricing. Every command requires an external config directory:
+`hermes-logos` ships without agents, prompts, providers, or model names. Every command requires an external config directory:
 
 ```bash
 hermes-logos --config /path/to/config serve
@@ -160,16 +160,12 @@ providers:
       model-fast:
         name: upstream-model-name
         reasoning_effort: low
-        pricing:
-          input: 1.0
-          output: 2.0
-          cached_input: 0.1
       model-priority:
         extends: model-fast
         service_tier: priority
 ```
 
-Supported protocols are `responses`, `gemini`, `completions`, and `anthropic`. Provider model inheritance, provider translation, pricing, streaming, and request conversion retain their existing semantics.
+Supported protocols are `responses`, `gemini`, `completions`, and `anthropic`. Provider model inheritance, provider translation, streaming, and request conversion retain their existing semantics.
 
 `validate` and `list` never read API-key environment variables. `serve` resolves all configured provider keys at execution time. `call` resolves only the selected agent's provider key.
 
@@ -182,6 +178,38 @@ hermes-logos --config /path/to/config serve
 ```
 
 Loads config, resolves execution credentials, and starts the HTTP server.
+
+External quota integration is optional. Set `QUOTA_RESERVE_URL` and `QUOTA_SETTLE_URL` together to enable it. `QUOTA_AUTH_TOKEN` adds bearer authentication to both calls, and `QUOTA_TIMEOUT` controls their timeout with a default of `2s`. Reserve failures fail closed; settlement failures are logged without replacing a successful provider response.
+
+The reserve endpoint receives a `POST` request containing the request ID, optional authenticated subject, operation, endpoint, provider, resolved model, service tier, reasoning effort, estimated input tokens, and maximum output tokens. Anonymous requests omit `subject`. It returns a 2xx JSON response such as:
+
+```json
+{
+  "allowed": true,
+  "reservation_id": "res-123"
+}
+```
+
+A denial returns a 2xx response with `allowed: false`; `reason` and `retry_after_seconds` are optional. Allowed responses require a reservation ID.
+
+The settlement endpoint receives a `POST` request containing the reservation ID, an outcome of `completed`, `failed`, or `cancelled`, and normalized usage when available:
+
+```json
+{
+  "reservation_id": "res-123",
+  "outcome": "completed",
+  "usage": {
+    "input_tokens": 100,
+    "cached_input_tokens": 20,
+    "cache_write_tokens": 10,
+    "output_tokens": 50,
+    "reasoning_tokens": 5,
+    "total_tokens": 150
+  }
+}
+```
+
+The settlement endpoint may return any 2xx response. Pricing, plans, balances, quota policy, and persistence remain external to `hermes-logos`.
 
 ### Validate
 

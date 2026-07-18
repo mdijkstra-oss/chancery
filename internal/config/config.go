@@ -6,12 +6,15 @@ import (
 	"net/textproto"
 	"os"
 	"strings"
+	"time"
 
 	"hermes-logos/internal/auth"
+	"hermes-logos/internal/quota"
 )
 
 type Config struct {
 	Auth           auth.Config
+	Quota          quota.Config
 	Port           string
 	CorsOrigins    []string
 	LogLevel       slog.Level
@@ -20,6 +23,10 @@ type Config struct {
 }
 
 func Load() (Config, error) {
+	quotaTimeout, err := time.ParseDuration(getEnv("QUOTA_TIMEOUT", "2s"))
+	if err != nil {
+		return Config{}, fmt.Errorf("QUOTA_TIMEOUT: %w", err)
+	}
 	cfg := Config{
 		Auth: auth.Config{
 			JWKSURL:       getEnv("AUTH_JWT_JWKS_URL", ""),
@@ -28,6 +35,12 @@ func Load() (Config, error) {
 			Audience:      getEnv("AUTH_JWT_AUDIENCE", ""),
 			Algorithms:    parseList(getEnv("AUTH_JWT_ALGORITHMS", "")),
 		},
+		Quota: quota.Config{
+			ReserveURL: getEnv("QUOTA_RESERVE_URL", ""),
+			SettleURL:  getEnv("QUOTA_SETTLE_URL", ""),
+			AuthToken:  getEnv("QUOTA_AUTH_TOKEN", ""),
+			Timeout:    quotaTimeout,
+		},
 		Port:           getEnv("PORT", "8081"),
 		CorsOrigins:    parseList(getEnv("CORS_ORIGINS", "*")),
 		LogLevel:       parseLogLevel(getEnv("LOG_LEVEL", "info")),
@@ -35,6 +48,9 @@ func Load() (Config, error) {
 		RequestHeaders: requestHeaders(),
 	}
 	if err := cfg.Auth.Validate(); err != nil {
+		return Config{}, err
+	}
+	if err := cfg.Quota.Validate(); err != nil {
 		return Config{}, err
 	}
 	if err := validateRequestHeaders(cfg.RequestHeaders); err != nil {

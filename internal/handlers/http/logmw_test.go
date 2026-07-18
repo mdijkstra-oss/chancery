@@ -41,14 +41,18 @@ func TestRequestContext(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var attrs []slog.Attr
-			handler := RequestContext(test.headers)(captureAttrsHandler(&attrs))
+			var requestID string
+			handler := RequestContext(test.headers)(captureAttrsHandler(&attrs, &requestID))
 			req := httptest.NewRequest(http.MethodPost, "/agent", nil)
 			for key, value := range test.requestValues {
 				req.Header.Set(key, value)
 			}
 			handler.ServeHTTP(httptest.NewRecorder(), req)
 			if contextAttr(attrs, "request_id") == "" {
-				t.Error("request_id is empty")
+				t.Error("logged request_id is empty")
+			}
+			if requestID == "" {
+				t.Error("context request_id is empty")
 			}
 			got, truncated := headerAttrs(attrs)
 			if len(got) != len(test.want) {
@@ -66,9 +70,10 @@ func TestRequestContext(t *testing.T) {
 	}
 }
 
-func captureAttrsHandler(destination *[]slog.Attr) http.Handler {
+func captureAttrsHandler(destination *[]slog.Attr, requestID *string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		*destination = logging.AttrsFromContext(r.Context())
+		*requestID = RequestIDFromContext(r.Context())
 		w.WriteHeader(http.StatusNoContent)
 	})
 }

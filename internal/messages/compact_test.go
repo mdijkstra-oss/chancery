@@ -53,30 +53,6 @@ func TestStripForCompaction(t *testing.T) {
 	}
 }
 
-func TestEstimateTokens(t *testing.T) {
-	cases := []struct {
-		name     string
-		input    []json.RawMessage
-		expected int
-	}{
-		{"empty input", nil, 0},
-		{"single message", []json.RawMessage{json.RawMessage(`{"role":"user","content":"hello"}`)}, 8},
-		{"multiple messages", []json.RawMessage{
-			json.RawMessage(`{"role":"user","content":"hi"}`),
-			json.RawMessage(`{"role":"assistant","content":"hello there"}`),
-		}, 18},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := EstimateTokens(tc.input)
-			if got != tc.expected {
-				t.Errorf("EstimateTokens() = %d, want %d", got, tc.expected)
-			}
-		})
-	}
-}
-
 func TestShouldCompact(t *testing.T) {
 	cases := []struct {
 		name      string

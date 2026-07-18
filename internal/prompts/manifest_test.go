@@ -366,14 +366,14 @@ func TestResolveAPIKey(t *testing.T) {
 
 func TestResolveModel(t *testing.T) {
 	models := map[string]modelEntry{
-		"base":  {Provider: "provider-a", Name: "upstream", Pricing: Pricing{Input: 1}},
+		"base":  {Provider: "provider-a", Name: "upstream"},
 		"child": {Extends: "base", ServiceTier: "priority"},
 	}
 	got, err := resolveModel("child", models)
 	if err != nil {
 		t.Fatalf("resolve model: %v", err)
 	}
-	want := modelEntry{Provider: "provider-a", Name: "upstream", ServiceTier: "priority", Pricing: Pricing{Input: 1}}
+	want := modelEntry{Provider: "provider-a", Name: "upstream", ServiceTier: "priority"}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("model mismatch (-want +got):\n%s", diff)
 	}
@@ -417,12 +417,10 @@ func validProvidersYAML() string {
       model-fast:
         name: upstream-fast
         reasoning_effort: low
-        pricing: {input: 1, output: 2, cached_input: 0.5}
       model-vector:
         name: upstream-vector
         type: embedding
         dimensions: 64
-        pricing: {input: 0.1, output: 0, cached_input: 0}
   provider-b:
     protocol: anthropic
     base_url: https://provider-b.example
@@ -431,7 +429,6 @@ func validProvidersYAML() string {
       model-deep:
         name: upstream-deep
         reasoning_effort: medium
-        pricing: {input: 3, output: 4, cached_input: 0.3}
 `
 }
 

@@ -14,6 +14,10 @@ var configEnvKeys = []string{
 	"AUTH_JWT_AUDIENCE",
 	"AUTH_JWT_ALGORITHMS",
 	"LOG_REQUEST_HEADERS",
+	"QUOTA_RESERVE_URL",
+	"QUOTA_SETTLE_URL",
+	"QUOTA_AUTH_TOKEN",
+	"QUOTA_TIMEOUT",
 	"PORT",
 	"CORS_ORIGINS",
 	"LOG_LEVEL",
@@ -22,11 +26,12 @@ var configEnvKeys = []string{
 
 func TestLoad(t *testing.T) {
 	tests := []struct {
-		name        string
-		env         map[string]string
-		wantEnabled bool
-		wantHeaders []string
-		wantError   string
+		name             string
+		env              map[string]string
+		wantEnabled      bool
+		wantQuotaEnabled bool
+		wantHeaders      []string
+		wantError        string
 	}{
 		{name: "disabled defaults", wantHeaders: []string{"X-Session-ID", "X-Project-ID"}},
 		{
@@ -51,6 +56,31 @@ func TestLoad(t *testing.T) {
 			},
 			wantEnabled: true,
 			wantHeaders: []string{"X-Session-ID", "X-Project-ID"},
+		},
+		{
+			name: "quota enabled",
+			env: map[string]string{
+				"QUOTA_RESERVE_URL": "https://quota.example/reserve",
+				"QUOTA_SETTLE_URL":  "https://quota.example/settle",
+				"QUOTA_AUTH_TOKEN":  "secret",
+				"QUOTA_TIMEOUT":     "3s",
+			},
+			wantQuotaEnabled: true,
+			wantHeaders:      []string{"X-Session-ID", "X-Project-ID"},
+		},
+		{
+			name: "quota missing settlement endpoint",
+			env: map[string]string{
+				"QUOTA_RESERVE_URL": "https://quota.example/reserve",
+			},
+			wantError: "QUOTA_SETTLE_URL",
+		},
+		{
+			name: "invalid quota timeout",
+			env: map[string]string{
+				"QUOTA_TIMEOUT": "later",
+			},
+			wantError: "QUOTA_TIMEOUT",
 		},
 		{
 			name: "conflicting key sources",
@@ -137,6 +167,9 @@ func TestLoad(t *testing.T) {
 			}
 			if got.Auth.Enabled() != test.wantEnabled {
 				t.Errorf("Auth.Enabled() = %v, want %v", got.Auth.Enabled(), test.wantEnabled)
+			}
+			if got.Quota.Enabled() != test.wantQuotaEnabled {
+				t.Errorf("Quota.Enabled() = %v, want %v", got.Quota.Enabled(), test.wantQuotaEnabled)
 			}
 			if !reflect.DeepEqual(got.RequestHeaders, test.wantHeaders) {
 				t.Errorf("RequestHeaders = %#v, want %#v", got.RequestHeaders, test.wantHeaders)

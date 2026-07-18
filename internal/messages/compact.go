@@ -40,14 +40,6 @@ func dropLast(messages []json.RawMessage) []json.RawMessage {
 	return messages[:len(messages)-1]
 }
 
-func EstimateTokens(input []json.RawMessage) int {
-	total := 0
-	for _, raw := range input {
-		total += len(raw)
-	}
-	return total / 4
-}
-
 func ShouldCompact(compactAt int, tokens int) bool {
 	return compactAt > 0 && tokens > compactAt
 }

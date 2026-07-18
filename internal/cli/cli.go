@@ -23,6 +23,7 @@ import (
 	"hermes-logos/internal/providers"
 	"hermes-logos/internal/providers/openai"
 	"hermes-logos/internal/providers/sse"
+	"hermes-logos/internal/quota"
 	"hermes-logos/internal/ratelimit"
 
 	"github.com/go-chi/chi/v5"
@@ -218,8 +219,9 @@ func runServe(ctx context.Context, args []string, registry prompts.Registry, rep
 	}
 	slog.Info("config loaded", "component", "startup", slog.Group("data", slog.Int("agents", len(resolvedRegistry.Agents))))
 	limiter := ratelimit.NewLimiter()
-	chatHandler := httpHandlers.NewChatHandler(resolvedRegistry, limiter)
-	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(embeddings.Config, limiter)
+	quotaClient := quota.NewClient(runtimeConfig.Quota)
+	chatHandler := httpHandlers.NewChatHandler(resolvedRegistry, limiter, quotaClient)
+	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(embeddings.Config, limiter, quotaClient)
 	router := chi.NewRouter()
 	httpHandlers.SetupRoutes(router, chatHandler, embeddingsHandler, httpHandlers.JWTAuthentication(validator), runtimeConfig.CorsOrigins, runtimeConfig.RequestHeaders)
 	address := ":" + runtimeConfig.Port

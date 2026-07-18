@@ -813,9 +813,7 @@ func overlayModel(base, child modelEntry) modelEntry {
 	if child.CompactAt != 0 {
 		result.CompactAt = child.CompactAt
 	}
-	if hasPricing(child.Pricing) {
-		result.Pricing = child.Pricing
-	}
+
 	return result
 }
 
@@ -833,7 +831,6 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 		AutoCache:        model.AutoCache,
 		CacheTTL:         model.CacheTTL,
 		CompactAt:        model.CompactAt,
-		Pricing:          model.Pricing,
 		Provider:         provider,
 	}
 	if agent.ReasoningEffort != "" {
@@ -917,10 +914,6 @@ func overlayAgent(base, child agentEntry) agentEntry {
 		result.MaxTokens = child.MaxTokens
 	}
 	return result
-}
-
-func hasPricing(pricing Pricing) bool {
-	return pricing.Input != 0 || pricing.Output != 0 || pricing.CachedInput != 0 || pricing.CacheWriteInput != 0
 }
 
 func validateProtocol(protocol Protocol) error {

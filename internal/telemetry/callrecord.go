@@ -5,38 +5,22 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
 )
 
 type CallRecord struct {
-	Endpoint           string
-	Model              string
-	Reasoning          string
-	ServiceTier        string
-	Trigger            string
-	InputTokens        int
-	CachedInputTokens  int
-	CacheWriteTokens   int
-	OutputTokens       int
-	ReasoningTokens    int
-	InputCost          float64
-	CachedInputCost    float64
-	CacheWriteCost     float64
-	OutputCost         float64
-	ReasoningCost      float64
-	TotalCost          float64
-	DurationMs         int64
-	InputCount         int
-}
-
-func computeCosts(input, cached, cacheCreation, output int, pricing prompts.Pricing) (inputCost, cachedCost, cacheWriteCost, outputCost float64) {
-	uncached := input - cached - cacheCreation
-	inputCost = float64(uncached) * pricing.Input / 1_000_000
-	cachedCost = float64(cached) * pricing.CachedInput / 1_000_000
-	cacheWriteCost = float64(cacheCreation) * pricing.CacheWriteInput / 1_000_000
-	outputCost = float64(output) * pricing.Output / 1_000_000
-	return
+	Endpoint          string
+	Model             string
+	Reasoning         string
+	ServiceTier       string
+	Trigger           string
+	InputTokens       int
+	CachedInputTokens int
+	CacheWriteTokens  int
+	OutputTokens      int
+	ReasoningTokens   int
+	DurationMs        int64
+	InputCount        int
 }
 
 type triggerPeek struct {
@@ -94,78 +78,38 @@ func DeriveTrigger(messages []json.RawMessage) string {
 	return ""
 }
 
-func cachedTokensFromUsage(usage *protocol.UsageResponse) int {
-	if usage == nil || usage.InputTokensDetails == nil {
-		return 0
-	}
-	return usage.InputTokensDetails.CachedTokens
-}
-
-func reasoningTokensFromUsage(usage *protocol.UsageResponse) int {
-	if usage == nil || usage.OutputTokensDetails == nil {
-		return 0
-	}
-	return usage.OutputTokensDetails.ReasoningTokens
-}
-
-func cacheCreationTokensFromUsage(usage *protocol.UsageResponse) int {
-	if usage == nil || usage.InputTokensDetails == nil {
-		return 0
-	}
-	return usage.InputTokensDetails.CacheCreationTokens
-}
-
-func reasoningCost(reasoningTokens int, pricing prompts.Pricing) float64 {
-	return float64(reasoningTokens) * pricing.Output / 1_000_000
-}
-
-func totalCost(inputCost, cachedCost, cacheWriteCost, outputCost, rCost float64) float64 {
-	return inputCost + cachedCost + cacheWriteCost + outputCost + rCost
-}
-
-func BuildCallRecord(endpoint, model, reasoning, serviceTier, trigger string, usage *protocol.UsageResponse, pricing prompts.Pricing, durationMs int64) CallRecord {
+func BuildCallRecord(endpoint, model, reasoning, serviceTier, trigger string, usage *protocol.UsageResponse, durationMs int64) CallRecord {
 	inputTokens := 0
 	outputTokens := 0
 	if usage != nil {
 		inputTokens = usage.InputTokens
 		outputTokens = usage.OutputTokens
 	}
-	cached := cachedTokensFromUsage(usage)
-	cacheCreation := cacheCreationTokensFromUsage(usage)
-	rTokens := reasoningTokensFromUsage(usage)
+	cached := protocol.CachedInputTokens(usage)
+	cacheCreation := protocol.CacheWriteTokens(usage)
+	rTokens := protocol.ReasoningTokens(usage)
 	textOutputTokens := outputTokens - rTokens
-	inputCost, cachedCost, cacheWriteCost, outputCost := computeCosts(inputTokens, cached, cacheCreation, textOutputTokens, pricing)
-	rCost := reasoningCost(rTokens, pricing)
 	return CallRecord{
-		Endpoint:           endpoint,
-		Model:              model,
-		Reasoning:          reasoning,
-		ServiceTier:        serviceTier,
-		Trigger:            trigger,
-		InputTokens:        inputTokens,
-		CachedInputTokens:  cached,
-		CacheWriteTokens:   cacheCreation,
-		OutputTokens:       textOutputTokens,
-		ReasoningTokens:    rTokens,
-		InputCost:          inputCost,
-		CachedInputCost:    cachedCost,
-		CacheWriteCost:     cacheWriteCost,
-		OutputCost:         outputCost,
-		ReasoningCost:      rCost,
-		TotalCost:          totalCost(inputCost, cachedCost, cacheWriteCost, outputCost, rCost),
-		DurationMs:         durationMs,
+		Endpoint:          endpoint,
+		Model:             model,
+		Reasoning:         reasoning,
+		ServiceTier:       serviceTier,
+		Trigger:           trigger,
+		InputTokens:       inputTokens,
+		CachedInputTokens: cached,
+		CacheWriteTokens:  cacheCreation,
+		OutputTokens:      textOutputTokens,
+		ReasoningTokens:   rTokens,
+		DurationMs:        durationMs,
 	}
 }
 
-func BuildEmbeddingCallRecord(model string, totalTokens, inputCount int, pricing prompts.Pricing, durationMs int64) CallRecord {
-	inputCost, _, _, _ := computeCosts(totalTokens, 0, 0, 0, pricing)
+func BuildEmbeddingCallRecord(model string, totalTokens, inputCount int, durationMs int64) CallRecord {
 	return CallRecord{
 		Endpoint:    "embeddings",
 		Model:       model,
 		Trigger:     "embeddings",
 		InputTokens: totalTokens,
-		InputCost:   inputCost,
-		TotalCost:   inputCost,
 		DurationMs:  durationMs,
 		InputCount:  inputCount,
 	}
@@ -183,12 +127,6 @@ func callRecordAttrs(rec CallRecord) []any {
 		slog.Int("cache_write_tokens", rec.CacheWriteTokens),
 		slog.Int("output_tokens", rec.OutputTokens),
 		slog.Int("reasoning_tokens", rec.ReasoningTokens),
-		slog.Float64("input_cost", rec.InputCost),
-		slog.Float64("cached_input_cost", rec.CachedInputCost),
-		slog.Float64("cache_write_cost", rec.CacheWriteCost),
-		slog.Float64("output_cost", rec.OutputCost),
-		slog.Float64("reasoning_cost", rec.ReasoningCost),
-		slog.Float64("total_cost", rec.TotalCost),
 		slog.Int64("duration_ms", rec.DurationMs),
 	}
 	if rec.InputCount > 0 {

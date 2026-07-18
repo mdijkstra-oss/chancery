@@ -7,29 +7,31 @@ import (
 	"net/http"
 	"time"
 
+	"hermes-logos/internal/auth"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/providers/openai"
+	"hermes-logos/internal/quota"
 	"hermes-logos/internal/ratelimit"
 	"hermes-logos/internal/telemetry"
+	"hermes-logos/internal/tokens"
 )
 
 const (
 	maxEmbeddingBatchSize   = 512
 	maxEmbeddingBatchTokens = 200_000
-	charsPerToken           = 4
 )
 
 type EmbeddingsRequest struct {
 	Input []string `json:"input"`
 }
 
-func NewEmbeddingsHandler(cfg prompts.PromptConfig, limiter *ratelimit.Limiter) http.HandlerFunc {
+func NewEmbeddingsHandler(cfg prompts.PromptConfig, limiter *ratelimit.Limiter, quotaClient *quota.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleEmbeddings(w, r, cfg, limiter)
+		handleEmbeddings(w, r, cfg, limiter, quotaClient)
 	}
 }
 
-func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.PromptConfig, limiter *ratelimit.Limiter) {
+func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.PromptConfig, limiter *ratelimit.Limiter, quotaClient *quota.Client) {
 	ctx := r.Context()
 
 	req, err := decodeEmbeddingsRequest(r)
@@ -42,12 +44,19 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.Prompt
 		return
 	}
 
+	quotaRequest := buildEmbeddingsQuotaRequest(RequestIDFromContext(ctx), auth.UserFromContext(ctx), req.Input, cfg)
+	reservation, allowed := reserveQuota(ctx, w, quotaClient, quotaRequest)
+	if !allowed {
+		return
+	}
+
 	start := time.Now()
 	res, err := ratelimit.Do(ctx, limiter, cfg.Model, 3, func() (openai.EmbedResult, error) {
 		return openai.Embed(ctx, req.Input, cfg.Model, cfg.Dimensions, cfg.Provider)
 	})
 	duration := time.Since(start).Milliseconds()
 	if err != nil {
+		settleEmbeddingQuota(ctx, quotaClient, reservation, failedQuotaOutcome(ctx), 0)
 		slog.ErrorContext(ctx, "embeddings upstream failed",
 			"component", "embeddings",
 			"error", err,
@@ -57,7 +66,8 @@ func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.Prompt
 		return
 	}
 
-	rec := telemetry.BuildEmbeddingCallRecord(cfg.Model, res.TotalTokens, len(req.Input), cfg.Pricing, duration)
+	settleEmbeddingQuota(ctx, quotaClient, reservation, quota.OutcomeCompleted, res.TotalTokens)
+	rec := telemetry.BuildEmbeddingCallRecord(cfg.Model, res.TotalTokens, len(req.Input), duration)
 	telemetry.LogCallRecord(ctx, rec)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -80,16 +90,8 @@ func validateEmbeddingsRequest(req EmbeddingsRequest) error {
 	if len(req.Input) > maxEmbeddingBatchSize {
 		return fmt.Errorf("batch size %d exceeds maximum %d", len(req.Input), maxEmbeddingBatchSize)
 	}
-	if tokens := estimateTokens(req.Input); tokens > maxEmbeddingBatchTokens {
-		return fmt.Errorf("estimated tokens %d exceeds maximum %d", tokens, maxEmbeddingBatchTokens)
+	if estimated := tokens.Estimate(req.Input); estimated > maxEmbeddingBatchTokens {
+		return fmt.Errorf("estimated tokens %d exceeds maximum %d", estimated, maxEmbeddingBatchTokens)
 	}
 	return nil
-}
-
-func estimateTokens(input []string) int {
-	total := 0
-	for _, s := range input {
-		total += len(s)
-	}
-	return total / charsPerToken
 }

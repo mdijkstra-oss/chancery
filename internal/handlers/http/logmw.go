@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"log/slog"
@@ -12,10 +13,14 @@ import (
 
 const maxLoggedHeaderValueLength = 512
 
+type requestIDContextKey struct{}
+
 func RequestContext(headers []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := logging.WithAttr(r.Context(), "request_id", generateRequestID())
+			requestID := generateRequestID()
+			ctx := context.WithValue(r.Context(), requestIDContextKey{}, requestID)
+			ctx = logging.WithAttr(ctx, "request_id", requestID)
 			attrs := loggedHeaderAttrs(r, headers)
 			if len(attrs) > 0 {
 				ctx = logging.WithAttrs(ctx, slog.GroupAttrs("headers", attrs...))
@@ -23,6 +28,11 @@ func RequestContext(headers []string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func RequestIDFromContext(ctx context.Context) string {
+	requestID, _ := ctx.Value(requestIDContextKey{}).(string)
+	return requestID
 }
 
 func loggedHeaderAttrs(r *http.Request, headers []string) []slog.Attr {

@@ -8,24 +8,26 @@ import (
 	"strings"
 	"time"
 
+	"hermes-logos/internal/auth"
 	"hermes-logos/internal/pipeline"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
 	"hermes-logos/internal/providers"
 	"hermes-logos/internal/providers/sse"
+	"hermes-logos/internal/quota"
 	"hermes-logos/internal/ratelimit"
 	"hermes-logos/internal/telemetry"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func NewChatHandler(registry prompts.Registry, limiter *ratelimit.Limiter) http.HandlerFunc {
+func NewChatHandler(registry prompts.Registry, limiter *ratelimit.Limiter, quotaClient *quota.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleChat(w, r, registry, limiter)
+		handleChat(w, r, registry, limiter, quotaClient)
 	}
 }
 
-func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registry, limiter *ratelimit.Limiter) {
+func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registry, limiter *ratelimit.Limiter, quotaClient *quota.Client) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 
 	req, err := decodeRequest(r)
@@ -50,6 +52,12 @@ func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registr
 		params.ReasoningSummary = rs
 	}
 
+	quotaRequest := buildChatQuotaRequest(RequestIDFromContext(r.Context()), auth.UserFromContext(r.Context()), urlPath, params, promptCfg)
+	reservation, allowed := reserveQuota(r.Context(), w, quotaClient, quotaRequest)
+	if !allowed {
+		return
+	}
+
 	trigger := telemetry.DeriveTrigger(req.Messages)
 
 	slog.InfoContext(r.Context(), "request expanded",
@@ -69,6 +77,7 @@ func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registr
 	})
 	duration := time.Since(start).Milliseconds()
 	if err != nil {
+		settleQuota(r.Context(), quotaClient, reservation, failedQuotaOutcome(r.Context()), result.Usage)
 		slog.ErrorContext(r.Context(), "stream error",
 			"component", "chat",
 			"error", err,
@@ -80,7 +89,8 @@ func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registr
 		return
 	}
 
-	rec := telemetry.BuildCallRecord(urlPath, params.Model, promptCfg.ReasoningEffort, promptCfg.ServiceTier, trigger, result.Usage, promptCfg.Pricing, duration)
+	settleQuota(r.Context(), quotaClient, reservation, quota.OutcomeCompleted, result.Usage)
+	rec := telemetry.BuildCallRecord(urlPath, params.Model, promptCfg.ReasoningEffort, promptCfg.ServiceTier, trigger, result.Usage, duration)
 	telemetry.LogCallRecord(r.Context(), rec)
 }
 

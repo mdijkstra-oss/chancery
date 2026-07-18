@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"hermes-logos/internal/prompts"
+	"hermes-logos/internal/quota"
 	"hermes-logos/internal/ratelimit"
 )
 
@@ -60,7 +61,7 @@ func TestEmbeddingsHandler(t *testing.T) {
 				Dimensions: 1024,
 				Provider:   prompts.ProviderConfig{BaseURL: srv.URL, APIKey: "test-key"},
 			}
-			handler := NewEmbeddingsHandler(cfg, ratelimit.NewLimiter())
+			handler := NewEmbeddingsHandler(cfg, ratelimit.NewLimiter(), quota.NewClient(quota.Config{}))
 
 			req := httptest.NewRequest(http.MethodPost, "/embeddings", strings.NewReader(tt.body))
 			rec := httptest.NewRecorder()
@@ -74,25 +75,6 @@ func TestEmbeddingsHandler(t *testing.T) {
 				if !strings.Contains(string(got), tt.wantContains) {
 					t.Errorf("body %q does not contain %q", got, tt.wantContains)
 				}
-			}
-		})
-	}
-}
-
-func TestEstimateTokens(t *testing.T) {
-	tests := []struct {
-		name  string
-		input []string
-		want  int
-	}{
-		{name: "empty", input: nil, want: 0},
-		{name: "single short", input: []string{"abcd"}, want: 1},
-		{name: "multiple", input: []string{"abcdefgh", "ijklmnop"}, want: 4},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := estimateTokens(tt.input); got != tt.want {
-				t.Errorf("estimateTokens(%v) = %d, want %d", tt.input, got, tt.want)
 			}
 		})
 	}

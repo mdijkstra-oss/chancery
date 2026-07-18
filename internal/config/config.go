@@ -1,24 +1,46 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
+	"net/textproto"
 	"os"
+	"strings"
+
+	"hermes-logos/internal/auth"
 )
 
 type Config struct {
-	Port        string
-	CorsOrigins []string
-	LogLevel    slog.Level
-	Environment string
+	Auth           auth.Config
+	Port           string
+	CorsOrigins    []string
+	LogLevel       slog.Level
+	Environment    string
+	RequestHeaders []string
 }
 
-func Load() Config {
-	return Config{
-		Port:        getEnv("PORT", "8081"),
-		CorsOrigins: []string{getEnv("CORS_ORIGINS", "*")},
-		LogLevel:    parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		Environment: getEnv("ENV", "development"),
+func Load() (Config, error) {
+	cfg := Config{
+		Auth: auth.Config{
+			JWKSURL:       getEnv("AUTH_JWT_JWKS_URL", ""),
+			PublicKeyFile: getEnv("AUTH_JWT_PUBLIC_KEY_FILE", ""),
+			Issuer:        getEnv("AUTH_JWT_ISSUER", ""),
+			Audience:      getEnv("AUTH_JWT_AUDIENCE", ""),
+			Algorithms:    parseList(getEnv("AUTH_JWT_ALGORITHMS", "")),
+		},
+		Port:           getEnv("PORT", "8081"),
+		CorsOrigins:    parseList(getEnv("CORS_ORIGINS", "*")),
+		LogLevel:       parseLogLevel(getEnv("LOG_LEVEL", "info")),
+		Environment:    getEnv("ENV", "development"),
+		RequestHeaders: requestHeaders(),
 	}
+	if err := cfg.Auth.Validate(); err != nil {
+		return Config{}, err
+	}
+	if err := validateRequestHeaders(cfg.RequestHeaders); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
 }
 
 func getEnv(key, fallback string) string {
@@ -26,6 +48,60 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func requestHeaders() []string {
+	value, exists := os.LookupEnv("LOG_REQUEST_HEADERS")
+	if !exists {
+		return []string{"X-Session-ID", "X-Project-ID"}
+	}
+	return parseList(value)
+}
+
+func parseList(value string) []string {
+	parts := strings.Split(value, ",")
+	values := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value == "" {
+			continue
+		}
+		key := strings.ToLower(value)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		values = append(values, value)
+	}
+	return values
+}
+
+func validateRequestHeaders(headers []string) error {
+	if len(headers) > 16 {
+		return fmt.Errorf("LOG_REQUEST_HEADERS contains more than 16 headers")
+	}
+	for _, header := range headers {
+		canonical := textproto.CanonicalMIMEHeaderKey(header)
+		if canonical == "" || !strings.HasPrefix(canonical, "X-") {
+			return fmt.Errorf("LOG_REQUEST_HEADERS contains invalid header %q", header)
+		}
+		if isCredentialHeader(canonical) {
+			return fmt.Errorf("LOG_REQUEST_HEADERS contains credential header %q", header)
+		}
+	}
+	return nil
+}
+
+func isCredentialHeader(header string) bool {
+	normalized := strings.ToLower(header)
+	forbiddenParts := []string{"access-token", "api-key", "auth", "credential", "password", "secret", "security-token"}
+	for _, part := range forbiddenParts {
+		if strings.Contains(normalized, part) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseLogLevel(s string) slog.Level {

@@ -8,10 +8,14 @@ import (
 type ctxKey struct{}
 
 func WithAttr(ctx context.Context, key, value string) context.Context {
+	return WithAttrs(ctx, slog.String(key, value))
+}
+
+func WithAttrs(ctx context.Context, added ...slog.Attr) context.Context {
 	existing := AttrsFromContext(ctx)
-	attrs := make([]slog.Attr, len(existing)+1)
-	copy(attrs, existing)
-	attrs[len(existing)] = slog.String(key, value)
+	attrs := make([]slog.Attr, 0, len(existing)+len(added))
+	attrs = append(attrs, existing...)
+	attrs = append(attrs, added...)
 	return context.WithValue(ctx, ctxKey{}, attrs)
 }
 

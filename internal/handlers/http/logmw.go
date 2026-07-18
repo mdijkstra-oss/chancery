@@ -3,32 +3,46 @@ package http
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"hermes-logos/internal/logging"
 )
 
-type headerMapping struct {
-	Header string
-	LogKey string
-}
+const maxLoggedHeaderValueLength = 512
 
-var trackedHeaders = []headerMapping{
-	{"X-Session-ID", "session_id"},
-	{"X-Project-ID", "project_id"},
-}
-
-func RequestContext(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		ctx = logging.WithAttr(ctx, "request_id", generateRequestID())
-		for _, h := range trackedHeaders {
-			if v := r.Header.Get(h.Header); v != "" {
-				ctx = logging.WithAttr(ctx, h.LogKey, v)
+func RequestContext(headers []string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := logging.WithAttr(r.Context(), "request_id", generateRequestID())
+			attrs := loggedHeaderAttrs(r, headers)
+			if len(attrs) > 0 {
+				ctx = logging.WithAttrs(ctx, slog.GroupAttrs("headers", attrs...))
 			}
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func loggedHeaderAttrs(r *http.Request, headers []string) []slog.Attr {
+	attrs := make([]slog.Attr, 0, len(headers)+1)
+	truncated := false
+	for _, header := range headers {
+		value := strings.Join(r.Header.Values(header), ",")
+		if value == "" {
+			continue
 		}
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+		if len(value) > maxLoggedHeaderValueLength {
+			value = value[:maxLoggedHeaderValueLength]
+			truncated = true
+		}
+		attrs = append(attrs, slog.String(strings.ToLower(header), value))
+	}
+	if truncated {
+		attrs = append(attrs, slog.Bool("truncated", true))
+	}
+	return attrs
 }
 
 func generateRequestID() string {

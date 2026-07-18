@@ -8,10 +8,11 @@ import (
 	"math"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"hermes-logos/internal/logging"
 	"hermes-logos/internal/prompts"
 	"hermes-logos/internal/protocol"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type usageLogData struct {
@@ -36,13 +37,13 @@ type usageLogData struct {
 }
 
 type usageLogRecord struct {
-	Message     string       `json:"msg"`
-	Environment string       `json:"environment"`
-	Component   string       `json:"component"`
-	RequestID   string       `json:"request_id"`
-	SessionID   string       `json:"session_id"`
-	ProjectID   string       `json:"project_id"`
-	Data        usageLogData `json:"data"`
+	Message     string            `json:"msg"`
+	Environment string            `json:"environment"`
+	Component   string            `json:"component"`
+	RequestID   string            `json:"request_id"`
+	User        string            `json:"user"`
+	Headers     map[string]string `json:"headers"`
+	Data        usageLogData      `json:"data"`
 }
 
 func TestComputeCosts(t *testing.T) {
@@ -342,8 +343,8 @@ func TestLogCallRecord(t *testing.T) {
 	slog.SetDefault(slog.New(handler).With("environment", "test"))
 
 	ctx := logging.WithAttr(context.Background(), "request_id", "req-123")
-	ctx = logging.WithAttr(ctx, "session_id", "sess-456")
-	ctx = logging.WithAttr(ctx, "project_id", "proj-789")
+	ctx = logging.WithAttr(ctx, "user", "user-012")
+	ctx = logging.WithAttrs(ctx, slog.Group("headers", slog.String("x-session-id", "sess-456"), slog.String("x-project-id", "proj-789")))
 	rec := CallRecord{
 		Endpoint:          "qual-coder",
 		Model:             "gpt-5",
@@ -376,8 +377,8 @@ func TestLogCallRecord(t *testing.T) {
 		Environment: "test",
 		Component:   "usage",
 		RequestID:   "req-123",
-		SessionID:   "sess-456",
-		ProjectID:   "proj-789",
+		User:        "user-012",
+		Headers:     map[string]string{"x-session-id": "sess-456", "x-project-id": "proj-789"},
 		Data: usageLogData{
 			Endpoint:          rec.Endpoint,
 			Model:             rec.Model,

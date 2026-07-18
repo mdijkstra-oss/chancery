@@ -13,6 +13,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"hermes-logos/internal/auth"
 	"hermes-logos/internal/bootstrap"
 	"hermes-logos/internal/config"
 	httpHandlers "hermes-logos/internal/handlers/http"
@@ -86,7 +87,7 @@ func Run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	case "call":
 		return runCall(ctx, commandArgs[1:], registry, report, stdin, stdout, stderr)
 	case "serve":
-		return runServe(commandArgs[1:], registry, report, stderr)
+		return runServe(ctx, commandArgs[1:], registry, report, stderr)
 	default:
 		fmt.Fprintf(stderr, "error: unknown command %q\n", commandArgs[0])
 		rootFlags.Usage()
@@ -180,7 +181,7 @@ func runCall(ctx context.Context, args []string, registry prompts.Registry, repo
 	return callChat(ctx, reference, input, cfg, registry, stdout, stderr)
 }
 
-func runServe(args []string, registry prompts.Registry, report prompts.Report, stderr io.Writer) int {
+func runServe(ctx context.Context, args []string, registry prompts.Registry, report prompts.Report, stderr io.Writer) int {
 	if len(args) != 0 {
 		fmt.Fprintln(stderr, "usage: hermes-logos --config PATH serve")
 		return 2
@@ -200,14 +201,27 @@ func runServe(args []string, registry prompts.Registry, report prompts.Report, s
 		return 1
 	}
 
-	runtimeConfig := config.Load()
+	runtimeConfig, err := config.Load()
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
 	bootstrap.SetupLogger(runtimeConfig.LogLevel, runtimeConfig.Environment)
+	validator, err := auth.NewValidator(ctx, runtimeConfig.Auth)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	defer validator.Close()
+	if !validator.Enabled() {
+		slog.Warn("auth disabled — all requests accepted")
+	}
 	slog.Info("config loaded", "component", "startup", slog.Group("data", slog.Int("agents", len(resolvedRegistry.Agents))))
 	limiter := ratelimit.NewLimiter()
 	chatHandler := httpHandlers.NewChatHandler(resolvedRegistry, limiter)
 	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(embeddings.Config, limiter)
 	router := chi.NewRouter()
-	httpHandlers.SetupRoutes(router, chatHandler, embeddingsHandler, runtimeConfig.CorsOrigins)
+	httpHandlers.SetupRoutes(router, chatHandler, embeddingsHandler, httpHandlers.JWTAuthentication(validator), runtimeConfig.CorsOrigins, runtimeConfig.RequestHeaders)
 	address := ":" + runtimeConfig.Port
 	slog.Info("server starting", "component", "startup", slog.Group("data", slog.String("port", runtimeConfig.Port)))
 	if err := http.ListenAndServe(address, router); err != nil {

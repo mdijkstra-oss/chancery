@@ -1,9 +1,12 @@
 package http
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"hermes-logos/internal/auth"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -17,8 +20,12 @@ func embeddingsRouteHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func TestSetupRoutes(t *testing.T) {
+	validator, err := auth.NewValidator(context.Background(), auth.Config{})
+	if err != nil {
+		t.Fatalf("NewValidator(): %v", err)
+	}
 	r := chi.NewRouter()
-	SetupRoutes(r, chatRouteHandler, embeddingsRouteHandler, []string{"*"})
+	SetupRoutes(r, chatRouteHandler, embeddingsRouteHandler, JWTAuthentication(validator), []string{"*"}, []string{"X-Session-ID"})
 
 	tests := []struct {
 		name       string

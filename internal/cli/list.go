@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/matthijn/hermes-logos/internal/prompts"
@@ -109,30 +110,28 @@ func buildListOutput(registry prompts.Registry) listOutput {
 	}
 }
 
-func writeListTable(output listOutput, destination io.Writer) error {
-	writer := tabwriter.NewWriter(destination, 0, 4, 2, ' ', 0)
-	if _, err := fmt.Fprintln(writer, "PATH\tMODEL\tREASONING"); err != nil {
-		return fmt.Errorf("write list header: %w", err)
-	}
+func renderListTable(output listOutput) string {
+	var buf strings.Builder
+	writer := tabwriter.NewWriter(&buf, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(writer, "PATH\tMODEL\tREASONING")
 	for _, agent := range output.Agents {
-		if _, err := fmt.Fprintf(writer, "%s\t%s\t%s\n", agent.Path, agent.Model, agent.Reasoning); err != nil {
-			return fmt.Errorf("write agent: %w", err)
-		}
+		fmt.Fprintf(writer, "%s\t%s\t%s\n", agent.Path, agent.Model, agent.Reasoning)
 		for _, model := range agent.Models {
 			marker := ""
 			if model.Default {
 				marker = " (default)"
 			}
-			if _, err := fmt.Fprintf(writer, "  .%s%s\t%s\t%s\n", model.Name, marker, model.Model, model.ReasoningEffort); err != nil {
-				return fmt.Errorf("write model: %w", err)
-			}
+			fmt.Fprintf(writer, "  .%s%s\t%s\t%s\n", model.Name, marker, model.Model, model.ReasoningEffort)
 		}
 	}
-	if err := writer.Flush(); err != nil {
-		return fmt.Errorf("flush list: %w", err)
-	}
-	if _, err := fmt.Fprintf(destination, "%d agents · %d models · %d providers\n", output.Summary.Agents, output.Summary.Models, output.Summary.Providers); err != nil {
-		return fmt.Errorf("write list summary: %w", err)
+	writer.Flush()
+	fmt.Fprintf(&buf, "%d agents · %d models · %d providers\n", output.Summary.Agents, output.Summary.Models, output.Summary.Providers)
+	return buf.String()
+}
+
+func writeListTable(output listOutput, destination io.Writer) error {
+	if _, err := io.WriteString(destination, renderListTable(output)); err != nil {
+		return fmt.Errorf("write list: %w", err)
 	}
 	return nil
 }

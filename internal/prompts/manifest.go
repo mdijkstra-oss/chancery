@@ -2,6 +2,7 @@ package prompts
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -638,7 +639,24 @@ func parseAgentFile(data []byte) (agentFrontmatter, string, bool, error) {
 func decodeYAML(data []byte, target any) error {
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
 	decoder.KnownFields(true)
-	return decoder.Decode(target)
+	if err := decoder.Decode(target); err != nil {
+		return sanitizeYAMLError(err)
+	}
+	return nil
+}
+
+var unknownFieldPattern = regexp.MustCompile(`field (\S+) not found in type \S+`)
+
+func sanitizeYAMLError(err error) error {
+	var typeErr *yaml.TypeError
+	if !errors.As(err, &typeErr) {
+		return err
+	}
+	messages := make([]string, len(typeErr.Errors))
+	for index, message := range typeErr.Errors {
+		messages[index] = unknownFieldPattern.ReplaceAllString(message, `unknown field "$1"`)
+	}
+	return errors.New(strings.Join(messages, "; "))
 }
 
 func markIncludes(lines []Line, localDir, sharedDir string, referenced map[string]bool) {

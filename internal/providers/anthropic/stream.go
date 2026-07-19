@@ -1,7 +1,6 @@
 package anthropic
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -9,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/matthijn/hermes-logos/internal/prompts"
 	"github.com/matthijn/hermes-logos/internal/protocol"
@@ -64,20 +62,19 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	var lastUsage *protocol.UsageResponse
 	var lastMessageDeltaData []byte
 
-	scanner := bufio.NewScanner(stream)
-	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
+	scanner := sse.NewScanner(stream)
 	var currentEventType string
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if strings.HasPrefix(line, "event: ") {
-			currentEventType = strings.TrimPrefix(line, "event: ")
+		if eventType, ok := sse.EventField(line); ok {
+			currentEventType = eventType
 			continue
 		}
 
-		if strings.HasPrefix(line, "data: ") {
-			data := []byte(strings.TrimPrefix(line, "data: "))
+		if value, ok := sse.DataField(line); ok {
+			data := []byte(value)
 
 			if currentEventType == "message_delta" {
 				lastMessageDeltaData = data

@@ -1,7 +1,6 @@
 package completions
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -9,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/matthijn/hermes-logos/internal/prompts"
 	"github.com/matthijn/hermes-logos/internal/protocol"
@@ -35,7 +33,11 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == http.StatusTooManyRequests {
-			return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("completions returned status %d: %s", resp.StatusCode, body))
+			err := fmt.Errorf("completions returned status %d: %s", resp.StatusCode, body)
+			if d := ratelimit.ParseRetryAfterHeader(resp.Header.Get("Retry-After")); d > 0 {
+				return sse.StreamResult{}, ratelimit.RetryableWithDelay(err, d)
+			}
+			return sse.StreamResult{}, ratelimit.Retryable(err)
 		}
 		return sse.StreamResult{}, fmt.Errorf("completions returned status %d: %s", resp.StatusCode, body)
 	}
@@ -51,13 +53,13 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	var lastFinishReason string
 	var streamErr error
 
-	scanner := bufio.NewScanner(body)
+	scanner := sse.NewScanner(body)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if line == "" || !strings.HasPrefix(line, "data: ") {
+		data, ok := sse.DataField(line)
+		if !ok {
 			continue
 		}
-		data := strings.TrimPrefix(line, "data: ")
 		if data == "[DONE]" {
 			continue
 		}

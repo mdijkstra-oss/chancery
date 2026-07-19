@@ -7,12 +7,11 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 	"github.com/matthijn/hermes-logos/internal/providers/httpx"
 	"github.com/matthijn/hermes-logos/internal/providers/sse"
-	"github.com/matthijn/hermes-logos/internal/protocol"
 	"github.com/matthijn/hermes-logos/internal/ratelimit"
 )
 
@@ -46,7 +45,7 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 
 	body := httpx.WithStallTimeout(resp.Body, httpx.StallTimeout)
 	defer body.Close()
-	return relaySSE(ctx, w, bufio.NewScanner(body), params.Model), nil
+	return relaySSE(ctx, w, sse.NewScanner(body), params.Model), nil
 }
 
 func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner, model string) sse.StreamResult {
@@ -57,11 +56,10 @@ func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner, model st
 	for scanner.Scan() {
 		line := scanner.Text()
 		fmt.Fprintln(w, line)
-		if isEventLine(line) {
-			currentEvent = strings.TrimPrefix(line, "event: ")
+		if event, ok := sse.EventField(line); ok {
+			currentEvent = event
 		}
-		if isDataLine(line) && currentEvent == "response.completed" {
-			data := strings.TrimPrefix(line, "data: ")
+		if data, ok := sse.DataField(line); ok && currentEvent == "response.completed" {
 			result.Usage = ExtractUsageFromCompleted([]byte(data))
 		}
 		if isEventBoundary(line) {
@@ -81,14 +79,6 @@ func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner, model st
 		)
 	}
 	return result
-}
-
-func isEventLine(line string) bool {
-	return strings.HasPrefix(line, "event: ")
-}
-
-func isDataLine(line string) bool {
-	return strings.HasPrefix(line, "data: ")
 }
 
 func isEventBoundary(line string) bool {

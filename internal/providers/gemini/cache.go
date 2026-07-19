@@ -1,6 +1,7 @@
 package gemini
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -115,7 +116,11 @@ func (s *CacheStore) CompleteInflight(hash string, entry CacheEntry, err error) 
 	}
 }
 
-func WaitInflight(fl *inflight) (CacheEntry, error) {
-	<-fl.done
-	return fl.entry, fl.err
+func WaitInflight(ctx context.Context, fl *inflight) (CacheEntry, error) {
+	select {
+	case <-fl.done:
+		return fl.entry, fl.err
+	case <-ctx.Done():
+		return CacheEntry{}, ctx.Err()
+	}
 }

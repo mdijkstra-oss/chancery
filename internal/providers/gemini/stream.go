@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"time"
 
-	"google.golang.org/genai"
 	"github.com/matthijn/hermes-logos/internal/prompts"
 	"github.com/matthijn/hermes-logos/internal/protocol"
 	"github.com/matthijn/hermes-logos/internal/providers/httpx"
 	"github.com/matthijn/hermes-logos/internal/providers/sse"
 	"github.com/matthijn/hermes-logos/internal/ratelimit"
+	"google.golang.org/genai"
 )
 
 var globalCacheStore = NewCacheStore()
@@ -59,7 +59,12 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	var lastFinishReason genai.FinishReason
 	var streamErr error
 
-	for chunk, err := range client.Models.GenerateContentStream(ctx, params.Model, contents, config) {
+	streamCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	watchdog := time.AfterFunc(httpx.StallTimeout, cancel)
+
+	for chunk, err := range client.Models.GenerateContentStream(streamCtx, params.Model, contents, config) {
+		watchdog.Reset(httpx.StallTimeout)
 		if err != nil {
 			if !headersWritten && isRateLimitError(err) {
 				delay := ExtractRetryDelay(err)
@@ -99,6 +104,7 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 		}
 		sse.Flush(w)
 	}
+	watchdog.Stop()
 
 	if !headersWritten {
 		sse.SetHeaders(w)
@@ -166,7 +172,7 @@ func resolveCache(ctx context.Context, client *genai.Client, params protocol.Req
 func createOrWaitCache(ctx context.Context, client *genai.Client, params protocol.RequestParams, config *genai.GenerateContentConfig, prefix []json.RawMessage, hash string, ttl time.Duration) string {
 	isCreator, fl := globalCacheStore.AcquireOrWait(hash)
 	if !isCreator {
-		entry, err := WaitInflight(fl)
+		entry, err := WaitInflight(ctx, fl)
 		if err != nil {
 			slog.WarnContext(ctx, "gemini cache inflight failed", "component", "gemini", "error", err)
 			return ""

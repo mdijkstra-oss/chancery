@@ -1,6 +1,7 @@
 package gemini
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -170,7 +171,7 @@ func TestCacheStore_AcquireOrWait_Singleflight(t *testing.T) {
 	entry := CacheEntry{ResourceName: "cachedContents/xyz", ExpireTime: time.Now().Add(5 * time.Minute), TTL: 300 * time.Second}
 	store.CompleteInflight("hash1", entry, nil)
 
-	got, err := WaitInflight(fl2)
+	got, err := WaitInflight(context.Background(), fl2)
 	if err != nil {
 		t.Fatalf("WaitInflight error: %v", err)
 	}
@@ -208,7 +209,7 @@ func TestCacheStore_ConcurrentFanout(t *testing.T) {
 				store.CompleteInflight("shared", entry, nil)
 				results[idx] = entry
 			} else {
-				results[idx], errors[idx] = WaitInflight(fl)
+				results[idx], errors[idx] = WaitInflight(context.Background(), fl)
 			}
 		}(i)
 	}
@@ -271,12 +272,12 @@ func TestCacheStore_UpdateExpiry(t *testing.T) {
 
 func TestAddCacheCreationCost(t *testing.T) {
 	tests := []struct {
-		name                   string
-		usage                  *protocol.UsageResponse
-		expectInput            int
-		expectTotal            int
-		expectCacheCreation    int
-		expectCachedUnchanged  int
+		name                  string
+		usage                 *protocol.UsageResponse
+		expectInput           int
+		expectTotal           int
+		expectCacheCreation   int
+		expectCachedUnchanged int
 	}{
 		{
 			name:  "nil usage unchanged",
@@ -294,8 +295,8 @@ func TestAddCacheCreationCost(t *testing.T) {
 		{
 			name: "zero cached unchanged",
 			usage: &protocol.UsageResponse{
-				InputTokens:       100,
-				TotalTokens:       200,
+				InputTokens:        100,
+				TotalTokens:        200,
 				InputTokensDetails: &protocol.PromptTokensDetails{CachedTokens: 0},
 			},
 			expectInput: 100,
@@ -304,8 +305,8 @@ func TestAddCacheCreationCost(t *testing.T) {
 		{
 			name: "first read adds creation tokens",
 			usage: &protocol.UsageResponse{
-				InputTokens: 5868,
-				TotalTokens: 6500,
+				InputTokens:        5868,
+				TotalTokens:        6500,
 				InputTokensDetails: &protocol.PromptTokensDetails{CachedTokens: 5852},
 			},
 			expectInput:           5868 + 5852,
@@ -346,8 +347,8 @@ func TestAddCacheCreationCost(t *testing.T) {
 
 func TestAddCacheCreationCost_DoesNotMutateInput(t *testing.T) {
 	original := &protocol.UsageResponse{
-		InputTokens: 5868,
-		TotalTokens: 6500,
+		InputTokens:        5868,
+		TotalTokens:        6500,
 		InputTokensDetails: &protocol.PromptTokensDetails{CachedTokens: 5852},
 	}
 	got := addCacheCreationCost(original)

@@ -771,49 +771,19 @@ func resolveModel(key string, models map[string]modelEntry) (modelEntry, error) 
 func overlayModel(base, child modelEntry) modelEntry {
 	result := base
 	result.Extends = ""
-	if child.Provider != "" {
-		result.Provider = child.Provider
-	}
-	if child.Name != "" {
-		result.Name = child.Name
-	}
-	if child.Type != "" {
-		result.Type = child.Type
-	}
-	if child.Dimensions != 0 {
-		result.Dimensions = child.Dimensions
-	}
-	if child.MaxTokens != 0 {
-		result.MaxTokens = child.MaxTokens
-	}
-	if child.Prompt != "" {
-		result.Prompt = child.Prompt
-	}
-	if child.ReasoningEffort != "" {
-		result.ReasoningEffort = child.ReasoningEffort
-	}
-	if child.ReasoningSummary != "" {
-		result.ReasoningSummary = child.ReasoningSummary
-	}
-	if child.Verbosity != "" {
-		result.Verbosity = child.Verbosity
-	}
-	if child.ServiceTier != "" {
-		result.ServiceTier = child.ServiceTier
-	}
-	if child.LegacyThinking {
-		result.LegacyThinking = true
-	}
-	if child.AutoCache {
-		result.AutoCache = true
-	}
-	if child.CacheTTL != 0 {
-		result.CacheTTL = child.CacheTTL
-	}
-	if child.CompactAt != 0 {
-		result.CompactAt = child.CompactAt
-	}
-
+	result.Provider = coalesce(base.Provider, child.Provider)
+	result.Name = coalesce(base.Name, child.Name)
+	result.Type = coalesce(base.Type, child.Type)
+	result.Dimensions = coalesce(base.Dimensions, child.Dimensions)
+	result.MaxTokens = coalesce(base.MaxTokens, child.MaxTokens)
+	result.Prompt = coalesce(base.Prompt, child.Prompt)
+	result.ReasoningEffort = coalesce(base.ReasoningEffort, child.ReasoningEffort)
+	result.ReasoningSummary = coalesce(base.ReasoningSummary, child.ReasoningSummary)
+	result.Verbosity = coalesce(base.Verbosity, child.Verbosity)
+	result.ServiceTier = coalesce(base.ServiceTier, child.ServiceTier)
+	result.LegacyThinking = coalesce(base.LegacyThinking, child.LegacyThinking)
+	result.AutoCache = coalesce(base.AutoCache, child.AutoCache)
+	result.CacheTTL = coalesce(base.CacheTTL, child.CacheTTL)
 	return result
 }
 
@@ -830,21 +800,15 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 		LegacyThinking:   model.LegacyThinking,
 		AutoCache:        model.AutoCache,
 		CacheTTL:         model.CacheTTL,
-		CompactAt:        model.CompactAt,
 		Provider:         provider,
 	}
-	if agent.ReasoningEffort != "" {
-		cfg.ReasoningEffort = agent.ReasoningEffort
-	}
-	if agent.ReasoningSummary != "" {
-		cfg.ReasoningSummary = agent.ReasoningSummary
-	}
-	if agent.Verbosity != "" {
-		cfg.Verbosity = agent.Verbosity
-	}
-	if agent.ServiceTier != "" {
-		cfg.ServiceTier = agent.ServiceTier
-	}
+	cfg.ReasoningEffort = coalesce(cfg.ReasoningEffort, agent.ReasoningEffort)
+	cfg.ReasoningSummary = coalesce(cfg.ReasoningSummary, agent.ReasoningSummary)
+	cfg.Verbosity = coalesce(cfg.Verbosity, agent.Verbosity)
+	cfg.ServiceTier = coalesce(cfg.ServiceTier, agent.ServiceTier)
+	cfg.CacheTTL = coalesce(cfg.CacheTTL, agent.CacheTTL)
+	cfg.Dimensions = coalesce(cfg.Dimensions, agent.Dimensions)
+	cfg.MaxTokens = coalesce(cfg.MaxTokens, agent.MaxTokens)
 	if agent.LegacyThinking != nil {
 		cfg.LegacyThinking = *agent.LegacyThinking
 	}
@@ -857,62 +821,23 @@ func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) Pr
 	if agent.AutoCache != nil {
 		cfg.AutoCache = *agent.AutoCache
 	}
-	if agent.CacheTTL != 0 {
-		cfg.CacheTTL = agent.CacheTTL
-	}
-	if agent.CompactAt != 0 {
-		cfg.CompactAt = agent.CompactAt
-	}
-	if agent.Dimensions != 0 {
-		cfg.Dimensions = agent.Dimensions
-	}
-	if agent.MaxTokens != 0 {
-		cfg.MaxTokens = agent.MaxTokens
-	}
 	return cfg
 }
 
 func overlayAgent(base, child agentEntry) agentEntry {
 	result := base
-	if child.Model != "" {
-		result.Model = child.Model
-	}
-	if child.ReasoningEffort != "" {
-		result.ReasoningEffort = child.ReasoningEffort
-	}
-	if child.ReasoningSummary != "" {
-		result.ReasoningSummary = child.ReasoningSummary
-	}
-	if child.Verbosity != "" {
-		result.Verbosity = child.Verbosity
-	}
-	if child.ServiceTier != "" {
-		result.ServiceTier = child.ServiceTier
-	}
-	if child.LegacyThinking != nil {
-		result.LegacyThinking = child.LegacyThinking
-	}
-	if child.Temperature != nil {
-		result.Temperature = child.Temperature
-	}
-	if child.Seed != nil {
-		result.Seed = child.Seed
-	}
-	if child.AutoCache != nil {
-		result.AutoCache = child.AutoCache
-	}
-	if child.CacheTTL != 0 {
-		result.CacheTTL = child.CacheTTL
-	}
-	if child.CompactAt != 0 {
-		result.CompactAt = child.CompactAt
-	}
-	if child.Dimensions != 0 {
-		result.Dimensions = child.Dimensions
-	}
-	if child.MaxTokens != 0 {
-		result.MaxTokens = child.MaxTokens
-	}
+	result.Model = coalesce(base.Model, child.Model)
+	result.ReasoningEffort = coalesce(base.ReasoningEffort, child.ReasoningEffort)
+	result.ReasoningSummary = coalesce(base.ReasoningSummary, child.ReasoningSummary)
+	result.Verbosity = coalesce(base.Verbosity, child.Verbosity)
+	result.ServiceTier = coalesce(base.ServiceTier, child.ServiceTier)
+	result.LegacyThinking = coalesce(base.LegacyThinking, child.LegacyThinking)
+	result.Temperature = coalesce(base.Temperature, child.Temperature)
+	result.Seed = coalesce(base.Seed, child.Seed)
+	result.AutoCache = coalesce(base.AutoCache, child.AutoCache)
+	result.CacheTTL = coalesce(base.CacheTTL, child.CacheTTL)
+	result.Dimensions = coalesce(base.Dimensions, child.Dimensions)
+	result.MaxTokens = coalesce(base.MaxTokens, child.MaxTokens)
 	return result
 }
 
@@ -951,6 +876,14 @@ func relativePath(root, path string) string {
 		return filepath.ToSlash(path)
 	}
 	return filepath.ToSlash(rel)
+}
+
+func coalesce[T comparable](base, override T) T {
+	var zero T
+	if override != zero {
+		return override
+	}
+	return base
 }
 
 func cloneMap[K comparable, V any](source map[K]V) map[K]V {

@@ -44,7 +44,6 @@ type PromptConfig struct {
 	Seed             bool           `json:"seed,omitempty"`
 	AutoCache        bool           `json:"auto_cache,omitempty"`
 	CacheTTL         int            `json:"cache_ttl,omitempty"`
-	CompactAt        int            `json:"compact_at,omitempty"`
 	Provider         ProviderConfig `json:"provider"`
 }
 
@@ -73,7 +72,6 @@ type modelEntry struct {
 	Verbosity        string `yaml:"verbosity,omitempty"`
 	ServiceTier      string `yaml:"service_tier,omitempty"`
 	LegacyThinking   bool   `yaml:"legacy_thinking,omitempty"`
-	CompactAt        int    `yaml:"compact_at,omitempty"`
 	AutoCache        bool   `yaml:"auto_cache,omitempty"`
 	CacheTTL         int    `yaml:"cache_ttl,omitempty"`
 }
@@ -90,7 +88,6 @@ type agentEntry struct {
 	Seed             *bool    `yaml:"seed,omitempty"`
 	AutoCache        *bool    `yaml:"auto_cache,omitempty"`
 	CacheTTL         int      `yaml:"cache_ttl,omitempty"`
-	CompactAt        int      `yaml:"compact_at,omitempty"`
 	Dimensions       int      `yaml:"dimensions,omitempty"`
 	MaxTokens        int      `yaml:"max_tokens,omitempty"`
 }

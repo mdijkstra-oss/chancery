@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/genai"
-	"hermes-logos/internal/protocol"
-	"hermes-logos/internal/providers/sse"
+	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/providers/sse"
 )
 
 func TestChunkToEvents(t *testing.T) {

@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/protocol"
-	"hermes-logos/internal/quota"
-	"hermes-logos/internal/tokens"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/quota"
+	"github.com/matthijn/hermes-logos/internal/tokens"
 )
 
 const (

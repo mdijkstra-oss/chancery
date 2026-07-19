@@ -3,8 +3,8 @@ package anthropic
 import (
 	"encoding/json"
 
-	"hermes-logos/internal/protocol"
-	"hermes-logos/internal/providers/sse"
+	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/providers/sse"
 )
 
 type EmitState struct {

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 func TestIsValid(t *testing.T) {

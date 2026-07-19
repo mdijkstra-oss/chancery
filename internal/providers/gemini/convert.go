@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"google.golang.org/genai"
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 type messagePeek struct {

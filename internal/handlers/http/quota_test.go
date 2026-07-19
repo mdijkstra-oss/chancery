@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/protocol"
-	"hermes-logos/internal/quota"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/quota"
 )
 
 func TestBuildQuotaRequest(t *testing.T) {

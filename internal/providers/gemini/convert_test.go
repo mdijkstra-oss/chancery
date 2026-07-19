@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/genai"
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 func TestBuildCallIDToName(t *testing.T) {

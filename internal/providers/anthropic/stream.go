@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"strings"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/protocol"
-	"hermes-logos/internal/providers/httpx"
-	"hermes-logos/internal/providers/sse"
-	"hermes-logos/internal/ratelimit"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/providers/httpx"
+	"github.com/matthijn/hermes-logos/internal/providers/sse"
+	"github.com/matthijn/hermes-logos/internal/ratelimit"
 )
 
 func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"hermes-logos/internal/auth"
-	"hermes-logos/internal/logging"
+	"github.com/matthijn/hermes-logos/internal/auth"
+	"github.com/matthijn/hermes-logos/internal/logging"
 
 	"github.com/golang-jwt/jwt/v5"
 )

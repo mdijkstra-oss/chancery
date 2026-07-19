@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"hermes-logos/internal/providers/sse"
+	"github.com/matthijn/hermes-logos/internal/providers/sse"
 )
 
 func TestHandleEvent(t *testing.T) {

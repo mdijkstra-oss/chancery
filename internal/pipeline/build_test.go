@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 func TestBuildRequestParams(t *testing.T) {

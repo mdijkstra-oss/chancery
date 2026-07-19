@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 type CompletionsRequest struct {

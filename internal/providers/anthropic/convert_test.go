@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 func TestMessagesToAnthropic(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/prompts"
 )
 
 func TestEmbed(t *testing.T) {

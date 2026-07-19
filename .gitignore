@@ -1,7 +1,12 @@
 *.exe
-main
-generate
+/bin/
+/main
+/generate
 /test
+.env
+.env.local
+.prod.env
+.prod.env.local
 .idea/
 .DS_Store
 AI-Architecture.md

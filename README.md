@@ -111,28 +111,28 @@ Provider keys are not required by `validate`, but `call` resolves the selected p
 ### 2. Validate and inspect the configuration
 
 ```sh
-go run ./cmd --config ./config validate
-go run ./cmd --config ./config list
-go run ./cmd --config ./config list --json
+go run ./cmd/hermes-logos --config ./config validate
+go run ./cmd/hermes-logos --config ./config list
+go run ./cmd/hermes-logos --config ./config list --json
 ```
 
 ### 3. Call an agent from the CLI
 
 ```sh
-go run ./cmd --config ./config call assistant --input "Hello"
+go run ./cmd/hermes-logos --config ./config call assistant --input "Hello"
 ```
 
 Input can also come from a file or stdin:
 
 ```sh
-go run ./cmd --config ./config call assistant --input @prompt.txt
-printf 'Hello' | go run ./cmd --config ./config call assistant
+go run ./cmd/hermes-logos --config ./config call assistant --input @prompt.txt
+printf 'Hello' | go run ./cmd/hermes-logos --config ./config call assistant
 ```
 
 ### 4. Start the server
 
 ```sh
-go run ./cmd --config ./config serve
+go run ./cmd/hermes-logos --config ./config serve
 ```
 
 The default address is `:8081`.
@@ -505,8 +505,8 @@ Completed calls emit structured usage records with endpoint, model, reasoning/se
 # Run all tests
 go test ./...
 
-# Build ./main
-go build -o main ./cmd
+# Build ./bin/hermes-logos
+go build -o bin/hermes-logos ./cmd/hermes-logos
 # or
 make build
 
@@ -519,14 +519,14 @@ make start CONFIG=./config
 make dev CONFIG=./config
 ```
 
-The Makefile loads `.env` when present. `make start-prod` additionally sources `.prod.env`.
+The Makefile loads `.env.local` when present. `make start-prod` additionally sources `.prod.env.local`.
 
 `make start`, `make start-prod`, and `make dev` first kill any process listening on port `8081`, even when a different `PORT` is configured.
 
 ## Repository layout
 
 ```text
-cmd/                         CLI entry point
+cmd/hermes-logos/           CLI entry point
 internal/auth/               JWT configuration and validation
 internal/bootstrap/          Runtime logger setup
 internal/cli/                Commands and server assembly

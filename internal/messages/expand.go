@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"regexp"
 
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 var modeMarker = regexp.MustCompile(`^<!--\s*prompt:\s*(\w+)\s*-->$`)

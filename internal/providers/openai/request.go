@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 func BuildHTTPRequest(ctx context.Context, params protocol.RequestParams, provider prompts.ProviderConfig) (*http.Request, error) {

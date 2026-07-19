@@ -3,7 +3,7 @@ package messages
 import (
 	"encoding/json"
 
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 func isCompactableMessage(raw json.RawMessage) bool {

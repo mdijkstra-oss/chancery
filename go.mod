@@ -1,4 +1,4 @@
-module hermes-logos
+module github.com/matthijn/hermes-logos
 
 go 1.26.5
 

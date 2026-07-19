@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"time"
 
-	"hermes-logos/internal/auth"
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/providers/openai"
-	"hermes-logos/internal/quota"
-	"hermes-logos/internal/ratelimit"
-	"hermes-logos/internal/telemetry"
-	"hermes-logos/internal/tokens"
+	"github.com/matthijn/hermes-logos/internal/auth"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/providers/openai"
+	"github.com/matthijn/hermes-logos/internal/quota"
+	"github.com/matthijn/hermes-logos/internal/ratelimit"
+	"github.com/matthijn/hermes-logos/internal/telemetry"
+	"github.com/matthijn/hermes-logos/internal/tokens"
 )
 
 const (

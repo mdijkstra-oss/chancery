@@ -3,8 +3,8 @@ package anthropic
 import (
 	"encoding/json"
 
-	"hermes-logos/internal/protocol"
-	"hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/prompts"
 )
 
 type Request struct {

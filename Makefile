@@ -1,8 +1,8 @@
--include .env
+-include .env.local
 export
 
 CONFIG ?=
-RUN_CMD := go run ./cmd --config "$(CONFIG)"
+RUN_CMD := go run ./cmd/hermes-logos --config "$(CONFIG)"
 
 kill:
 	@-lsof -ti:8081 | xargs kill -9 2>/dev/null || true
@@ -11,7 +11,7 @@ start: kill
 	@$(RUN_CMD) serve
 
 start-prod: kill
-	@set -a && . ./.prod.env && set +a && $(RUN_CMD) serve
+	@set -a && . ./.prod.env.local && set +a && $(RUN_CMD) serve
 
 validate:
 	@$(RUN_CMD) validate
@@ -24,4 +24,5 @@ dev:
 	@watchexec -q -e go,md,yaml -r make start CONFIG="$(CONFIG)"
 
 build:
-	go build -o main ./cmd
+	@mkdir -p bin
+	go build -o bin/hermes-logos ./cmd/hermes-logos

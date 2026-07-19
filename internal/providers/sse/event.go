@@ -3,7 +3,7 @@ package sse
 import (
 	"encoding/json"
 
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 type Event struct {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"hermes-logos/internal/auth"
-	"hermes-logos/internal/quota"
+	"github.com/matthijn/hermes-logos/internal/auth"
+	"github.com/matthijn/hermes-logos/internal/quota"
 )
 
 type Config struct {

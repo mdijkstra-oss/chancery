@@ -3,9 +3,9 @@ package pipeline
 import (
 	"fmt"
 
-	"hermes-logos/internal/messages"
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/protocol"
+	"github.com/matthijn/hermes-logos/internal/messages"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 func BuildRequestParams(agentReference string, req protocol.ChatRequest, registry prompts.Registry) (protocol.RequestParams, prompts.PromptConfig, error) {

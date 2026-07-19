@@ -8,9 +8,9 @@ import (
 	"io"
 	"net/http"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/providers/httpx"
-	"hermes-logos/internal/ratelimit"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/providers/httpx"
+	"github.com/matthijn/hermes-logos/internal/ratelimit"
 )
 
 type EmbedRequest struct {

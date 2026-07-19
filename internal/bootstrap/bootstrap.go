@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"hermes-logos/internal/logging"
+	"github.com/matthijn/hermes-logos/internal/logging"
 )
 
 func SetupLogger(level slog.Level, environment string) {

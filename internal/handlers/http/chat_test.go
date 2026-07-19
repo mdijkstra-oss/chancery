@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"hermes-logos/internal/prompts"
-	"hermes-logos/internal/quota"
-	"hermes-logos/internal/ratelimit"
+	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/quota"
+	"github.com/matthijn/hermes-logos/internal/ratelimit"
 
 	"github.com/go-chi/chi/v5"
 )

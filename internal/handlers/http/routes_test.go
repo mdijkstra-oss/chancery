@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"hermes-logos/internal/auth"
+	"github.com/matthijn/hermes-logos/internal/auth"
 
 	"github.com/go-chi/chi/v5"
 )

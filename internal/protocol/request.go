@@ -10,7 +10,7 @@ type RequestParams struct {
 	Verbosity        string
 	ServiceTier      string
 	ToolChoice       string
-	LegacyThinking  bool
+	LegacyThinking   bool
 	Temperature      *float64
 	Seed             bool
 	MaxTokens        int

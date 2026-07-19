@@ -8,20 +8,20 @@ import (
 	"log/slog"
 	"strings"
 
-	"google.golang.org/genai"
 	"github.com/matthijn/hermes-logos/internal/protocol"
+	"google.golang.org/genai"
 )
 
 type messagePeek struct {
-	Type             string          `json:"type"`
-	Role             string          `json:"role"`
-	Content          string          `json:"content"`
-	Name             string          `json:"name"`
-	CallID           string          `json:"call_id"`
-	Arguments        string          `json:"arguments"`
-	Output           string          `json:"output"`
-	ID               string          `json:"id"`
-	ExtraContent     json.RawMessage `json:"extra_content"`
+	Type         string          `json:"type"`
+	Role         string          `json:"role"`
+	Content      string          `json:"content"`
+	Name         string          `json:"name"`
+	CallID       string          `json:"call_id"`
+	Arguments    string          `json:"arguments"`
+	Output       string          `json:"output"`
+	ID           string          `json:"id"`
+	ExtraContent json.RawMessage `json:"extra_content"`
 }
 
 type extraContent struct {

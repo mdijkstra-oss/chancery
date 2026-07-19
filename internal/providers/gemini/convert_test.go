@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"google.golang.org/genai"
 	"github.com/matthijn/hermes-logos/internal/protocol"
+	"google.golang.org/genai"
 )
 
 func TestBuildCallIDToName(t *testing.T) {
@@ -124,8 +124,8 @@ func TestExtractLeadingSystem(t *testing.T) {
 
 func TestMessagesToContents(t *testing.T) {
 	tests := []struct {
-		name            string
-		messages        []string
+		name      string
+		messages  []string
 		callIDMap map[string]string
 		check     func(t *testing.T, got []*genai.Content)
 	}{
@@ -559,7 +559,7 @@ func TestBuildConfig(t *testing.T) {
 			name: "thinking with level (non-legacy)",
 			params: protocol.RequestParams{
 				ReasoningEffort: "high",
-				LegacyThinking: false,
+				LegacyThinking:  false,
 			},
 			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
 				if cfg.ThinkingConfig == nil {
@@ -580,7 +580,7 @@ func TestBuildConfig(t *testing.T) {
 			name: "thinking with budget (legacy)",
 			params: protocol.RequestParams{
 				ReasoningEffort: "low",
-				LegacyThinking: true,
+				LegacyThinking:  true,
 			},
 			check: func(t *testing.T, cfg *genai.GenerateContentConfig) {
 				if cfg.ThinkingConfig == nil {
@@ -792,10 +792,10 @@ func TestToolChoiceToMode(t *testing.T) {
 func TestBuildConfigToolConfig(t *testing.T) {
 	oneTool := []json.RawMessage{json.RawMessage(`{"name":"search","description":"Search"}`)}
 	tests := []struct {
-		name       string
-		params     protocol.RequestParams
-		wantMode   genai.FunctionCallingConfigMode
-		wantNilTC  bool
+		name      string
+		params    protocol.RequestParams
+		wantMode  genai.FunctionCallingConfigMode
+		wantNilTC bool
 	}{
 		{
 			name:      "no tools produces no ToolConfig",
@@ -1022,10 +1022,10 @@ func TestSplitAtLastBreakpoint(t *testing.T) {
 	})
 
 	tests := []struct {
-		name           string
-		breakpoints    map[int]bool
-		wantPrefixLen  int
-		wantTailLen    int
+		name          string
+		breakpoints   map[int]bool
+		wantPrefixLen int
+		wantTailLen   int
 	}{
 		{"nil breakpoints", nil, 0, 4},
 		{"empty breakpoints", map[int]bool{}, 0, 4},

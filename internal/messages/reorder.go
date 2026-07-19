@@ -36,7 +36,8 @@ func ReorderToolMessages(messages []json.RawMessage) []json.RawMessage {
 }
 
 func hasType(raw json.RawMessage, typ string) bool {
-	var peek struct{ Type string `json:"type"` }
+	var peek struct {
+		Type string `json:"type"`
+	}
 	return json.Unmarshal(raw, &peek) == nil && peek.Type == typ
 }
-

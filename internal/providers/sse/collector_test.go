@@ -4,25 +4,25 @@ import "testing"
 
 func TestParseSSEOutput(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantText string
+		name      string
+		input     string
+		wantText  string
 		wantCalls int
 	}{
 		{
-			name: "text deltas",
-			input: "event: response.output_text.delta\ndata: {\"delta\":\"hello \"}\n\nevent: response.output_text.delta\ndata: {\"delta\":\"world\"}\n\n",
+			name:     "text deltas",
+			input:    "event: response.output_text.delta\ndata: {\"delta\":\"hello \"}\n\nevent: response.output_text.delta\ndata: {\"delta\":\"world\"}\n\n",
 			wantText: "hello world",
 		},
 		{
-			name: "tool call",
-			input: "event: response.output_item.added\ndata: {\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"search\"}}\n\nevent: response.function_call_arguments.delta\ndata: {\"delta\":\"{\\\"q\\\":\\\"test\\\"}\"}\n\n",
+			name:      "tool call",
+			input:     "event: response.output_item.added\ndata: {\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"search\"}}\n\nevent: response.function_call_arguments.delta\ndata: {\"delta\":\"{\\\"q\\\":\\\"test\\\"}\"}\n\n",
 			wantText:  "",
 			wantCalls: 1,
 		},
 		{
-			name: "mixed text and tool call",
-			input: "event: response.output_text.delta\ndata: {\"delta\":\"thinking...\"}\n\nevent: response.output_item.added\ndata: {\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"search\"}}\n\nevent: response.function_call_arguments.delta\ndata: {\"delta\":\"{\\\"q\\\":\\\"test\\\"}\"}\n\n",
+			name:      "mixed text and tool call",
+			input:     "event: response.output_text.delta\ndata: {\"delta\":\"thinking...\"}\n\nevent: response.output_item.added\ndata: {\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"search\"}}\n\nevent: response.function_call_arguments.delta\ndata: {\"delta\":\"{\\\"q\\\":\\\"test\\\"}\"}\n\n",
 			wantText:  "thinking...",
 			wantCalls: 1,
 		},

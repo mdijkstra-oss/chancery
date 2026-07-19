@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"strings"
 
-	"google.golang.org/genai"
 	"github.com/matthijn/hermes-logos/internal/protocol"
 	"github.com/matthijn/hermes-logos/internal/providers/sse"
+	"google.golang.org/genai"
 )
 
 type EmitState struct {

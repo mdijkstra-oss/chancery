@@ -3,21 +3,21 @@ package anthropic
 import (
 	"encoding/json"
 
-	"github.com/matthijn/hermes-logos/internal/protocol"
 	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
 type Request struct {
-	Model       string            `json:"model"`
-	MaxTokens   int               `json:"max_tokens"`
-	System      []SystemBlock     `json:"system,omitempty"`
-	Messages    []Message         `json:"messages"`
-	Tools       []Tool            `json:"tools,omitempty"`
-	ToolChoice  any               `json:"tool_choice,omitempty"`
-	Thinking     *ThinkingConfig   `json:"thinking,omitempty"`
-	OutputConfig *OutputConfig     `json:"output_config,omitempty"`
-	Temperature  *float64          `json:"temperature,omitempty"`
-	Stream      bool              `json:"stream"`
+	Model        string          `json:"model"`
+	MaxTokens    int             `json:"max_tokens"`
+	System       []SystemBlock   `json:"system,omitempty"`
+	Messages     []Message       `json:"messages"`
+	Tools        []Tool          `json:"tools,omitempty"`
+	ToolChoice   any             `json:"tool_choice,omitempty"`
+	Thinking     *ThinkingConfig `json:"thinking,omitempty"`
+	OutputConfig *OutputConfig   `json:"output_config,omitempty"`
+	Temperature  *float64        `json:"temperature,omitempty"`
+	Stream       bool            `json:"stream"`
 }
 
 type SystemBlock struct {

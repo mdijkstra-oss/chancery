@@ -11,11 +11,11 @@ import (
 
 func TestMessagesToAnthropic(t *testing.T) {
 	cases := []struct {
-		name            string
-		messages        []json.RawMessage
-		breakpoints     map[int]bool
-		wantLen         int
-		checkFirst      func(t *testing.T, msg Message)
+		name        string
+		messages    []json.RawMessage
+		breakpoints map[int]bool
+		wantLen     int
+		checkFirst  func(t *testing.T, msg Message)
 	}{
 		{
 			"user message",
@@ -359,9 +359,9 @@ func TestBuildOutputFormat(t *testing.T) {
 
 func TestSanitizeSchemaForAnthropic(t *testing.T) {
 	cases := []struct {
-		name      string
-		input     string
-		mustHave  []string
+		name        string
+		input       string
+		mustHave    []string
 		mustNotHave []string
 	}{
 		{
@@ -389,14 +389,14 @@ func TestSanitizeSchemaForAnthropic(t *testing.T) {
 			mustHave:    []string{`"type":"array"`},
 		},
 		{
-			name:        "preserves minItems 0",
-			input:       `{"type":"array","minItems":0,"items":{"type":"string"}}`,
-			mustHave:    []string{`"minItems":0`},
+			name:     "preserves minItems 0",
+			input:    `{"type":"array","minItems":0,"items":{"type":"string"}}`,
+			mustHave: []string{`"minItems":0`},
 		},
 		{
-			name:        "preserves minItems 1",
-			input:       `{"type":"array","minItems":1,"items":{"type":"string"}}`,
-			mustHave:    []string{`"minItems":1`},
+			name:     "preserves minItems 1",
+			input:    `{"type":"array","minItems":1,"items":{"type":"string"}}`,
+			mustHave: []string{`"minItems":1`},
 		},
 		{
 			name:        "recurses into nested properties",
@@ -410,9 +410,9 @@ func TestSanitizeSchemaForAnthropic(t *testing.T) {
 			mustNotHave: []string{`"minimum"`, `"maximum"`},
 		},
 		{
-			name:        "leaves enum untouched",
-			input:       `{"type":"string","enum":["keep","reject","inconsistent"]}`,
-			mustHave:    []string{`"enum"`, `"keep"`, `"reject"`, `"inconsistent"`},
+			name:     "leaves enum untouched",
+			input:    `{"type":"string","enum":["keep","reject","inconsistent"]}`,
+			mustHave: []string{`"enum"`, `"keep"`, `"reject"`, `"inconsistent"`},
 		},
 		{
 			name:     "preserves required and additionalProperties",

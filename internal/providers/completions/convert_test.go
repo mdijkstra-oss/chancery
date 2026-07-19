@@ -359,7 +359,7 @@ func TestBuildRequest(t *testing.T) {
 				},
 			},
 			strict: false,
-			check: nil,
+			check:  nil,
 		},
 	}
 	for _, tt := range tests {
@@ -381,10 +381,10 @@ func TestBuildRequest(t *testing.T) {
 
 func TestDeepseekThinking(t *testing.T) {
 	tests := []struct {
-		effort      string
-		wantType    string
-		wantEffort  string
-		wantErr     bool
+		effort     string
+		wantType   string
+		wantEffort string
+		wantErr    bool
 	}{
 		{effort: "", wantType: "", wantEffort: ""},
 		{effort: "off", wantType: "disabled", wantEffort: ""},

@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 
 	"github.com/matthijn/hermes-logos/internal/prompts"
 	"github.com/matthijn/hermes-logos/internal/protocol"
-	"github.com/matthijn/hermes-logos/internal/providers/httpx"
+	"github.com/matthijn/hermes-logos/internal/providers/httpstream"
 	"github.com/matthijn/hermes-logos/internal/providers/sse"
-	"github.com/matthijn/hermes-logos/internal/ratelimit"
 )
 
 func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {
@@ -20,32 +18,12 @@ func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, pro
 	if err != nil {
 		return sse.StreamResult{}, fmt.Errorf("build request: %w", err)
 	}
-	resp, err := httpx.Client.Do(req)
+	scanner, body, err := httpstream.Open(w, req, "openai")
 	if err != nil {
-		if httpx.IsConnectTimeout(err) {
-			return sse.StreamResult{}, ratelimit.Retryable(fmt.Errorf("openai: connect timeout: %w", err))
-		}
-		return sse.StreamResult{}, fmt.Errorf("execute request: %w", err)
+		return sse.StreamResult{}, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		if resp.StatusCode == http.StatusTooManyRequests {
-			err := fmt.Errorf("openai returned status %d: %s", resp.StatusCode, body)
-			if d := ratelimit.ParseRetryAfterHeader(resp.Header.Get("Retry-After")); d > 0 {
-				return sse.StreamResult{}, ratelimit.RetryableWithDelay(err, d)
-			}
-			return sse.StreamResult{}, ratelimit.Retryable(err)
-		}
-		return sse.StreamResult{}, fmt.Errorf("openai returned status %d: %s", resp.StatusCode, body)
-	}
-
-	sse.SetHeaders(w)
-	sse.Flush(w)
-
-	body := httpx.WithStallTimeout(resp.Body, httpx.StallTimeout)
 	defer body.Close()
-	return relaySSE(ctx, w, sse.NewScanner(body), params.Model), nil
+	return relaySSE(ctx, w, scanner, params.Model), nil
 }
 
 func relaySSE(ctx context.Context, w io.Writer, scanner *bufio.Scanner, model string) sse.StreamResult {

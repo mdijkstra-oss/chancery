@@ -319,7 +319,7 @@ Model fields:
 | `seed` | Agent-only Gemini switch that enables the gateway's fixed deterministic seed. |
 | `temperature` | Agent-only sampling-temperature override. |
 
-The schema also accepts `type`, `compact_at`, and `auto_cache`. They are compatibility/reserved fields in the current request path: `type` and `compact_at` do not alter dispatch or compaction, and provider caching is driven by explicit cache markers rather than `auto_cache`.
+The schema also accepts `type` and `auto_cache`. They are compatibility/reserved fields in the current request path: `type` does not alter dispatch, and provider caching is driven by explicit cache markers rather than `auto_cache`.
 
 Unknown YAML fields are rejected.
 
@@ -371,7 +371,7 @@ Supported agent settings are:
 - `cache_ttl`
 - `dimensions`
 - `max_tokens`
-- the currently reserved `compact_at` and `auto_cache`
+- the currently reserved `auto_cache`
 
 The prompt belongs in the Markdown body, not in a frontmatter `prompt` field.
 
@@ -443,7 +443,8 @@ Provider-specific constraints still apply. For example, supported reasoning valu
 | Variable | Default | Behavior |
 |---|---|---|
 | `PORT` | `8081` | HTTP listen port. |
-| `CORS_ORIGINS` | `*` | Comma-separated allowed origins. |
+| `CORS_ORIGINS` | empty | Comma-separated allowed origins. Empty denies all cross-origin requests; set `*` to allow any origin. |
+| `SHUTDOWN_TIMEOUT` | `60s` | Positive Go duration to drain in-flight requests on shutdown before exiting. |
 | `LOG_LEVEL` | `info` | One of `debug`, `info`, `warn`, or `error`. |
 | `ENV` | `development` | Added to every structured log record. |
 | `LOG_REQUEST_HEADERS` | `X-Session-ID,X-Project-ID` | Comma-separated `X-*` headers copied into request logs. Set to an explicit empty value to disable. |
@@ -550,8 +551,8 @@ config/                      Optional local external-config location
 
 - The server binds plain HTTP on all interfaces; terminate TLS at a reverse proxy or load balancer.
 - JWT authentication and quota enforcement are both disabled by default.
-- Default CORS allows all origins and credentials; configure `CORS_ORIGINS` for deployed environments.
-- The process does not currently install graceful-shutdown handling or explicit inbound server timeouts.
-- Request bodies do not currently have a gateway-defined byte limit.
+- CORS denies cross-origin requests by default and never sends `Access-Control-Allow-Credentials`; set `CORS_ORIGINS` to allow specific origins (or `*`) for browser clients.
+- The server applies `ReadHeaderTimeout`, `ReadTimeout`, and `IdleTimeout`, and drains in-flight requests on `SIGINT`/`SIGTERM` within `SHUTDOWN_TIMEOUT`. `WriteTimeout` is intentionally unset so long-lived SSE streams are not truncated.
+- Request bodies are capped at 10 MiB; larger bodies are rejected before decoding.
 - `/health` is a process-level check only; there are no dependency-aware readiness, liveness, metrics, or debug endpoints.
 - Provider cooldowns and Gemini cache entries are process-local and are not shared between replicas.

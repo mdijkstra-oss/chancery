@@ -26,3 +26,26 @@ dev:
 build:
 	@mkdir -p bin
 	go build -o bin/hermes-logos ./cmd/hermes-logos
+
+.PHONY: test test-race vet fmt fmt-check lint cover
+test:
+	go test ./...
+
+test-race:
+	go test -race ./...
+
+vet:
+	go vet ./...
+
+fmt:
+	gofmt -w .
+
+fmt-check:
+	@files=$$(gofmt -l .); if [ -n "$$files" ]; then echo "$$files"; exit 1; fi
+
+lint:
+	golangci-lint run
+
+cover:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out

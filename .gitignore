@@ -10,3 +10,7 @@
 .idea/
 .DS_Store
 AI-Architecture.md
+AGENTS.md
+CLAUDE.md
+.claude/
+coverage.out

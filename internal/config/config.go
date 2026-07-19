@@ -13,19 +13,24 @@ import (
 )
 
 type Config struct {
-	Auth           auth.Config
-	Quota          quota.Config
-	Port           string
-	CorsOrigins    []string
-	LogLevel       slog.Level
-	Environment    string
-	RequestHeaders []string
+	Auth            auth.Config
+	Quota           quota.Config
+	Port            string
+	CorsOrigins     []string
+	LogLevel        slog.Level
+	Environment     string
+	RequestHeaders  []string
+	ShutdownTimeout time.Duration
 }
 
 func Load() (Config, error) {
 	quotaTimeout, err := time.ParseDuration(getEnv("QUOTA_TIMEOUT", "2s"))
 	if err != nil {
 		return Config{}, fmt.Errorf("QUOTA_TIMEOUT: %w", err)
+	}
+	shutdownTimeout, err := time.ParseDuration(getEnv("SHUTDOWN_TIMEOUT", "60s"))
+	if err != nil {
+		return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT: %w", err)
 	}
 	cfg := Config{
 		Auth: auth.Config{
@@ -41,11 +46,12 @@ func Load() (Config, error) {
 			AuthToken:  getEnv("QUOTA_AUTH_TOKEN", ""),
 			Timeout:    quotaTimeout,
 		},
-		Port:           getEnv("PORT", "8081"),
-		CorsOrigins:    parseList(getEnv("CORS_ORIGINS", "*")),
-		LogLevel:       parseLogLevel(getEnv("LOG_LEVEL", "info")),
-		Environment:    getEnv("ENV", "development"),
-		RequestHeaders: requestHeaders(),
+		Port:            getEnv("PORT", "8081"),
+		CorsOrigins:     parseList(getEnv("CORS_ORIGINS", "")),
+		LogLevel:        parseLogLevel(getEnv("LOG_LEVEL", "info")),
+		Environment:     getEnv("ENV", "development"),
+		RequestHeaders:  requestHeaders(),
+		ShutdownTimeout: shutdownTimeout,
 	}
 	if err := cfg.Auth.Validate(); err != nil {
 		return Config{}, err

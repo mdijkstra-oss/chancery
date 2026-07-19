@@ -2,10 +2,14 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/matthijn/hermes-logos/internal/auth"
 	"github.com/matthijn/hermes-logos/internal/bootstrap"
@@ -48,10 +52,38 @@ func Run(ctx context.Context, registry prompts.Registry) error {
 	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(embeddings.Config, limiter, quotaClient)
 	router := chi.NewRouter()
 	httpHandlers.SetupRoutes(router, chatHandler, embeddingsHandler, httpHandlers.JWTAuthentication(validator), runtimeConfig.CorsOrigins, runtimeConfig.RequestHeaders)
-	address := ":" + runtimeConfig.Port
-	slog.Info("server starting", "component", "startup", slog.Group("data", slog.String("port", runtimeConfig.Port)))
-	if err := http.ListenAndServe(address, router); err != nil {
-		return fmt.Errorf("serve: %w", err)
+	srv := &http.Server{
+		Addr:              ":" + runtimeConfig.Port,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
-	return nil
+
+	shutdownCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- fmt.Errorf("serve: %w", err)
+			return
+		}
+		serveErr <- nil
+	}()
+
+	slog.Info("server starting", "component", "startup", slog.Group("data", slog.String("port", runtimeConfig.Port)))
+
+	select {
+	case err := <-serveErr:
+		return err
+	case <-shutdownCtx.Done():
+		slog.Info("server shutting down", "component", "startup", slog.Group("data", slog.Duration("grace", runtimeConfig.ShutdownTimeout)))
+		graceCtx, cancel := context.WithTimeout(context.Background(), runtimeConfig.ShutdownTimeout)
+		defer cancel()
+		if err := srv.Shutdown(graceCtx); err != nil {
+			return fmt.Errorf("shutdown: %w", err)
+		}
+		return nil
+	}
 }

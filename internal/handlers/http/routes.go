@@ -18,11 +18,18 @@ func SetupRoutes(r *chi.Mux, chatHandler http.HandlerFunc, embeddingsHandler htt
 		AllowCredentials: true,
 	}))
 
+	r.Get("/health", healthHandler)
 	r.Group(func(agents chi.Router) {
 		agents.Use(authMiddleware)
 		agents.Post("/embeddings", embeddingsHandler)
 		agents.Post("/*", chatHandler)
 	})
+}
+
+func healthHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok\n"))
 }
 
 func allowedHeaders(requestHeaders []string) []string {

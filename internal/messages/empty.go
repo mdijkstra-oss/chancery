@@ -1,6 +1,10 @@
 package messages
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/matthijn/hermes-logos/internal/fn"
+)
 
 type emptyPeek struct {
 	Type    string `json:"type"`
@@ -13,17 +17,16 @@ func isPlainMessageType(t string) bool {
 }
 
 func DropEmptyContent(msgs []json.RawMessage) []json.RawMessage {
-	result := make([]json.RawMessage, 0, len(msgs))
-	for _, m := range msgs {
-		var p emptyPeek
-		if json.Unmarshal(m, &p) != nil {
-			result = append(result, m)
-			continue
-		}
-		if isPlainMessageType(p.Type) && p.Content == "" {
-			continue
-		}
-		result = append(result, m)
+	return fn.Filter(msgs, hasContent)
+}
+
+func hasContent(raw json.RawMessage) bool {
+	var p emptyPeek
+	if json.Unmarshal(raw, &p) != nil {
+		return true
 	}
-	return result
+	if isPlainMessageType(p.Type) && p.Content == "" {
+		return false
+	}
+	return true
 }

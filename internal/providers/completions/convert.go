@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/matthijn/hermes-logos/internal/fn"
 	"github.com/matthijn/hermes-logos/internal/protocol"
 )
 
@@ -486,12 +487,9 @@ func stripFromRequired(obj map[string]json.RawMessage, removed []string) bool {
 	for _, r := range removed {
 		removedSet[r] = true
 	}
-	filtered := make([]string, 0, len(required))
-	for _, r := range required {
-		if !removedSet[r] {
-			filtered = append(filtered, r)
-		}
-	}
+	filtered := fn.Filter(required, func(name string) bool {
+		return !removedSet[name]
+	})
 	if len(filtered) == len(required) {
 		return false
 	}

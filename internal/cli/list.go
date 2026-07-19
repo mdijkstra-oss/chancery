@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -84,11 +85,7 @@ func buildListOutput(registry prompts.Registry) listOutput {
 	for _, path := range registry.AgentPaths() {
 		agent := listAgent{Path: path, Description: registry.Descriptions[path]}
 		if named := registry.NamedConfigs[path]; len(named) > 0 {
-			names := make([]string, 0, len(named))
-			for name := range named {
-				names = append(names, name)
-			}
-			slices.Sort(names)
+			names := slices.Sorted(maps.Keys(named))
 			for _, name := range names {
 				cfg := named[name]
 				agent.Models = append(agent.Models, listModel{Name: name, Model: cfg.Model, ReasoningEffort: cfg.ReasoningEffort, Default: registry.Defaults[path] == name})

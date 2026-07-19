@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/matthijn/hermes-logos/internal/fn"
 	"gopkg.in/yaml.v3"
 )
 
@@ -93,12 +95,7 @@ func (r Registry) ResolveAgent(reference string) (ResolvedAgent, error) {
 }
 
 func (r Registry) AgentPaths() []string {
-	paths := make([]string, 0, len(r.Agents))
-	for path := range r.Agents {
-		paths = append(paths, path)
-	}
-	slices.Sort(paths)
-	return paths
+	return slices.Sorted(maps.Keys(r.Agents))
 }
 
 func (r Registry) ModelCount() int {
@@ -652,10 +649,9 @@ func sanitizeYAMLError(err error) error {
 	if !errors.As(err, &typeErr) {
 		return err
 	}
-	messages := make([]string, len(typeErr.Errors))
-	for index, message := range typeErr.Errors {
-		messages[index] = unknownFieldPattern.ReplaceAllString(message, `unknown field "$1"`)
-	}
+	messages := fn.Map(typeErr.Errors, func(message string) string {
+		return unknownFieldPattern.ReplaceAllString(message, `unknown field "$1"`)
+	})
 	return errors.New(strings.Join(messages, "; "))
 }
 

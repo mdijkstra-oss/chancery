@@ -1,6 +1,10 @@
 package protocol
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/matthijn/hermes-logos/internal/fn"
+)
 
 type RequestParams struct {
 	Model            string
@@ -33,11 +37,9 @@ func BuildResponsesRequestFromParams(p RequestParams) ResponsesRequest {
 }
 
 func StripExtraContent(messages []json.RawMessage) []json.RawMessage {
-	result := make([]json.RawMessage, len(messages))
-	for i, raw := range messages {
-		result[i] = stripField(raw, "extra_content")
-	}
-	return result
+	return fn.Map(messages, func(raw json.RawMessage) json.RawMessage {
+		return stripField(raw, "extra_content")
+	})
 }
 
 func stripField(raw json.RawMessage, field string) json.RawMessage {

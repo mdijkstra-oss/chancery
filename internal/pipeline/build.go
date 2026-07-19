@@ -13,6 +13,10 @@ func BuildRequestParams(agentReference string, req protocol.ChatRequest, registr
 	if err != nil {
 		return protocol.RequestParams{}, prompts.PromptConfig{}, err
 	}
+	return BuildRequestParamsForAgent(resolved, req, registry)
+}
+
+func BuildRequestParamsForAgent(resolved prompts.ResolvedAgent, req protocol.ChatRequest, registry prompts.Registry) (protocol.RequestParams, prompts.PromptConfig, error) {
 	promptCfg := resolved.Config
 
 	expanded := messages.ExpandMessages(req.Messages, registry.Modes)

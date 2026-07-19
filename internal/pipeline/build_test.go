@@ -41,7 +41,11 @@ func TestBuildRequestParams(t *testing.T) {
 		Tools:    []json.RawMessage{json.RawMessage(`{"name":"search"}`)},
 	}
 
-	params, cfg, err := BuildRequestParams("folder.deep", req, registry)
+	resolved, err := registry.ResolveAgent("folder.deep")
+	if err != nil {
+		t.Fatalf("resolve agent: %v", err)
+	}
+	params, cfg, err := BuildRequestParamsForAgent(resolved, req, registry)
 	if err != nil {
 		t.Fatalf("build request params: %v", err)
 	}

@@ -1,0 +1,138 @@
+package cli
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"slices"
+	"text/tabwriter"
+
+	"github.com/matthijn/hermes-logos/internal/prompts"
+
+	"github.com/spf13/cobra"
+)
+
+type listModel struct {
+	Name            string `json:"name,omitempty"`
+	Model           string `json:"model"`
+	ReasoningEffort string `json:"reasoning_effort,omitempty"`
+	Default         bool   `json:"default,omitempty"`
+}
+
+type listAgent struct {
+	Path        string      `json:"path"`
+	Description string      `json:"description,omitempty"`
+	Model       string      `json:"model,omitempty"`
+	Reasoning   string      `json:"reasoning_effort,omitempty"`
+	Models      []listModel `json:"models,omitempty"`
+}
+
+type listSummary struct {
+	Agents    int `json:"agents"`
+	Models    int `json:"models"`
+	Providers int `json:"providers"`
+}
+
+type listOutput struct {
+	Agents  []listAgent `json:"agents"`
+	Summary listSummary `json:"summary"`
+}
+
+func newListCommand() *cobra.Command {
+	command := &cobra.Command{
+		Use:   "list",
+		Short: "List configured agents and models",
+		Args:  cobra.NoArgs,
+		RunE:  runListCommand,
+	}
+	command.Flags().Bool("json", false, "print JSON")
+	return command
+}
+
+func runListCommand(command *cobra.Command, _ []string) error {
+	configPath, err := commandConfigPath(command)
+	if err != nil {
+		return err
+	}
+	asJSON, err := command.Flags().GetBool("json")
+	if err != nil {
+		return fmt.Errorf("read JSON flag: %w", err)
+	}
+	registry, err := loadRegistry(configPath)
+	if err != nil {
+		return err
+	}
+	return runList(registry, asJSON, command.OutOrStdout())
+}
+
+func runList(registry prompts.Registry, asJSON bool, output io.Writer) error {
+	list := buildListOutput(registry)
+	if asJSON {
+		encoder := json.NewEncoder(output)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(list); err != nil {
+			return fmt.Errorf("encode list: %w", err)
+		}
+		return nil
+	}
+	return writeListTable(list, output)
+}
+
+func buildListOutput(registry prompts.Registry) listOutput {
+	agents := make([]listAgent, 0, len(registry.Agents))
+	for _, path := range registry.AgentPaths() {
+		agent := listAgent{Path: path, Description: registry.Descriptions[path]}
+		if named := registry.NamedConfigs[path]; len(named) > 0 {
+			names := make([]string, 0, len(named))
+			for name := range named {
+				names = append(names, name)
+			}
+			slices.Sort(names)
+			for _, name := range names {
+				cfg := named[name]
+				agent.Models = append(agent.Models, listModel{Name: name, Model: cfg.Model, ReasoningEffort: cfg.ReasoningEffort, Default: registry.Defaults[path] == name})
+			}
+		} else {
+			cfg := registry.Configs[path]
+			agent.Model = cfg.Model
+			agent.Reasoning = cfg.ReasoningEffort
+		}
+		agents = append(agents, agent)
+	}
+	return listOutput{
+		Agents: agents,
+		Summary: listSummary{
+			Agents:    len(registry.Agents),
+			Models:    registry.ModelCount(),
+			Providers: registry.ProviderCount(),
+		},
+	}
+}
+
+func writeListTable(output listOutput, destination io.Writer) error {
+	writer := tabwriter.NewWriter(destination, 0, 4, 2, ' ', 0)
+	if _, err := fmt.Fprintln(writer, "PATH\tMODEL\tREASONING"); err != nil {
+		return fmt.Errorf("write list header: %w", err)
+	}
+	for _, agent := range output.Agents {
+		if _, err := fmt.Fprintf(writer, "%s\t%s\t%s\n", agent.Path, agent.Model, agent.Reasoning); err != nil {
+			return fmt.Errorf("write agent: %w", err)
+		}
+		for _, model := range agent.Models {
+			marker := ""
+			if model.Default {
+				marker = " (default)"
+			}
+			if _, err := fmt.Fprintf(writer, "  .%s%s\t%s\t%s\n", model.Name, marker, model.Model, model.ReasoningEffort); err != nil {
+				return fmt.Errorf("write model: %w", err)
+			}
+		}
+	}
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("flush list: %w", err)
+	}
+	if _, err := fmt.Fprintf(destination, "%d agents · %d models · %d providers\n", output.Summary.Agents, output.Summary.Models, output.Summary.Providers); err != nil {
+		return fmt.Errorf("write list summary: %w", err)
+	}
+	return nil
+}

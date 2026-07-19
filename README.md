@@ -529,9 +529,10 @@ The Makefile loads `.env.local` when present. `make start-prod` additionally sou
 cmd/hermes-logos/           CLI entry point
 internal/auth/               JWT configuration and validation
 internal/bootstrap/          Runtime logger setup
-internal/cli/                Commands and server assembly
+internal/cli/                Cobra commands and terminal rendering
 internal/config/             Environment configuration
 internal/handlers/http/      Routes, middleware, chat, embeddings, and quota flow
+internal/invoke/             Adapter-neutral agent invocation
 internal/messages/           Pure message transforms
 internal/pipeline/           Agent resolution and request assembly
 internal/prompts/            Manifest loading, validation, fragments, modes, and tools
@@ -539,6 +540,7 @@ internal/protocol/           Canonical request, tool, and usage types
 internal/providers/          Protocol dispatch and provider adapters
 internal/quota/              External reserve/settle client
 internal/ratelimit/          Retry and per-model cooldown coordination
+internal/server/             HTTP server composition and startup
 internal/telemetry/          Structured call records
 internal/tokens/             Lightweight token estimation
 config/                      Optional local external-config location

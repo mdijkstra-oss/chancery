@@ -30,6 +30,7 @@ func NewChatHandler(registry prompts.Registry, limiter *ratelimit.Limiter, quota
 func handleChat(w http.ResponseWriter, r *http.Request, registry prompts.Registry, limiter *ratelimit.Limiter, quotaClient *quota.Client) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	req, err := decodeRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

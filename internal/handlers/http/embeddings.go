@@ -34,6 +34,7 @@ func NewEmbeddingsHandler(cfg prompts.PromptConfig, limiter *ratelimit.Limiter, 
 func handleEmbeddings(w http.ResponseWriter, r *http.Request, cfg prompts.PromptConfig, limiter *ratelimit.Limiter, quotaClient *quota.Client) {
 	ctx := r.Context()
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	req, err := decodeEmbeddingsRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

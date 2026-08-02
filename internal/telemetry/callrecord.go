@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
 )
 
 type CallRecord struct {

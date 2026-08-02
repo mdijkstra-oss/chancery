@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/matthijn/hermes-logos/internal/auth"
-	"github.com/matthijn/hermes-logos/internal/logging"
+	"github.com/mdijkstra-oss/chancery/internal/auth"
+	"github.com/mdijkstra-oss/chancery/internal/logging"
 
 	"github.com/golang-jwt/jwt/v5"
 )

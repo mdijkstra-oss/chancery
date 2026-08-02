@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/matthijn/hermes-logos/internal/fn"
-	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/fn"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
 )
 
 type CompletionsRequest struct {

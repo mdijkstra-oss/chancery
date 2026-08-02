@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/matthijn/hermes-logos/internal/server"
+	"github.com/mdijkstra-oss/chancery/internal/server"
 
 	"github.com/spf13/cobra"
 )

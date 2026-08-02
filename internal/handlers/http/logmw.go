@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/matthijn/hermes-logos/internal/logging"
+	"github.com/mdijkstra-oss/chancery/internal/logging"
 )
 
 const maxLoggedHeaderValueLength = 512

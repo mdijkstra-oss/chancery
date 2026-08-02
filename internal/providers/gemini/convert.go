@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
 	"google.golang.org/genai"
 )
 

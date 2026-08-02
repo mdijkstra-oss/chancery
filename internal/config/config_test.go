@@ -39,7 +39,7 @@ func TestLoad(t *testing.T) {
 			env: map[string]string{
 				"AUTH_JWT_JWKS_URL":   "https://issuer.example/jwks.json",
 				"AUTH_JWT_ISSUER":     "https://issuer.example/",
-				"AUTH_JWT_AUDIENCE":   "hermes-logos",
+				"AUTH_JWT_AUDIENCE":   "chancery",
 				"AUTH_JWT_ALGORITHMS": "RS256, PS256,RS256",
 				"LOG_REQUEST_HEADERS": "X-Tenant-ID,X-Trace-ID",
 			},
@@ -51,7 +51,7 @@ func TestLoad(t *testing.T) {
 			env: map[string]string{
 				"AUTH_JWT_PUBLIC_KEY_FILE": "/run/keys/jwt.pem",
 				"AUTH_JWT_ISSUER":          "issuer",
-				"AUTH_JWT_AUDIENCE":        "hermes-logos",
+				"AUTH_JWT_AUDIENCE":        "chancery",
 				"AUTH_JWT_ALGORITHMS":      "EdDSA",
 			},
 			wantEnabled: true,
@@ -94,7 +94,7 @@ func TestLoad(t *testing.T) {
 			name: "missing issuer",
 			env: map[string]string{
 				"AUTH_JWT_PUBLIC_KEY_FILE": "/run/keys/jwt.pem",
-				"AUTH_JWT_AUDIENCE":        "hermes-logos",
+				"AUTH_JWT_AUDIENCE":        "chancery",
 				"AUTH_JWT_ALGORITHMS":      "RS256",
 			},
 			wantError: "AUTH_JWT_ISSUER",
@@ -113,7 +113,7 @@ func TestLoad(t *testing.T) {
 			env: map[string]string{
 				"AUTH_JWT_PUBLIC_KEY_FILE": "/run/keys/jwt.pem",
 				"AUTH_JWT_ISSUER":          "issuer",
-				"AUTH_JWT_AUDIENCE":        "hermes-logos",
+				"AUTH_JWT_AUDIENCE":        "chancery",
 			},
 			wantError: "AUTH_JWT_ALGORITHMS",
 		},
@@ -122,7 +122,7 @@ func TestLoad(t *testing.T) {
 			env: map[string]string{
 				"AUTH_JWT_JWKS_URL":   "http://issuer.example/jwks.json",
 				"AUTH_JWT_ISSUER":     "issuer",
-				"AUTH_JWT_AUDIENCE":   "hermes-logos",
+				"AUTH_JWT_AUDIENCE":   "chancery",
 				"AUTH_JWT_ALGORITHMS": "RS256",
 			},
 			wantError: "HTTPS URL",
@@ -132,7 +132,7 @@ func TestLoad(t *testing.T) {
 			env: map[string]string{
 				"AUTH_JWT_PUBLIC_KEY_FILE": "/run/keys/jwt.pem",
 				"AUTH_JWT_ISSUER":          "issuer",
-				"AUTH_JWT_AUDIENCE":        "hermes-logos",
+				"AUTH_JWT_AUDIENCE":        "chancery",
 				"AUTH_JWT_ALGORITHMS":      "HS256",
 			},
 			wantError: "unsupported JWT algorithm",

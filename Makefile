@@ -2,7 +2,7 @@
 export
 
 CONFIG ?=
-RUN_CMD := go run ./cmd/hermes-logos --config "$(CONFIG)"
+RUN_CMD := go run ./cmd/chancery --config "$(CONFIG)"
 
 kill:
 	@-lsof -ti:8081 | xargs kill -9 2>/dev/null || true
@@ -25,7 +25,7 @@ dev:
 
 build:
 	@mkdir -p bin
-	go build -o bin/hermes-logos ./cmd/hermes-logos
+	go build -o bin/chancery ./cmd/chancery
 
 .PHONY: test test-race vet fmt fmt-check lint cover
 test:

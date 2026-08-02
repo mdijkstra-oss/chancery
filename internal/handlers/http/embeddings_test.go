@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matthijn/hermes-logos/internal/prompts"
-	"github.com/matthijn/hermes-logos/internal/quota"
-	"github.com/matthijn/hermes-logos/internal/ratelimit"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/quota"
+	"github.com/mdijkstra-oss/chancery/internal/ratelimit"
 )
 
 func TestEmbeddingsHandler(t *testing.T) {

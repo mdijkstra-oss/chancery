@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/matthijn/hermes-logos/internal/cli"
+	"github.com/mdijkstra-oss/chancery/internal/cli"
 )
 
 func main() {

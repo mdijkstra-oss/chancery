@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/matthijn/hermes-logos/internal/fn"
+	"github.com/mdijkstra-oss/chancery/internal/fn"
 	"gopkg.in/yaml.v3"
 )
 

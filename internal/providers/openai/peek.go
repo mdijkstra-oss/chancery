@@ -3,7 +3,7 @@ package openai
 import (
 	"encoding/json"
 
-	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
 )
 
 type completedEnvelope struct {

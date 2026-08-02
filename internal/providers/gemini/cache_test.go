@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
 )
 
 func TestIsValid(t *testing.T) {

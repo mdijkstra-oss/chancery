@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matthijn/hermes-logos/internal/ratelimit"
+	"github.com/mdijkstra-oss/chancery/internal/ratelimit"
 )
 
 func TestOpen(t *testing.T) {

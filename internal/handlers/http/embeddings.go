@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/matthijn/hermes-logos/internal/auth"
-	"github.com/matthijn/hermes-logos/internal/prompts"
-	"github.com/matthijn/hermes-logos/internal/providers/openai"
-	"github.com/matthijn/hermes-logos/internal/quota"
-	"github.com/matthijn/hermes-logos/internal/ratelimit"
-	"github.com/matthijn/hermes-logos/internal/telemetry"
-	"github.com/matthijn/hermes-logos/internal/tokens"
+	"github.com/mdijkstra-oss/chancery/internal/auth"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/providers/openai"
+	"github.com/mdijkstra-oss/chancery/internal/quota"
+	"github.com/mdijkstra-oss/chancery/internal/ratelimit"
+	"github.com/mdijkstra-oss/chancery/internal/telemetry"
+	"github.com/mdijkstra-oss/chancery/internal/tokens"
 )
 
 const (

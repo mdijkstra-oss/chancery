@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
 )
 
 func TestResolve(t *testing.T) {

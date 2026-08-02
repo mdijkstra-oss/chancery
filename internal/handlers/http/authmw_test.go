@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matthijn/hermes-logos/internal/auth"
-	"github.com/matthijn/hermes-logos/internal/logging"
+	"github.com/mdijkstra-oss/chancery/internal/auth"
+	"github.com/mdijkstra-oss/chancery/internal/logging"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -133,7 +133,7 @@ func middlewareValidator(t *testing.T, key *rsa.PrivateKey) auth.Validator {
 	validator, err := auth.NewValidator(context.Background(), auth.Config{
 		PublicKeyFile: path,
 		Issuer:        "https://issuer.example/",
-		Audience:      "hermes-logos",
+		Audience:      "chancery",
 		Algorithms:    []string{"RS256"},
 	})
 	if err != nil {
@@ -155,7 +155,7 @@ func middlewareRSAKey(t *testing.T) *rsa.PrivateKey {
 func middlewareToken(t *testing.T, key *rsa.PrivateKey, expiresAt time.Time, subject string) string {
 	t.Helper()
 	claims := jwt.RegisteredClaims{
-		Audience:  jwt.ClaimStrings{"hermes-logos"},
+		Audience:  jwt.ClaimStrings{"chancery"},
 		ExpiresAt: jwt.NewNumericDate(expiresAt),
 		IssuedAt:  jwt.NewNumericDate(time.Now().Add(-time.Minute)),
 		Issuer:    "https://issuer.example/",

@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/matthijn/hermes-logos/internal/logging"
-	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/logging"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
 
 	"github.com/google/go-cmp/cmp"
 )

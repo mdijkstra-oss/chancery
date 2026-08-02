@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
 )
 
 func loadRegistry(configPath string) (prompts.Registry, error) {

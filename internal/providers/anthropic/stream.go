@@ -9,10 +9,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/matthijn/hermes-logos/internal/prompts"
-	"github.com/matthijn/hermes-logos/internal/protocol"
-	"github.com/matthijn/hermes-logos/internal/providers/httpstream"
-	"github.com/matthijn/hermes-logos/internal/providers/sse"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/providers/httpstream"
+	"github.com/mdijkstra-oss/chancery/internal/providers/sse"
 )
 
 func Stream(ctx context.Context, w io.Writer, params protocol.RequestParams, provider prompts.ProviderConfig) (sse.StreamResult, error) {

@@ -3,9 +3,9 @@ package pipeline
 import (
 	"fmt"
 
-	"github.com/matthijn/hermes-logos/internal/messages"
-	"github.com/matthijn/hermes-logos/internal/prompts"
-	"github.com/matthijn/hermes-logos/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/messages"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
 )
 
 func BuildRequestParams(agentReference string, req protocol.ChatRequest, registry prompts.Registry) (protocol.RequestParams, prompts.PromptConfig, error) {

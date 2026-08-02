@@ -28,7 +28,7 @@ func Run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 
 func newRootCommand() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "hermes-logos",
+		Use:   "chancery",
 		Short: "Configuration-driven AI gateway",
 		Args:  cobra.NoArgs,
 		RunE:  runRootCommand,

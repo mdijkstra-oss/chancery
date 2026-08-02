@@ -1,12 +1,12 @@
 package providers
 
 import (
-	"github.com/matthijn/hermes-logos/internal/prompts"
-	"github.com/matthijn/hermes-logos/internal/providers/anthropic"
-	"github.com/matthijn/hermes-logos/internal/providers/completions"
-	"github.com/matthijn/hermes-logos/internal/providers/gemini"
-	"github.com/matthijn/hermes-logos/internal/providers/openai"
-	"github.com/matthijn/hermes-logos/internal/providers/sse"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/providers/anthropic"
+	"github.com/mdijkstra-oss/chancery/internal/providers/completions"
+	"github.com/mdijkstra-oss/chancery/internal/providers/gemini"
+	"github.com/mdijkstra-oss/chancery/internal/providers/openai"
+	"github.com/mdijkstra-oss/chancery/internal/providers/sse"
 )
 
 func StreamForProtocol(p prompts.Protocol) sse.StreamFunc {

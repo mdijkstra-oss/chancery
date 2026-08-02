@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matthijn/hermes-logos/internal/logging"
+	"github.com/mdijkstra-oss/chancery/internal/logging"
 )
 
 func TestRequestContext(t *testing.T) {

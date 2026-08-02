@@ -27,7 +27,7 @@ func TestValidator(t *testing.T) {
 	cfg := Config{
 		PublicKeyFile: publicKeyFile,
 		Issuer:        "https://issuer.example/",
-		Audience:      "hermes-logos",
+		Audience:      "chancery",
 		Algorithms:    []string{"RS256"},
 	}
 	validator, err := NewValidator(context.Background(), cfg)
@@ -103,7 +103,7 @@ func TestJWKSRefreshesUnknownKID(t *testing.T) {
 	validator, err := newValidator(context.Background(), Config{
 		JWKSURL:    server.URL,
 		Issuer:     "https://issuer.example/",
-		Audience:   "hermes-logos",
+		Audience:   "chancery",
 		Algorithms: []string{"RS256"},
 	}, server.Client())
 	if err != nil {
@@ -187,7 +187,7 @@ func jwkFromRSA(key *rsa.PublicKey, keyID string) testJWK {
 
 func testClaims(expiresAt, notBefore time.Time, subject string) jwt.RegisteredClaims {
 	return jwt.RegisteredClaims{
-		Audience:  jwt.ClaimStrings{"hermes-logos"},
+		Audience:  jwt.ClaimStrings{"chancery"},
 		ExpiresAt: jwt.NewNumericDate(expiresAt),
 		IssuedAt:  jwt.NewNumericDate(time.Now().Add(-time.Minute)),
 		Issuer:    "https://issuer.example/",

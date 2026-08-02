@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/json"
 
-	"github.com/matthijn/hermes-logos/internal/fn"
+	"github.com/mdijkstra-oss/chancery/internal/fn"
 )
 
 type RequestParams struct {

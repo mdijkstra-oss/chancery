@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/matthijn/hermes-logos/internal/providers/sse"
+	"github.com/mdijkstra-oss/chancery/internal/providers/sse"
 )
 
 func TestHandleEvent(t *testing.T) {

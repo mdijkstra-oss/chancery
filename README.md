@@ -1,6 +1,6 @@
-# Hermes Logos
+# Chancery
 
-Hermes Logos is a configuration-driven AI gateway written in Go. It turns Markdown files into addressable agents, composes their prompts with reusable modes and tool guidance, and exposes them through a single streaming HTTP API or a local CLI.
+Chancery is a configuration-driven AI gateway written in Go. It turns Markdown files into addressable agents, composes their prompts with reusable modes and tool guidance, and exposes them through a single streaming HTTP API or a local CLI.
 
 A canonical request pipeline sits in front of multiple upstream API shapes:
 
@@ -32,7 +32,7 @@ flowchart TD
     K --> L[Settle quota and log usage]
 ```
 
-Agent behavior lives outside the binary in a configuration directory. `providers.yaml` defines providers and model aliases; Markdown files define prompts and URL paths. At request time Hermes Logos:
+Agent behavior lives outside the binary in a configuration directory. `providers.yaml` defines providers and model aliases; Markdown files define prompts and URL paths. At request time Chancery:
 
 1. resolves the requested agent and optional named model;
 2. expands the final requested mode;
@@ -111,28 +111,28 @@ Provider keys are not required by `validate`, but `call` resolves the selected p
 ### 2. Validate and inspect the configuration
 
 ```sh
-go run ./cmd/hermes-logos --config ./config validate
-go run ./cmd/hermes-logos --config ./config list
-go run ./cmd/hermes-logos --config ./config list --json
+go run ./cmd/chancery --config ./config validate
+go run ./cmd/chancery --config ./config list
+go run ./cmd/chancery --config ./config list --json
 ```
 
 ### 3. Call an agent from the CLI
 
 ```sh
-go run ./cmd/hermes-logos --config ./config call assistant --input "Hello"
+go run ./cmd/chancery --config ./config call assistant --input "Hello"
 ```
 
 Input can also come from a file or stdin:
 
 ```sh
-go run ./cmd/hermes-logos --config ./config call assistant --input @prompt.txt
-printf 'Hello' | go run ./cmd/hermes-logos --config ./config call assistant
+go run ./cmd/chancery --config ./config call assistant --input @prompt.txt
+printf 'Hello' | go run ./cmd/chancery --config ./config call assistant
 ```
 
 ### 4. Start the server
 
 ```sh
-go run ./cmd/hermes-logos --config ./config serve
+go run ./cmd/chancery --config ./config serve
 ```
 
 The default address is `:8081`.
@@ -150,7 +150,7 @@ When JWT authentication is enabled, add `Authorization: Bearer <token>`.
 The global `--config PATH` flag is mandatory and must appear before the command.
 
 ```text
-hermes-logos --config PATH <serve|validate|list|call>
+chancery --config PATH <serve|validate|list|call>
 ```
 
 | Command | Purpose |
@@ -479,7 +479,7 @@ Accepted algorithms are `RS256`, `RS384`, `RS512`, `PS256`, `PS384`, `PS512`, `E
 
 Quota integration is disabled when both quota URLs are empty. Enabling either URL requires both.
 
-For each request Hermes Logos can:
+For each request Chancery can:
 
 1. reserve quota with request identity, user, endpoint, provider/model settings, estimated input, and maximum output;
 2. reject denied reservations with `429` and an optional `Retry-After` header;
@@ -506,8 +506,8 @@ Completed calls emit structured usage records with endpoint, model, reasoning/se
 # Run all tests
 go test ./...
 
-# Build ./bin/hermes-logos
-go build -o bin/hermes-logos ./cmd/hermes-logos
+# Build ./bin/chancery
+go build -o bin/chancery ./cmd/chancery
 # or
 make build
 
@@ -527,7 +527,7 @@ The Makefile loads `.env.local` when present. `make start-prod` additionally sou
 ## Repository layout
 
 ```text
-cmd/hermes-logos/           CLI entry point
+cmd/chancery/           CLI entry point
 internal/auth/               JWT configuration and validation
 internal/bootstrap/          Runtime logger setup
 internal/cli/                Cobra commands and terminal rendering

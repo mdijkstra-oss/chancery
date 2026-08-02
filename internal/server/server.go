@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/matthijn/hermes-logos/internal/auth"
-	"github.com/matthijn/hermes-logos/internal/bootstrap"
-	"github.com/matthijn/hermes-logos/internal/config"
-	httpHandlers "github.com/matthijn/hermes-logos/internal/handlers/http"
-	"github.com/matthijn/hermes-logos/internal/prompts"
-	"github.com/matthijn/hermes-logos/internal/quota"
-	"github.com/matthijn/hermes-logos/internal/ratelimit"
+	"github.com/mdijkstra-oss/chancery/internal/auth"
+	"github.com/mdijkstra-oss/chancery/internal/bootstrap"
+	"github.com/mdijkstra-oss/chancery/internal/config"
+	httpHandlers "github.com/mdijkstra-oss/chancery/internal/handlers/http"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/quota"
+	"github.com/mdijkstra-oss/chancery/internal/ratelimit"
 
 	"github.com/go-chi/chi/v5"
 )

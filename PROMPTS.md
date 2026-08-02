@@ -1,12 +1,12 @@
 # External configuration
 
-`hermes-logos` ships without agents, prompts, providers, or model names. Every command requires an external config directory:
+`chancery` ships without agents, prompts, providers, or model names. Every command requires an external config directory:
 
 ```bash
-hermes-logos --config /path/to/config serve
-hermes-logos --config /path/to/config validate
-hermes-logos --config /path/to/config list
-hermes-logos --config /path/to/config call agent-path --input "text"
+chancery --config /path/to/config serve
+chancery --config /path/to/config validate
+chancery --config /path/to/config list
+chancery --config /path/to/config call agent-path --input "text"
 ```
 
 The binary never searches the repository or current working directory for config.
@@ -174,7 +174,7 @@ Supported protocols are `responses`, `gemini`, `completions`, and `anthropic`. P
 ### Serve
 
 ```bash
-hermes-logos --config /path/to/config serve
+chancery --config /path/to/config serve
 ```
 
 Loads config, resolves execution credentials, and starts the HTTP server.
@@ -209,12 +209,12 @@ The settlement endpoint receives a `POST` request containing the reservation ID,
 }
 ```
 
-The settlement endpoint may return any 2xx response. Pricing, plans, balances, quota policy, and persistence remain external to `hermes-logos`.
+The settlement endpoint may return any 2xx response. Pricing, plans, balances, quota policy, and persistence remain external to `chancery`.
 
 ### Validate
 
 ```bash
-hermes-logos --config /path/to/config validate
+chancery --config /path/to/config validate
 ```
 
 Reports malformed YAML, invalid provider/model references, missing required frontmatter, invalid named defaults, missing includes, orphaned local Markdown, and empty-body warnings. Errors produce a nonzero exit code.
@@ -222,8 +222,8 @@ Reports malformed YAML, invalid provider/model references, missing required fron
 ### List
 
 ```bash
-hermes-logos --config /path/to/config list
-hermes-logos --config /path/to/config list --json
+chancery --config /path/to/config list
+chancery --config /path/to/config list --json
 ```
 
 Shows every agent path, upstream model, and reasoning effort. Named entries are indented and the default is marked. The human-readable output ends with agent, model, and provider counts.
@@ -231,9 +231,9 @@ Shows every agent path, upstream model, and reasoning effort. Named entries are 
 ### Call
 
 ```bash
-hermes-logos --config /path/to/config call simple-agent --input "text"
-hermes-logos --config /path/to/config call grouped-agent.deep --input @request.txt
-printf 'text' | hermes-logos --config /path/to/config call simple-agent
+chancery --config /path/to/config call simple-agent --input "text"
+chancery --config /path/to/config call grouped-agent.deep --input @request.txt
+printf 'text' | chancery --config /path/to/config call simple-agent
 ```
 
 Chat output streams as text to stdout. Calling `embeddings` writes the provider's embeddings JSON response to stdout.

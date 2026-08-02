@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/matthijn/hermes-logos/internal/protocol"
-	"github.com/matthijn/hermes-logos/internal/providers/sse"
+	"github.com/mdijkstra-oss/chancery/internal/protocol"
+	"github.com/mdijkstra-oss/chancery/internal/providers/sse"
 )
 
 type EmitState struct {

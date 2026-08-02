@@ -1,4 +1,4 @@
-module github.com/matthijn/hermes-logos
+module github.com/mdijkstra-oss/chancery
 
 go 1.26.5
 

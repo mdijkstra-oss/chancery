@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/matthijn/hermes-logos/internal/prompts"
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
 
 	"github.com/spf13/cobra"
 )

@@ -4,16 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
-	"github.com/mdijkstra-oss/chancery/internal/invoke"
-	"github.com/mdijkstra-oss/chancery/internal/prompts"
-	"github.com/mdijkstra-oss/chancery/internal/protocol"
-	"github.com/mdijkstra-oss/chancery/internal/providers/sse"
+	"github.com/mdijkstra-oss/chancery/internal/config"
+	"github.com/mdijkstra-oss/chancery/internal/responses"
 
 	"github.com/spf13/cobra"
 )
+
+// inputItem is one item of the Responses input array. A terminal gives one turn of
+// text, which is the smallest body the format accepts.
+type inputItem struct {
+	Type    string `json:"type"`
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type callRequest struct {
+	Input  []inputItem `json:"input"`
+	Stream bool        `json:"stream"`
+}
 
 func newCallCommand() *cobra.Command {
 	command := &cobra.Command{
@@ -43,42 +55,62 @@ func runCallCommand(command *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("read input: %w", err)
 	}
-	target, err := invoke.Resolve(args[0], registry, os.Getenv)
+	resolved, err := registry.ResolveAgent(args[0])
 	if err != nil {
 		return err
 	}
-	switch target.Kind {
-	case invoke.KindChat:
-		return writeChat(command, input, target, registry)
-	case invoke.KindEmbeddings:
-		return writeEmbeddings(command, input, target)
-	default:
-		panic("unknown invocation kind: " + target.Kind)
+	backend, err := config.LoadBackend()
+	if err != nil {
+		return err
 	}
+	client, err := responses.NewClient(backend)
+	if err != nil {
+		return err
+	}
+
+	body, err := composeCall(input, responses.AgentFrom(resolved))
+	if err != nil {
+		return err
+	}
+	response, err := client.Send(command.Context(), responses.Request{Body: body})
+	if err != nil {
+		return fmt.Errorf("call failed: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return responses.StatusErrorFrom(response)
+	}
+	// A backend that answered and then went quiet would otherwise hold the terminal
+	// open for as long as it stays connected.
+	stream := responses.WithStallTimeout(response.Body, responses.StallTimeout)
+	defer stream.Close()
+	return renderStream(command.OutOrStdout(), stream)
 }
 
-func writeChat(command *cobra.Command, input string, target invoke.Target, registry prompts.Registry) error {
-	message, err := json.Marshal(protocol.InputMessage{Type: "message", Role: "user", Content: input})
-	if err != nil {
-		return fmt.Errorf("build input: %w", err)
+func composeCall(input string, agent responses.Agent) ([]byte, error) {
+	request := callRequest{
+		Input:  []inputItem{{Type: "message", Role: "user", Content: input}},
+		Stream: true,
 	}
-	request := protocol.ChatRequest{Messages: []json.RawMessage{message}}
-	writer := sse.NewTextWriter(command.OutOrStdout())
-	if _, err := invoke.Chat(command.Context(), target, request, registry, writer); err != nil {
-		return fmt.Errorf("call failed: %w", err)
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("build input: %w", err)
+	}
+	composed, err := responses.Compose(encoded, agent)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	return composed, nil
+}
+
+// A stream that ends in response.failed, or ends without response.completed at all,
+// leaves Close holding the error that becomes the exit code.
+func renderStream(destination io.Writer, body io.Reader) error {
+	writer := newTextWriter(destination)
+	if _, err := io.Copy(writer, body); err != nil {
+		return fmt.Errorf("read stream: %w", err)
 	}
 	if err := writer.Close(); err != nil {
-		return fmt.Errorf("write output: %w", err)
-	}
-	return nil
-}
-
-func writeEmbeddings(command *cobra.Command, input string, target invoke.Target) error {
-	result, err := invoke.Embeddings(command.Context(), target, []string{input})
-	if err != nil {
-		return fmt.Errorf("call failed: %w", err)
-	}
-	if _, err := command.OutOrStdout().Write(result.Body); err != nil {
 		return fmt.Errorf("write output: %w", err)
 	}
 	return nil

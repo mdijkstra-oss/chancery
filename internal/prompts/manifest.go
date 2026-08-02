@@ -34,10 +34,8 @@ type Registry struct {
 	NamedConfigs map[string]map[string]PromptConfig
 	Defaults     map[string]string
 	Descriptions map[string]string
-	Modes        map[string]string
-	ProviderKeys []string
 	models       map[string]modelEntry
-	providers    map[string]ProviderConfig
+	modelsLoaded bool
 }
 
 type ResolvedAgent struct {
@@ -108,64 +106,6 @@ func (r Registry) ModelCount() int {
 		count++
 	}
 	return count
-}
-
-func (r Registry) ProviderCount() int {
-	return len(r.ProviderKeys)
-}
-
-func (r Registry) WithAPIKeys(lookup func(string) string) (Registry, error) {
-	result := r
-	result.Agents = cloneMap(r.Agents)
-	result.Configs = make(map[string]PromptConfig, len(r.Configs))
-	for key, cfg := range r.Configs {
-		resolved, err := ResolveAPIKey(cfg, lookup)
-		if err != nil {
-			return Registry{}, fmt.Errorf("agent %q: %w", key, err)
-		}
-		result.Configs[key] = resolved
-	}
-	result.NamedConfigs = make(map[string]map[string]PromptConfig, len(r.NamedConfigs))
-	for path, configs := range r.NamedConfigs {
-		resolvedConfigs := make(map[string]PromptConfig, len(configs))
-		for name, cfg := range configs {
-			resolved, err := ResolveAPIKey(cfg, lookup)
-			if err != nil {
-				return Registry{}, fmt.Errorf("agent %q model %q: %w", path, name, err)
-			}
-			resolvedConfigs[name] = resolved
-		}
-		result.NamedConfigs[path] = resolvedConfigs
-	}
-	result.Defaults = cloneMap(r.Defaults)
-	result.Descriptions = cloneMap(r.Descriptions)
-	result.Modes = cloneMap(r.Modes)
-	result.ProviderKeys = slices.Clone(r.ProviderKeys)
-	result.models = cloneMap(r.models)
-	result.providers = make(map[string]ProviderConfig, len(r.providers))
-	for key, provider := range r.providers {
-		apiKey := lookup(provider.APIKeyEnv)
-		if apiKey == "" {
-			return Registry{}, fmt.Errorf("provider %q: environment variable %s is not set", key, provider.APIKeyEnv)
-		}
-		provider.APIKey = apiKey
-		result.providers[key] = provider
-	}
-	return result, nil
-}
-
-func ResolveAPIKey(cfg PromptConfig, lookup func(string) string) (PromptConfig, error) {
-	env := cfg.Provider.APIKeyEnv
-	if env == "" {
-		return PromptConfig{}, fmt.Errorf("provider %q has no api_key_env", cfg.Provider.Key)
-	}
-	apiKey := lookup(env)
-	if apiKey == "" {
-		return PromptConfig{}, fmt.Errorf("environment variable %s is not set", env)
-	}
-	result := cfg
-	result.Provider.APIKey = apiKey
-	return result, nil
 }
 
 func (r Report) HasErrors() bool {
@@ -269,9 +209,7 @@ func Load(root string) (Registry, Report) {
 		NamedConfigs: make(map[string]map[string]PromptConfig),
 		Defaults:     make(map[string]string),
 		Descriptions: make(map[string]string),
-		Modes:        make(map[string]string),
 		models:       make(map[string]modelEntry),
-		providers:    make(map[string]ProviderConfig),
 	}
 	var report Report
 
@@ -285,8 +223,7 @@ func Load(root string) (Registry, Report) {
 		return registry, report
 	}
 
-	loadProviders(root, &registry, &report)
-	compileModes(root, &registry, &report)
+	loadModels(root, &registry, &report)
 	validateToolPaths(root, &report)
 	loadAgents(root, &registry, &report)
 	report.sort()
@@ -302,130 +239,47 @@ func resolveInclude(include string, readFile func(string) (string, error), local
 	return readFile(filepath.Join(sharedDir, include))
 }
 
-func loadProviders(root string, registry *Registry, report *Report) {
-	path := filepath.Join(root, "providers.yaml")
+// An alias named twice is rejected by the decoder, which reports both lines, so the
+// flat map needs no duplicate check of its own.
+func loadModels(root string, registry *Registry, report *Report) {
+	path := filepath.Join(root, "models.yaml")
 	data, err := readConfigFile(root, path)
 	if err != nil {
-		report.addError("providers.yaml", err.Error())
+		report.addError("models.yaml", err.Error())
 		return
 	}
-	var file providersFile
+	var file modelsFile
 	if err := decodeYAML(data, &file); err != nil {
-		report.addError("providers.yaml", "malformed YAML: "+err.Error())
+		report.addError("models.yaml", "malformed YAML: "+err.Error())
 		return
 	}
-	if len(file.Providers) == 0 {
-		report.addError("providers.yaml", "no providers configured")
+	if len(file.Models) == 0 {
+		report.addError("models.yaml", "no models configured")
 		return
 	}
-
-	allModels := make(map[string]modelEntry)
-	providerKeys := make([]string, 0, len(file.Providers))
-	for key, providerFile := range file.Providers {
-		providerKeys = append(providerKeys, key)
-		validateProvider(key, providerFile, report)
-		registry.providers[key] = ProviderConfig{
-			Key:       key,
-			Protocol:  providerFile.Protocol,
-			BaseURL:   providerFile.BaseURL,
-			APIKeyEnv: providerFile.APIKeyEnv,
-			Strict:    providerFile.Strict,
-		}
-		for modelKey, model := range providerFile.Models {
-			if _, exists := allModels[modelKey]; exists {
-				report.addError("providers.yaml", fmt.Sprintf("model %q is defined more than once", modelKey))
-				continue
-			}
-			if model.Provider == "" {
-				model.Provider = key
-			}
-			allModels[modelKey] = model
-		}
-	}
-	slices.Sort(providerKeys)
-	registry.ProviderKeys = providerKeys
-
-	resolved, err := resolveModels(allModels)
+	resolved, err := resolveModels(file.Models)
 	if err != nil {
-		report.addError("providers.yaml", err.Error())
+		report.addError("models.yaml", err.Error())
 		return
 	}
 	registry.models = resolved
-	for key, model := range resolved {
-		if _, ok := registry.providers[model.Provider]; !ok {
-			report.addError("providers.yaml", fmt.Sprintf("model %q references unknown provider %q", key, model.Provider))
-		}
-	}
+	registry.modelsLoaded = true
 }
 
-func validateProvider(key string, provider providerFile, report *Report) {
-	if err := validateProtocol(provider.Protocol); err != nil {
-		report.addError("providers.yaml", fmt.Sprintf("provider %q: %v", key, err))
-	}
-	if provider.BaseURL == "" {
-		report.addError("providers.yaml", fmt.Sprintf("provider %q has no base_url", key))
-	}
-	if provider.APIKeyEnv == "" {
-		report.addError("providers.yaml", fmt.Sprintf("provider %q has no api_key_env", key))
-	}
-	if len(provider.Models) == 0 {
-		report.addError("providers.yaml", fmt.Sprintf("provider %q has no models", key))
-	}
-}
+// A models.yaml that did not load leaves an empty alias table, against which every
+// agent's alias reads as undefined. The file's own diagnostic is the true one, so the
+// per-agent line is withheld rather than contradicting it.
+var errModelsUnavailable = errors.New("models.yaml did not load")
 
-func compileModes(root string, registry *Registry, report *Report) {
-	modesDir := filepath.Join(root, "modes")
-	entries, err := os.ReadDir(modesDir)
-	if os.IsNotExist(err) {
+func reportAgentError(report *Report, path, prefix string, err error) {
+	if errors.Is(err, errModelsUnavailable) {
 		return
 	}
-	if err != nil {
-		report.addError("modes", err.Error())
+	if prefix == "" {
+		report.addError(path, err.Error())
 		return
 	}
-	sharedDir := filepath.Join(root, "shared")
-	for _, entry := range entries {
-		if entry.IsDir() || !isMarkdownName(entry.Name()) {
-			continue
-		}
-		path := filepath.Join(modesDir, entry.Name())
-		data, err := readConfigFile(root, path)
-		if err != nil {
-			report.addError(relativePath(root, path), err.Error())
-			continue
-		}
-		compiled, err := ResolveManifest(ParseManifest(string(data)), configReader(root), sharedDir, modesDir, nil)
-		if err != nil {
-			report.addError(relativePath(root, path), err.Error())
-			continue
-		}
-		key := strings.TrimSuffix(entry.Name(), ".md")
-		registry.Modes[key] = compiled.Prompt
-	}
-}
-
-func validateToolPaths(root string, report *Report) {
-	toolsDir := filepath.Join(root, "tools")
-	err := filepath.WalkDir(toolsDir, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			if os.IsNotExist(walkErr) && path == toolsDir {
-				return nil
-			}
-			report.addError(relativePath(root, path), walkErr.Error())
-			return nil
-		}
-		if _, err := resolveConfigPath(root, path); err != nil {
-			report.addError(relativePath(root, path), err.Error())
-			if path == toolsDir || entry.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		return nil
-	})
-	if err != nil && !os.IsNotExist(err) {
-		report.addError("tools", err.Error())
-	}
+	report.addError(path, prefix+": "+err.Error())
 }
 
 func loadAgents(root string, registry *Registry, report *Report) {
@@ -488,6 +342,33 @@ func validateNamedRoutes(registry *Registry, report *Report) {
 	}
 }
 
+// validateToolPaths reports a tool prompt a request could never reach. The directory
+// is resolved the same way at load and at request time, so a symlink out of the config
+// directory is a diagnostic here rather than a missing prompt later.
+func validateToolPaths(root string, report *Report) {
+	toolsDir := filepath.Join(root, "tools")
+	err := filepath.WalkDir(toolsDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			if os.IsNotExist(walkErr) && path == toolsDir {
+				return nil
+			}
+			report.addError(relativePath(root, path), walkErr.Error())
+			return nil
+		}
+		if _, err := resolveConfigPath(root, path); err != nil {
+			report.addError(relativePath(root, path), err.Error())
+			if path == toolsDir || entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		return nil
+	})
+	if err != nil && !os.IsNotExist(err) {
+		report.addError("tools", err.Error())
+	}
+}
+
 func validateAgentPromptField(path string, prompt *string, report *Report) {
 	if prompt == nil {
 		return
@@ -541,7 +422,7 @@ func loadAgent(root, path, body string, frontmatter agentFrontmatter, registry *
 		}
 		cfg, err := buildConfig(root, frontmatter.agentEntry, registry)
 		if err != nil {
-			report.addError(rel, err.Error())
+			reportAgentError(report, rel, "", err)
 			return
 		}
 		registry.Configs[key] = cfg
@@ -578,7 +459,7 @@ func loadAgent(root, path, body string, frontmatter agentFrontmatter, registry *
 		settings.Model = modelSettings.Model
 		cfg, err := buildConfig(root, settings, registry)
 		if err != nil {
-			report.addError(rel, fmt.Sprintf("model entry %q: %v", name, err))
+			reportAgentError(report, rel, fmt.Sprintf("model entry %q", name), err)
 			continue
 		}
 		configs[name] = cfg
@@ -593,22 +474,18 @@ func loadAgent(root, path, body string, frontmatter agentFrontmatter, registry *
 func buildConfig(root string, agent agentEntry, registry *Registry) (PromptConfig, error) {
 	model, ok := registry.models[agent.Model]
 	if !ok {
-		return PromptConfig{}, fmt.Errorf("unknown model %q", agent.Model)
+		if !registry.modelsLoaded {
+			return PromptConfig{}, errModelsUnavailable
+		}
+		return PromptConfig{}, fmt.Errorf("unknown model alias %q", agent.Model)
 	}
-	provider, ok := registry.providers[model.Provider]
-	if !ok {
-		return PromptConfig{}, fmt.Errorf("model %q references unknown provider %q", agent.Model, model.Provider)
-	}
-	cfg := mergeConfig(model, agent, provider)
+	cfg := mergeConfig(model, agent)
 	if cfg.Prompt != "" {
 		data, err := readConfigFile(root, filepath.Join(root, "shared", cfg.Prompt))
 		if err != nil {
 			return PromptConfig{}, fmt.Errorf("model prompt %q: %w", cfg.Prompt, err)
 		}
 		cfg.Prompt = strings.TrimRight(string(data), "\n")
-	}
-	if cfg.Seed && cfg.Provider.Protocol != ProtocolGemini {
-		return PromptConfig{}, fmt.Errorf("seed is enabled but protocol %q does not support it", cfg.Provider.Protocol)
 	}
 	return cfg, nil
 }
@@ -670,10 +547,13 @@ func markIncludes(lines []Line, localDir, sharedDir string, referenced map[strin
 	}
 }
 
+// A reserved directory answers no route and is skipped whole: shared/ holds fragments
+// an agent pulls in by name, tools/ holds prompts a request pulls in by naming the
+// tool. Walking either would report every file in it as an orphan.
 func isReservedDirectory(rel string) bool {
 	first, _, _ := strings.Cut(filepath.ToSlash(rel), "/")
 	switch first {
-	case "shared", "modes", "tools":
+	case "shared", "tools":
 		return true
 	default:
 		return false
@@ -736,8 +616,10 @@ func isWithin(root, path string) bool {
 	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
 }
 
-const maxModelDepth = 5
+const maxAliasDepth = 5
 
+// An alias key is a local name, so it can never stand in for a model the backend
+// knows: a chain that reaches its end without naming one is incomplete.
 func resolveModels(models map[string]modelEntry) (map[string]modelEntry, error) {
 	resolved := make(map[string]modelEntry, len(models))
 	for key := range models {
@@ -745,8 +627,8 @@ func resolveModels(models map[string]modelEntry) (map[string]modelEntry, error) 
 		if err != nil {
 			return nil, err
 		}
-		if model.Name == "" {
-			model.Name = key
+		if model.Model == "" {
+			return nil, fmt.Errorf("alias %q has no model", key)
 		}
 		resolved[key] = model
 	}
@@ -757,14 +639,14 @@ func resolveModel(key string, models map[string]modelEntry) (modelEntry, error) 
 	current := key
 	var chain []modelEntry
 	visited := make(map[string]bool)
-	for len(chain) <= maxModelDepth {
+	for len(chain) <= maxAliasDepth {
 		if visited[current] {
-			return modelEntry{}, fmt.Errorf("model %q has an extends cycle at %q", key, current)
+			return modelEntry{}, fmt.Errorf("alias %q has an extends cycle at %q", key, current)
 		}
 		visited[current] = true
 		entry, ok := models[current]
 		if !ok {
-			return modelEntry{}, fmt.Errorf("model %q references unknown model %q", key, current)
+			return modelEntry{}, fmt.Errorf("alias %q extends unknown alias %q", key, current)
 		}
 		chain = append(chain, entry)
 		if entry.Extends == "" {
@@ -773,7 +655,7 @@ func resolveModel(key string, models map[string]modelEntry) (modelEntry, error) 
 		current = entry.Extends
 	}
 	if chain[len(chain)-1].Extends != "" {
-		return modelEntry{}, fmt.Errorf("model %q extends chain exceeds %d steps", key, maxModelDepth)
+		return modelEntry{}, fmt.Errorf("alias %q extends chain exceeds %d steps", key, maxAliasDepth)
 	}
 	result := chain[len(chain)-1]
 	for index := len(chain) - 2; index >= 0; index-- {
@@ -782,86 +664,48 @@ func resolveModel(key string, models map[string]modelEntry) (modelEntry, error) 
 	return result, nil
 }
 
+// Every field is coalesced by name because result starts as base: one left out would
+// inherit unconditionally, and extends could never override it.
 func overlayModel(base, child modelEntry) modelEntry {
 	result := base
 	result.Extends = ""
-	result.Provider = coalesce(base.Provider, child.Provider)
-	result.Name = coalesce(base.Name, child.Name)
-	result.Type = coalesce(base.Type, child.Type)
-	result.Dimensions = coalesce(base.Dimensions, child.Dimensions)
-	result.MaxTokens = coalesce(base.MaxTokens, child.MaxTokens)
+	result.Model = coalesce(base.Model, child.Model)
 	result.Prompt = coalesce(base.Prompt, child.Prompt)
+	result.MaxTokens = coalesce(base.MaxTokens, child.MaxTokens)
 	result.ReasoningEffort = coalesce(base.ReasoningEffort, child.ReasoningEffort)
 	result.ReasoningSummary = coalesce(base.ReasoningSummary, child.ReasoningSummary)
 	result.Verbosity = coalesce(base.Verbosity, child.Verbosity)
 	result.ServiceTier = coalesce(base.ServiceTier, child.ServiceTier)
-	result.LegacyThinking = coalesce(base.LegacyThinking, child.LegacyThinking)
-	result.AutoCache = coalesce(base.AutoCache, child.AutoCache)
-	result.CacheTTL = coalesce(base.CacheTTL, child.CacheTTL)
 	return result
 }
 
-func mergeConfig(model modelEntry, agent agentEntry, provider ProviderConfig) PromptConfig {
+func mergeConfig(model modelEntry, agent agentEntry) PromptConfig {
 	cfg := PromptConfig{
-		Model:            model.Name,
+		Model:            model.Model,
 		Prompt:           model.Prompt,
-		Dimensions:       model.Dimensions,
 		MaxTokens:        model.MaxTokens,
 		ReasoningEffort:  model.ReasoningEffort,
 		ReasoningSummary: model.ReasoningSummary,
 		Verbosity:        model.Verbosity,
 		ServiceTier:      model.ServiceTier,
-		LegacyThinking:   model.LegacyThinking,
-		AutoCache:        model.AutoCache,
-		CacheTTL:         model.CacheTTL,
-		Provider:         provider,
 	}
+	cfg.MaxTokens = coalesce(cfg.MaxTokens, agent.MaxTokens)
 	cfg.ReasoningEffort = coalesce(cfg.ReasoningEffort, agent.ReasoningEffort)
 	cfg.ReasoningSummary = coalesce(cfg.ReasoningSummary, agent.ReasoningSummary)
 	cfg.Verbosity = coalesce(cfg.Verbosity, agent.Verbosity)
 	cfg.ServiceTier = coalesce(cfg.ServiceTier, agent.ServiceTier)
-	cfg.CacheTTL = coalesce(cfg.CacheTTL, agent.CacheTTL)
-	cfg.Dimensions = coalesce(cfg.Dimensions, agent.Dimensions)
-	cfg.MaxTokens = coalesce(cfg.MaxTokens, agent.MaxTokens)
-	if agent.LegacyThinking != nil {
-		cfg.LegacyThinking = *agent.LegacyThinking
-	}
-	if agent.Temperature != nil {
-		cfg.Temperature = agent.Temperature
-	}
-	if agent.Seed != nil {
-		cfg.Seed = *agent.Seed
-	}
-	if agent.AutoCache != nil {
-		cfg.AutoCache = *agent.AutoCache
-	}
 	return cfg
 }
 
 func overlayAgent(base, child agentEntry) agentEntry {
 	result := base
 	result.Model = coalesce(base.Model, child.Model)
+	result.MaxTokens = coalesce(base.MaxTokens, child.MaxTokens)
 	result.ReasoningEffort = coalesce(base.ReasoningEffort, child.ReasoningEffort)
 	result.ReasoningSummary = coalesce(base.ReasoningSummary, child.ReasoningSummary)
 	result.Verbosity = coalesce(base.Verbosity, child.Verbosity)
 	result.ServiceTier = coalesce(base.ServiceTier, child.ServiceTier)
-	result.LegacyThinking = coalesce(base.LegacyThinking, child.LegacyThinking)
-	result.Temperature = coalesce(base.Temperature, child.Temperature)
-	result.Seed = coalesce(base.Seed, child.Seed)
-	result.AutoCache = coalesce(base.AutoCache, child.AutoCache)
-	result.CacheTTL = coalesce(base.CacheTTL, child.CacheTTL)
-	result.Dimensions = coalesce(base.Dimensions, child.Dimensions)
-	result.MaxTokens = coalesce(base.MaxTokens, child.MaxTokens)
 	return result
-}
-
-func validateProtocol(protocol Protocol) error {
-	switch protocol {
-	case ProtocolResponses, ProtocolGemini, ProtocolCompletions, ProtocolAnthropic:
-		return nil
-	default:
-		return fmt.Errorf("unknown protocol: %q", protocol)
-	}
 }
 
 func (r *Report) addError(path, message string) {
@@ -898,12 +742,4 @@ func coalesce[T comparable](base, override T) T {
 		return override
 	}
 	return base
-}
-
-func cloneMap[K comparable, V any](source map[K]V) map[K]V {
-	result := make(map[K]V, len(source))
-	for key, value := range source {
-		result[key] = value
-	}
-	return result
 }

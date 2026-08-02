@@ -1,62 +1,57 @@
 package cli
 
 import (
-	"bytes"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/mdijkstra-oss/chancery/internal/prompts"
 )
 
-func TestRunList(t *testing.T) {
-	provider := prompts.ProviderConfig{Key: "provider-a"}
-	registry := prompts.Registry{
-		Agents: map[string]prompts.CompiledAgent{
-			"named":  {},
-			"simple": {},
-		},
-		Configs: map[string]prompts.PromptConfig{
-			"named":  {Model: "upstream-fast", Provider: provider},
-			"simple": {Model: "upstream-simple", ReasoningEffort: "low", Provider: provider},
-		},
-		NamedConfigs: map[string]map[string]prompts.PromptConfig{
-			"named": {
-				"deep": {Model: "upstream-deep", ReasoningEffort: "high", Provider: provider},
-				"fast": {Model: "upstream-fast", ReasoningEffort: "low", Provider: provider},
+// Every route and every alias behind it has to appear, in both renderings: list is
+// how an operator finds out what the directory compiled to.
+func TestRunListEnumeratesEveryRouteAndModel(t *testing.T) {
+	root := validConfig(t)
+	wantJSON := listOutput{
+		Agents: []listAgent{
+			{
+				Path:        "named",
+				Description: "named agent",
+				Models: []listModel{
+					{Name: "quick", Model: "openai/upstream-fast", ReasoningEffort: "low", Default: true},
+					{Name: "thorough", Model: "openai/upstream-deep", ReasoningEffort: "high"},
+				},
 			},
+			{Path: "plain", Description: "plain agent", Model: "openai/upstream-fast", Reasoning: "low"},
+			{Path: "prio", Description: "prio agent", Model: "openai/upstream-fast", Reasoning: "low"},
 		},
-		Defaults:     map[string]string{"named": "fast"},
-		Descriptions: map[string]string{},
-		ProviderKeys: []string{"provider-a"},
+		Summary: listSummary{Agents: 3, Models: 4},
 	}
-	tests := []struct {
-		name     string
-		asJSON   bool
-		contains string
-	}{
-		{name: "human", contains: ".fast (default)"},
-		{name: "json", asJSON: true},
+
+	code, stdout, stderr := executeCLI([]string{"--config", root, "list", "--json"})
+	if code != exitSuccess {
+		t.Fatalf("exit code = %d: %q", code, stderr)
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			var output bytes.Buffer
-			if err := runList(registry, test.asJSON, &output); err != nil {
-				t.Fatalf("run list: %v", err)
-			}
-			if test.asJSON {
-				var decoded listOutput
-				if err := json.Unmarshal(output.Bytes(), &decoded); err != nil {
-					t.Fatalf("decode JSON: %v", err)
-				}
-				if decoded.Summary.Agents != 2 || decoded.Summary.Models != 3 || decoded.Summary.Providers != 1 {
-					t.Errorf("summary = %#v", decoded.Summary)
-				}
-				return
-			}
-			if !strings.Contains(output.String(), test.contains) {
-				t.Errorf("output = %q", output.String())
-			}
-		})
+	var decoded listOutput
+	if err := json.Unmarshal([]byte(stdout), &decoded); err != nil {
+		t.Fatalf("decode JSON: %v", err)
+	}
+	if !reflect.DeepEqual(decoded, wantJSON) {
+		t.Fatalf("list --json = %#v\nwant %#v", decoded, wantJSON)
+	}
+
+	code, table, stderr := executeCLI([]string{"--config", root, "list"})
+	if code != exitSuccess {
+		t.Fatalf("exit code = %d: %q", code, stderr)
+	}
+	wantLines := []string{
+		"named", ".quick (default)", ".thorough",
+		"plain", "prio",
+		"openai/upstream-fast", "openai/upstream-deep",
+		"3 agents · 4 models",
+	}
+	for _, want := range wantLines {
+		if !strings.Contains(table, want) {
+			t.Errorf("list output %q has no %q", table, want)
+		}
 	}
 }

@@ -15,17 +15,13 @@ func chatRouteHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func embeddingsRouteHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusCreated)
-}
-
 func TestSetupRoutes(t *testing.T) {
 	validator, err := auth.NewValidator(context.Background(), auth.Config{})
 	if err != nil {
 		t.Fatalf("NewValidator(): %v", err)
 	}
 	r := chi.NewRouter()
-	SetupRoutes(r, chatRouteHandler, embeddingsRouteHandler, JWTAuthentication(validator), []string{"*"}, []string{"X-Session-ID"})
+	SetupRoutes(r, chatRouteHandler, JWTAuthentication(validator), []string{"*"}, []string{"X-Session-ID"})
 
 	tests := []struct {
 		name       string
@@ -37,7 +33,6 @@ func TestSetupRoutes(t *testing.T) {
 		{"health route", http.MethodGet, "/health", http.StatusOK, "ok\n"},
 		{"guidance listing absent", http.MethodGet, "/guidance", http.StatusMethodNotAllowed, ""},
 		{"guidance path remains an agent path", http.MethodPost, "/guidance", http.StatusAccepted, ""},
-		{"embeddings route", http.MethodPost, "/embeddings", http.StatusCreated, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

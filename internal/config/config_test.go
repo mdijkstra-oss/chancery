@@ -1,11 +1,16 @@
 package config
 
 import (
+	"maps"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/mdijkstra-oss/chancery/internal/responses"
 )
+
+const defaultBackendURL = "http://backend.internal:8080"
 
 var configEnvKeys = []string{
 	"AUTH_JWT_JWKS_URL",
@@ -14,10 +19,8 @@ var configEnvKeys = []string{
 	"AUTH_JWT_AUDIENCE",
 	"AUTH_JWT_ALGORITHMS",
 	"LOG_REQUEST_HEADERS",
-	"QUOTA_RESERVE_URL",
-	"QUOTA_SETTLE_URL",
-	"QUOTA_AUTH_TOKEN",
-	"QUOTA_TIMEOUT",
+	"RESPONSES_BASE_URL",
+	"RESPONSES_AUTH_TOKEN",
 	"PORT",
 	"CORS_ORIGINS",
 	"LOG_LEVEL",
@@ -26,12 +29,12 @@ var configEnvKeys = []string{
 
 func TestLoad(t *testing.T) {
 	tests := []struct {
-		name             string
-		env              map[string]string
-		wantEnabled      bool
-		wantQuotaEnabled bool
-		wantHeaders      []string
-		wantError        string
+		name        string
+		env         map[string]string
+		wantEnabled bool
+		wantBackend responses.Config
+		wantHeaders []string
+		wantError   string
 	}{
 		{name: "disabled defaults", wantHeaders: []string{"X-Session-ID", "X-Project-ID"}},
 		{
@@ -58,29 +61,19 @@ func TestLoad(t *testing.T) {
 			wantHeaders: []string{"X-Session-ID", "X-Project-ID"},
 		},
 		{
-			name: "quota enabled",
+			name: "backend token attached",
 			env: map[string]string{
-				"QUOTA_RESERVE_URL": "https://quota.example/reserve",
-				"QUOTA_SETTLE_URL":  "https://quota.example/settle",
-				"QUOTA_AUTH_TOKEN":  "secret",
-				"QUOTA_TIMEOUT":     "3s",
+				"RESPONSES_AUTH_TOKEN": "proxy-token",
 			},
-			wantQuotaEnabled: true,
-			wantHeaders:      []string{"X-Session-ID", "X-Project-ID"},
+			wantBackend: responses.Config{BaseURL: defaultBackendURL, AuthToken: "proxy-token"},
+			wantHeaders: []string{"X-Session-ID", "X-Project-ID"},
 		},
 		{
-			name: "quota missing settlement endpoint",
+			name: "backend base URL required",
 			env: map[string]string{
-				"QUOTA_RESERVE_URL": "https://quota.example/reserve",
+				"RESPONSES_BASE_URL": "",
 			},
-			wantError: "QUOTA_SETTLE_URL",
-		},
-		{
-			name: "invalid quota timeout",
-			env: map[string]string{
-				"QUOTA_TIMEOUT": "later",
-			},
-			wantError: "QUOTA_TIMEOUT",
+			wantError: "RESPONSES_BASE_URL",
 		},
 		{
 			name: "conflicting key sources",
@@ -145,6 +138,13 @@ func TestLoad(t *testing.T) {
 			wantError: "credential header",
 		},
 		{
+			name: "unknown log level rejected",
+			env: map[string]string{
+				"LOG_LEVEL": "verbose",
+			},
+			wantError: `LOG_LEVEL "verbose" must be debug, info, warn, or error`,
+		},
+		{
 			name: "non X header rejected",
 			env: map[string]string{
 				"LOG_REQUEST_HEADERS": "Traceparent",
@@ -168,8 +168,12 @@ func TestLoad(t *testing.T) {
 			if got.Auth.Enabled() != test.wantEnabled {
 				t.Errorf("Auth.Enabled() = %v, want %v", got.Auth.Enabled(), test.wantEnabled)
 			}
-			if got.Quota.Enabled() != test.wantQuotaEnabled {
-				t.Errorf("Quota.Enabled() = %v, want %v", got.Quota.Enabled(), test.wantQuotaEnabled)
+			wantBackend := test.wantBackend
+			if wantBackend.BaseURL == "" {
+				wantBackend.BaseURL = defaultBackendURL
+			}
+			if got.Backend != wantBackend {
+				t.Errorf("Backend = %#v, want %#v", got.Backend, wantBackend)
 			}
 			if !reflect.DeepEqual(got.RequestHeaders, test.wantHeaders) {
 				t.Errorf("RequestHeaders = %#v, want %#v", got.RequestHeaders, test.wantHeaders)
@@ -187,7 +191,9 @@ func setConfigEnv(t *testing.T, values map[string]string) {
 		}
 		t.Cleanup(restoreEnv(key, previous, existed))
 	}
-	for key, value := range values {
+	env := map[string]string{"RESPONSES_BASE_URL": defaultBackendURL}
+	maps.Copy(env, values)
+	for key, value := range env {
 		if err := os.Setenv(key, value); err != nil {
 			t.Fatalf("Setenv(%s): %v", key, err)
 		}

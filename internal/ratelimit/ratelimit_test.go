@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -202,10 +203,10 @@ func TestDo(t *testing.T) {
 			wantCalls: 2,
 		},
 		{
-			name:        "quota_exhausted_fails_immediately",
+			name:        "server_delay_beyond_the_retry_window_fails_immediately",
 			maxAttempts: 3,
 			fn: func(_ *int) (string, error) {
-				return "", RetryableWithDelay(fmt.Errorf("quota exceeded"), time.Hour)
+				return "", RetryableWithDelay(fmt.Errorf("rate limited"), time.Hour)
 			},
 			wantErr:   true,
 			wantCalls: 1,
@@ -215,10 +216,11 @@ func TestDo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			l := NewLimiter()
 			counter := 0
-			result, err := Do(context.Background(), l, "test", tt.maxAttempts, func() (string, error) {
-				counter++
-				return tt.fn(&counter)
-			})
+			result, err := Do(context.Background(), l, "test", tt.maxAttempts,
+				func(context.Context) (string, error) {
+					counter++
+					return tt.fn(&counter)
+				})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("Do() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -232,10 +234,10 @@ func TestDo(t *testing.T) {
 	}
 }
 
-func TestDoQuotaExhaustedRecordsCooldown(t *testing.T) {
+func TestDoLongServerDelayRecordsCooldown(t *testing.T) {
 	l := NewLimiter()
-	_, _ = Do(context.Background(), l, "model-x", 3, func() (string, error) {
-		return "", RetryableWithDelay(fmt.Errorf("quota exceeded"), time.Hour)
+	_, _ = Do(context.Background(), l, "model-x", 3, func(context.Context) (string, error) {
+		return "", RetryableWithDelay(fmt.Errorf("rate limited"), time.Hour)
 	})
 	l.mu.Lock()
 	deadline, ok := l.cooldown["model-x"]
@@ -254,11 +256,11 @@ func TestDoContextCancellation(t *testing.T) {
 	l := NewLimiter()
 	counter := 0
 	cancel()
-	_, err := Do(ctx, l, "test", 3, func() (string, error) {
+	_, err := Do(ctx, l, "test", 3, func(context.Context) (string, error) {
 		counter++
 		return "", Retryable(fmt.Errorf("429"))
 	})
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Do() error = %v, want context.Canceled", err)
 	}
 }

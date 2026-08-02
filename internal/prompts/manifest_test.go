@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -93,14 +94,11 @@ func TestLoad(t *testing.T) {
 	if report.HasErrors() {
 		t.Fatalf("load errors: %v", report.Diagnostics)
 	}
-	if report.WarningCount() != 1 {
-		t.Fatalf("warnings = %d, want 1: %v", report.WarningCount(), report.Diagnostics)
+	if report.WarningCount() != 0 {
+		t.Fatalf("warnings = %d, want 0: %v", report.WarningCount(), report.Diagnostics)
 	}
-	if diff := cmp.Diff([]string{"embeddings", "folder", "simple"}, registry.AgentPaths()); diff != "" {
+	if diff := cmp.Diff([]string{"folder", "prio", "simple"}, registry.AgentPaths()); diff != "" {
 		t.Errorf("agent paths mismatch (-want +got):\n%s", diff)
-	}
-	if registry.ProviderCount() != 2 {
-		t.Errorf("provider count = %d, want 2", registry.ProviderCount())
 	}
 	if registry.ModelCount() != 4 {
 		t.Errorf("model count = %d, want 4", registry.ModelCount())
@@ -108,17 +106,15 @@ func TestLoad(t *testing.T) {
 	if got := registry.Agents["folder"].Prompt; got != "local fragment\n\nfolder prompt" {
 		t.Errorf("folder prompt = %q", got)
 	}
-	if got := registry.Modes["planning"]; got != "mode fragment" {
-		t.Errorf("planning mode = %q", got)
-	}
-	if got := registry.Configs["simple"].Provider.APIKey; got != "" {
-		t.Errorf("static load resolved API key %q", got)
-	}
-	if got := registry.Configs["folder"].Model; got != "upstream-fast" {
-		t.Errorf("default model = %q, want upstream-fast", got)
+	if got := registry.Configs["folder"].Model; got != "openai/upstream-fast" {
+		t.Errorf("default model = %q, want openai/upstream-fast", got)
 	}
 	if got := registry.NamedConfigs["folder"]["deep"].ReasoningEffort; got != "high" {
 		t.Errorf("named reasoning = %q, want high", got)
+	}
+	prio := registry.Configs["prio"]
+	if prio.Model != "openai/upstream-fast" || prio.ServiceTier != "priority" {
+		t.Errorf("extended alias = %#v", prio)
 	}
 }
 
@@ -127,16 +123,44 @@ func TestLoadValidation(t *testing.T) {
 		name        string
 		agentPath   string
 		agent       string
-		providers   string
+		models      string
 		wantMessage string
 		wantWarning bool
 	}{
 		{
-			name:        "malformed providers yaml",
+			name:        "malformed models yaml",
 			agentPath:   "agent.md",
 			agent:       agentFile("model-fast", "prompt"),
-			providers:   "providers: [",
+			models:      "models: [",
 			wantMessage: "malformed YAML",
+		},
+		{
+			name:        "alias defined twice",
+			agentPath:   "agent.md",
+			agent:       agentFile("model-fast", "prompt"),
+			models:      "models:\n  model-fast:\n    model: openai/one\n  model-fast:\n    model: openai/two\n",
+			wantMessage: `mapping key "model-fast" already defined`,
+		},
+		{
+			name:        "alias without model",
+			agentPath:   "agent.md",
+			agent:       agentFile("model-fast", "prompt"),
+			models:      "models:\n  model-fast:\n    reasoning_effort: low\n",
+			wantMessage: `alias "model-fast" has no model`,
+		},
+		{
+			name:        "alias extends unknown alias",
+			agentPath:   "agent.md",
+			agent:       agentFile("model-fast", "prompt"),
+			models:      "models:\n  model-fast:\n    extends: missing\n",
+			wantMessage: `extends unknown alias "missing"`,
+		},
+		{
+			name:        "temperature names no body field an agent may pin",
+			agentPath:   "agent.md",
+			agent:       agentFile("model-fast", "prompt"),
+			models:      "models:\n  model-fast:\n    model: openai/upstream-fast\n    temperature: 0.2\n",
+			wantMessage: `unknown field "temperature"`,
 		},
 		{
 			name:        "malformed frontmatter yaml",
@@ -145,10 +169,10 @@ func TestLoadValidation(t *testing.T) {
 			wantMessage: "malformed YAML frontmatter",
 		},
 		{
-			name:        "unknown model",
+			name:        "unknown alias",
 			agentPath:   "agent.md",
 			agent:       agentFile("missing-model", "prompt"),
-			wantMessage: "unknown model",
+			wantMessage: `unknown model alias "missing-model"`,
 		},
 		{
 			name:        "missing model definition",
@@ -184,7 +208,7 @@ func TestLoadValidation(t *testing.T) {
 			name:        "model prompt escapes config",
 			agentPath:   "agent.md",
 			agent:       agentFile("model-fast", "body"),
-			providers:   "providers:\n  provider-a:\n    protocol: responses\n    base_url: https://provider.example/v1\n    api_key_env: PROVIDER_KEY\n    models:\n      model-fast:\n        prompt: ../../outside.md\n",
+			models:      "models:\n  model-fast:\n    model: openai/upstream-fast\n    prompt: ../../outside.md\n",
 			wantMessage: "escapes config directory",
 		},
 		{
@@ -192,6 +216,30 @@ func TestLoadValidation(t *testing.T) {
 			agentPath:   "agent.md",
 			agent:       "---\nmodel: model-fast\nprompt: legacy.md\n---\nbody",
 			wantMessage: "prompt frontmatter is not supported",
+		},
+		{
+			name:        "seed is not a body field",
+			agentPath:   "agent.md",
+			agent:       "---\nmodel: model-fast\nseed: true\n---\nbody",
+			wantMessage: `unknown field "seed"`,
+		},
+		{
+			name:        "temperature is not a field an agent may pin",
+			agentPath:   "agent.md",
+			agent:       "---\nmodel: model-fast\ntemperature: 0\n---\nbody",
+			wantMessage: `unknown field "temperature"`,
+		},
+		{
+			name:        "legacy_thinking is not a body field",
+			agentPath:   "agent.md",
+			agent:       "---\nmodel: model-fast\nlegacy_thinking: true\n---\nbody",
+			wantMessage: `unknown field "legacy_thinking"`,
+		},
+		{
+			name:        "cache_ttl is not a body field",
+			agentPath:   "agent.md",
+			agent:       "---\nmodel: model-fast\ncache_ttl: 600\n---\nbody",
+			wantMessage: `unknown field "cache_ttl"`,
 		},
 		{
 			name:        "named model name contains dot",
@@ -216,11 +264,11 @@ func TestLoadValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			root := t.TempDir()
-			providers := test.providers
-			if providers == "" {
-				providers = validProvidersYAML()
+			models := test.models
+			if models == "" {
+				models = validModelsYAML()
 			}
-			writeTestFile(t, filepath.Join(root, "providers.yaml"), providers)
+			writeTestFile(t, filepath.Join(root, "models.yaml"), models)
 			writeTestFile(t, filepath.Join(root, test.agentPath), test.agent)
 			_, report := Load(root)
 			severity := SeverityError
@@ -231,6 +279,63 @@ func TestLoadValidation(t *testing.T) {
 				t.Fatalf("missing %s containing %q: %v", severity, test.wantMessage, report.Diagnostics)
 			}
 		})
+	}
+}
+
+// A models.yaml that did not load defines no alias, so every agent naming one would
+// be reported as naming a model that does not exist. The file's own diagnostic is the
+// true one and it stands alone.
+func TestBrokenModelsFileReportsOnlyItself(t *testing.T) {
+	tests := []struct {
+		name   string
+		models string
+		write  bool
+	}{
+		{name: "malformed YAML", models: "models: [", write: true},
+		{
+			name:   "alias defined twice",
+			models: "models:\n  model-fast:\n    model: openai/one\n  model-fast:\n    model: openai/two\n",
+			write:  true,
+		},
+		{name: "no models configured", models: "models:\n", write: true},
+		{
+			name:   "alias extends an alias the file does not define",
+			models: "models:\n  model-fast:\n    extends: missing\n",
+			write:  true,
+		},
+		{name: "no models file at all"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := t.TempDir()
+			if test.write {
+				writeTestFile(t, filepath.Join(root, "models.yaml"), test.models)
+			}
+			writeTestFile(t, filepath.Join(root, "agent.md"), agentFile("model-fast", "prompt"))
+			_, report := Load(root)
+			if hasDiagnostic(report, SeverityError, "unknown model alias") {
+				t.Fatalf("a defined alias reported unknown: %v", report.Diagnostics)
+			}
+			if report.ErrorCount() != 1 || report.Diagnostics[0].Path != "models.yaml" {
+				t.Fatalf("want one models.yaml error: %v", report.Diagnostics)
+			}
+		})
+	}
+}
+
+// A diagnostic that names a Go type tells a config author about chancery rather than
+// about their file, so unknown fields are reported by name and nothing else.
+func TestUnknownFieldLeaksNoGoType(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "models.yaml"), validModelsYAML())
+	writeTestFile(t, filepath.Join(root, "agent.md"), "---\nmodel: model-fast\nseed: true\n---\nbody")
+	_, report := Load(root)
+	for _, diagnostic := range report.Diagnostics {
+		for _, leak := range []string{"agentEntry", "agentFrontmatter", "modelEntry", "prompts."} {
+			if strings.Contains(diagnostic.Message, leak) {
+				t.Errorf("diagnostic %q names %q", diagnostic.Message, leak)
+			}
+		}
 	}
 }
 
@@ -247,9 +352,9 @@ func TestResolveAgent(t *testing.T) {
 		wantModel string
 		wantError bool
 	}{
-		{name: "top-level agent", reference: "simple", wantPath: "simple", wantModel: "upstream-fast"},
-		{name: "folder index default", reference: "folder", wantPath: "folder", wantName: "fast", wantModel: "upstream-fast"},
-		{name: "explicit named model", reference: "folder.deep", wantPath: "folder", wantName: "deep", wantModel: "upstream-deep"},
+		{name: "top-level agent", reference: "simple", wantPath: "simple", wantModel: "openai/upstream-fast"},
+		{name: "folder index default", reference: "folder", wantPath: "folder", wantName: "fast", wantModel: "openai/upstream-fast"},
+		{name: "explicit named model", reference: "folder.deep", wantPath: "folder", wantName: "deep", wantModel: "openai/upstream-deep"},
 		{name: "unknown named model", reference: "folder.missing", wantError: true},
 		{name: "unknown agent", reference: "missing", wantError: true},
 	}
@@ -278,6 +383,20 @@ func TestNamedRouteCollision(t *testing.T) {
 	_, report := Load(root)
 	if !hasDiagnostic(report, SeverityError, "collides with named model route") {
 		t.Fatalf("missing collision diagnostic: %v", report.Diagnostics)
+	}
+}
+
+// tools/ is reserved and inert: a file under it is neither routed nor read, so it is
+// not an orphan either.
+func TestToolsDirectoryAnswersNoRoute(t *testing.T) {
+	root := writeValidConfig(t)
+	writeTestFile(t, filepath.Join(root, "tools", "shell", "grep.run_shell.md"), "tool prompt")
+	registry, report := Load(root)
+	if report.HasErrors() || report.WarningCount() != 0 {
+		t.Fatalf("tools/ produced diagnostics: %v", report.Diagnostics)
+	}
+	if slices.Contains(registry.AgentPaths(), "tools/shell/grep.run_shell") {
+		t.Fatalf("tools/ answered a route: %v", registry.AgentPaths())
 	}
 }
 
@@ -314,37 +433,36 @@ func TestToolsDirectoryCannotEscapeConfig(t *testing.T) {
 	}
 }
 
-func TestWithAPIKeysRequiresEveryProvider(t *testing.T) {
-	registry := Registry{
-		Agents:       map[string]CompiledAgent{},
-		Configs:      map[string]PromptConfig{},
-		NamedConfigs: map[string]map[string]PromptConfig{},
-		Defaults:     map[string]string{},
-		Descriptions: map[string]string{},
-		Modes:        map[string]string{},
-		providers: map[string]ProviderConfig{
-			"unused": {Key: "unused", APIKeyEnv: "UNUSED_PROVIDER_KEY"},
-		},
+func TestResolveModel(t *testing.T) {
+	models := map[string]modelEntry{
+		"base":     {Model: "openai/upstream", Verbosity: "low"},
+		"child":    {Extends: "base", ServiceTier: "priority"},
+		"renamed":  {Extends: "base", Model: "openai/other"},
+		"cyclic":   {Extends: "cyclic"},
+		"orphaned": {Extends: "missing"},
 	}
-	if _, err := registry.WithAPIKeys(fixedLookup("")); err == nil {
-		t.Fatal("expected missing provider key error")
-	}
-}
-
-func TestResolveAPIKey(t *testing.T) {
-	cfg := PromptConfig{Provider: ProviderConfig{Key: "provider-a", APIKeyEnv: "TEST_PROVIDER_KEY"}}
 	tests := []struct {
 		name      string
-		lookup    func(string) string
-		wantKey   string
+		key       string
+		want      modelEntry
 		wantError bool
 	}{
-		{name: "key resolved", lookup: fixedLookup("secret"), wantKey: "secret"},
-		{name: "missing key", lookup: fixedLookup(""), wantError: true},
+		{
+			name: "child inherits the whole parent",
+			key:  "child",
+			want: modelEntry{Model: "openai/upstream", Verbosity: "low", ServiceTier: "priority"},
+		},
+		{
+			name: "child overrides the model",
+			key:  "renamed",
+			want: modelEntry{Model: "openai/other", Verbosity: "low"},
+		},
+		{name: "extends cycle", key: "cyclic", wantError: true},
+		{name: "extends unknown alias", key: "orphaned", wantError: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := ResolveAPIKey(cfg, test.lookup)
+			got, err := resolveModel(test.key, models)
 			if test.wantError {
 				if err == nil {
 					t.Fatal("expected error")
@@ -352,30 +470,12 @@ func TestResolveAPIKey(t *testing.T) {
 				return
 			}
 			if err != nil {
-				t.Fatalf("resolve API key: %v", err)
+				t.Fatalf("resolve model: %v", err)
 			}
-			if got.Provider.APIKey != test.wantKey {
-				t.Errorf("API key = %q, want %q", got.Provider.APIKey, test.wantKey)
-			}
-			if cfg.Provider.APIKey != "" {
-				t.Error("input config was mutated")
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("model mismatch (-want +got):\n%s", diff)
 			}
 		})
-	}
-}
-
-func TestResolveModel(t *testing.T) {
-	models := map[string]modelEntry{
-		"base":  {Provider: "provider-a", Name: "upstream"},
-		"child": {Extends: "base", ServiceTier: "priority"},
-	}
-	got, err := resolveModel("child", models)
-	if err != nil {
-		t.Fatalf("resolve model: %v", err)
-	}
-	want := modelEntry{Provider: "provider-a", Name: "upstream", ServiceTier: "priority"}
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("model mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -393,13 +493,11 @@ func writeValidConfig(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	files := map[string]string{
-		"providers.yaml":          validProvidersYAML(),
-		"simple.md":               agentFile("model-fast", "simple prompt"),
-		"embeddings.md":           agentFile("model-vector", ""),
-		"folder/index.md":         "---\ndescription: named agent\ntemperature: 0.2\nmodels:\n  fast:\n    model: model-fast\n  deep:\n    model: model-deep\n    reasoning_effort: high\ndefault: fast\n---\n[fragment.md]\n\nfolder prompt",
-		"folder/fragment.md":      "local fragment",
-		"modes/planning.md":       "[planning/piece.md]",
-		"modes/planning/piece.md": "mode fragment",
+		"models.yaml":        validModelsYAML(),
+		"simple.md":          agentFile("model-fast", "simple prompt"),
+		"prio.md":            agentFile("model-fast-prio", "prio prompt"),
+		"folder/index.md":    "---\ndescription: named agent\nmodels:\n  fast:\n    model: model-fast\n  deep:\n    model: model-deep\n    reasoning_effort: high\ndefault: fast\n---\n[fragment.md]\n\nfolder prompt",
+		"folder/fragment.md": "local fragment",
 	}
 	for path, content := range files {
 		writeTestFile(t, filepath.Join(root, path), content)
@@ -407,28 +505,17 @@ func writeValidConfig(t *testing.T) string {
 	return root
 }
 
-func validProvidersYAML() string {
-	return `providers:
-  provider-a:
-    protocol: responses
-    base_url: https://provider-a.example/v1
-    api_key_env: TEST_PROVIDER_A_KEY
-    models:
-      model-fast:
-        name: upstream-fast
-        reasoning_effort: low
-      model-vector:
-        name: upstream-vector
-        type: embedding
-        dimensions: 64
-  provider-b:
-    protocol: anthropic
-    base_url: https://provider-b.example
-    api_key_env: TEST_PROVIDER_B_KEY
-    models:
-      model-deep:
-        name: upstream-deep
-        reasoning_effort: medium
+func validModelsYAML() string {
+	return `models:
+  model-fast:
+    model: openai/upstream-fast
+    reasoning_effort: low
+  model-fast-prio:
+    extends: model-fast
+    service_tier: priority
+  model-deep:
+    model: openai/upstream-deep
+    reasoning_effort: medium
 `
 }
 
@@ -443,12 +530,6 @@ func hasDiagnostic(report Report, severity Severity, message string) bool {
 		}
 	}
 	return false
-}
-
-func fixedLookup(value string) func(string) string {
-	return func(string) string {
-		return value
-	}
 }
 
 func writeTestFile(t *testing.T, path, content string) {

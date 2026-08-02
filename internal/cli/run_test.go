@@ -52,7 +52,7 @@ func TestRunRequiresConfig(t *testing.T) {
 			if code != exitFailure {
 				t.Errorf("exit code = %d, want %d", code, exitFailure)
 			}
-			errorText := "required flag(s) \"config\" not set"
+			errorText := "--config is required"
 			if strings.Count(stderr, errorText) != 1 {
 				t.Errorf("stderr error count = %d, want 1: %q", strings.Count(stderr, errorText), stderr)
 			}

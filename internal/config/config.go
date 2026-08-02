@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/textproto"
@@ -9,12 +10,12 @@ import (
 	"time"
 
 	"github.com/mdijkstra-oss/chancery/internal/auth"
-	"github.com/mdijkstra-oss/chancery/internal/quota"
+	"github.com/mdijkstra-oss/chancery/internal/responses"
 )
 
 type Config struct {
 	Auth            auth.Config
-	Quota           quota.Config
+	Backend         responses.Config
 	Port            string
 	CorsOrigins     []string
 	LogLevel        slog.Level
@@ -24,13 +25,17 @@ type Config struct {
 }
 
 func Load() (Config, error) {
-	quotaTimeout, err := time.ParseDuration(getEnv("QUOTA_TIMEOUT", "2s"))
+	backend, err := LoadBackend()
 	if err != nil {
-		return Config{}, fmt.Errorf("QUOTA_TIMEOUT: %w", err)
+		return Config{}, err
 	}
 	shutdownTimeout, err := time.ParseDuration(getEnv("SHUTDOWN_TIMEOUT", "60s"))
 	if err != nil {
 		return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT: %w", err)
+	}
+	logLevel, err := parseLogLevel(getEnv("LOG_LEVEL", "info"))
+	if err != nil {
+		return Config{}, err
 	}
 	cfg := Config{
 		Auth: auth.Config{
@@ -40,15 +45,10 @@ func Load() (Config, error) {
 			Audience:      getEnv("AUTH_JWT_AUDIENCE", ""),
 			Algorithms:    parseList(getEnv("AUTH_JWT_ALGORITHMS", "")),
 		},
-		Quota: quota.Config{
-			ReserveURL: getEnv("QUOTA_RESERVE_URL", ""),
-			SettleURL:  getEnv("QUOTA_SETTLE_URL", ""),
-			AuthToken:  getEnv("QUOTA_AUTH_TOKEN", ""),
-			Timeout:    quotaTimeout,
-		},
-		Port:            getEnv("PORT", "8081"),
+		Backend:         backend,
+		Port:            ListenPort(),
 		CorsOrigins:     parseList(getEnv("CORS_ORIGINS", "")),
-		LogLevel:        parseLogLevel(getEnv("LOG_LEVEL", "info")),
+		LogLevel:        logLevel,
 		Environment:     getEnv("ENV", "development"),
 		RequestHeaders:  requestHeaders(),
 		ShutdownTimeout: shutdownTimeout,
@@ -56,13 +56,31 @@ func Load() (Config, error) {
 	if err := cfg.Auth.Validate(); err != nil {
 		return Config{}, err
 	}
-	if err := cfg.Quota.Validate(); err != nil {
-		return Config{}, err
-	}
 	if err := validateRequestHeaders(cfg.RequestHeaders); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+// LoadBackend reads the two variables that reach the backend. The base URL has no
+// default: silently assuming localhost fails as a refused connection deep in a
+// request rather than at boot, where the mistake is.
+func LoadBackend() (responses.Config, error) {
+	cfg := responses.Config{
+		BaseURL:   os.Getenv("RESPONSES_BASE_URL"),
+		AuthToken: os.Getenv("RESPONSES_AUTH_TOKEN"),
+	}
+	if cfg.BaseURL == "" {
+		return responses.Config{}, errors.New("RESPONSES_BASE_URL is required")
+	}
+	return cfg, nil
+}
+
+// ListenPort is the port the server binds, read on its own so that a command asking
+// where this process would be listening does not have to load a whole configuration
+// it has no other use for.
+func ListenPort() string {
+	return getEnv("PORT", "8081")
 }
 
 func getEnv(key, fallback string) string {
@@ -126,17 +144,19 @@ func isCredentialHeader(header string) bool {
 	return false
 }
 
-func parseLogLevel(s string) slog.Level {
-	switch s {
+// A misspelled level is the operator's mistake, not the program's, so it is reported
+// the way every other malformed variable here is.
+func parseLogLevel(value string) (slog.Level, error) {
+	switch value {
 	case "debug":
-		return slog.LevelDebug
+		return slog.LevelDebug, nil
 	case "info":
-		return slog.LevelInfo
+		return slog.LevelInfo, nil
 	case "warn":
-		return slog.LevelWarn
+		return slog.LevelWarn, nil
 	case "error":
-		return slog.LevelError
+		return slog.LevelError, nil
 	default:
-		panic("unknown log level: " + s)
+		return 0, fmt.Errorf("LOG_LEVEL %q must be debug, info, warn, or error", value)
 	}
 }

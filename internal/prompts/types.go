@@ -1,95 +1,51 @@
 package prompts
 
-type Protocol string
-
-const (
-	ProtocolResponses   Protocol = "responses"
-	ProtocolGemini      Protocol = "gemini"
-	ProtocolCompletions Protocol = "completions"
-	ProtocolAnthropic   Protocol = "anthropic"
-)
-
 type Segment struct {
 	Source  string
 	Content string
 }
 
-type ProviderEntry struct {
-	Protocol  Protocol `json:"protocol" yaml:"protocol"`
-	BaseURL   string   `json:"base_url" yaml:"base_url"`
-	APIKeyEnv string   `json:"api_key_env" yaml:"api_key_env"`
-	Strict    bool     `json:"strict,omitempty" yaml:"strict,omitempty"`
-}
-
-type ProviderConfig struct {
-	Key       string
-	Protocol  Protocol
-	BaseURL   string
-	APIKeyEnv string
-	APIKey    string
-	Strict    bool
-}
-
+// PromptConfig is everything one route contributes to a request body: the model its
+// alias names and the fields the alias and the agent frontmatter agree on.
 type PromptConfig struct {
-	Model            string         `json:"model"`
-	Prompt           string         `json:"prompt,omitempty"`
-	Dimensions       int            `json:"dimensions,omitempty"`
-	MaxTokens        int            `json:"max_tokens,omitempty"`
-	ReasoningEffort  string         `json:"reasoning_effort"`
-	ReasoningSummary string         `json:"reasoning_summary"`
-	Verbosity        string         `json:"verbosity"`
-	ServiceTier      string         `json:"service_tier,omitempty"`
-	LegacyThinking   bool           `json:"legacy_thinking,omitempty"`
-	Temperature      *float64       `json:"temperature,omitempty"`
-	Seed             bool           `json:"seed,omitempty"`
-	AutoCache        bool           `json:"auto_cache,omitempty"`
-	CacheTTL         int            `json:"cache_ttl,omitempty"`
-	Provider         ProviderConfig `json:"provider"`
+	Model            string `json:"model"`
+	Prompt           string `json:"prompt,omitempty"`
+	MaxTokens        int    `json:"max_tokens,omitempty"`
+	ReasoningEffort  string `json:"reasoning_effort,omitempty"`
+	ReasoningSummary string `json:"reasoning_summary,omitempty"`
+	Verbosity        string `json:"verbosity,omitempty"`
+	ServiceTier      string `json:"service_tier,omitempty"`
 }
 
-type providerFile struct {
-	Protocol  Protocol              `yaml:"protocol"`
-	BaseURL   string                `yaml:"base_url"`
-	APIKeyEnv string                `yaml:"api_key_env"`
-	Strict    bool                  `yaml:"strict,omitempty"`
-	Models    map[string]modelEntry `yaml:"models"`
+// modelsFile is models.yaml: one flat map whose every key is an alias.
+type modelsFile struct {
+	Models map[string]modelEntry `yaml:"models"`
 }
 
-type providersFile struct {
-	Providers map[string]providerFile `yaml:"providers"`
-}
-
+// modelEntry is one alias. Model is the name that travels in the body, prefix
+// included; the prefix belongs to whoever serves the request and is never read here.
 type modelEntry struct {
 	Extends          string `yaml:"extends,omitempty"`
-	Provider         string `yaml:"provider,omitempty"`
-	Name             string `yaml:"name,omitempty"`
+	Model            string `yaml:"model,omitempty"`
 	Prompt           string `yaml:"prompt,omitempty"`
-	Type             string `yaml:"type,omitempty"`
-	Dimensions       int    `yaml:"dimensions,omitempty"`
 	MaxTokens        int    `yaml:"max_tokens,omitempty"`
 	ReasoningEffort  string `yaml:"reasoning_effort,omitempty"`
 	ReasoningSummary string `yaml:"reasoning_summary,omitempty"`
 	Verbosity        string `yaml:"verbosity,omitempty"`
 	ServiceTier      string `yaml:"service_tier,omitempty"`
-	LegacyThinking   bool   `yaml:"legacy_thinking,omitempty"`
-	AutoCache        bool   `yaml:"auto_cache,omitempty"`
-	CacheTTL         int    `yaml:"cache_ttl,omitempty"`
 }
 
+// agentEntry is agent frontmatter, where Model names an alias rather than an upstream
+// model. Prompt is a pointer because `prompt:` with no value and no `prompt:` at all
+// are different mistakes: the first is a warning, the second is nothing to report.
 type agentEntry struct {
-	Model            string   `yaml:"model,omitempty"`
-	Prompt           *string  `yaml:"prompt,omitempty"`
-	ReasoningEffort  string   `yaml:"reasoning_effort,omitempty"`
-	ReasoningSummary string   `yaml:"reasoning_summary,omitempty"`
-	Verbosity        string   `yaml:"verbosity,omitempty"`
-	ServiceTier      string   `yaml:"service_tier,omitempty"`
-	LegacyThinking   *bool    `yaml:"legacy_thinking,omitempty"`
-	Temperature      *float64 `yaml:"temperature,omitempty"`
-	Seed             *bool    `yaml:"seed,omitempty"`
-	AutoCache        *bool    `yaml:"auto_cache,omitempty"`
-	CacheTTL         int      `yaml:"cache_ttl,omitempty"`
-	Dimensions       int      `yaml:"dimensions,omitempty"`
-	MaxTokens        int      `yaml:"max_tokens,omitempty"`
+	Model            string  `yaml:"model,omitempty"`
+	Prompt           *string `yaml:"prompt,omitempty"`
+	MaxTokens        int     `yaml:"max_tokens,omitempty"`
+	ReasoningEffort  string  `yaml:"reasoning_effort,omitempty"`
+	ReasoningSummary string  `yaml:"reasoning_summary,omitempty"`
+	Verbosity        string  `yaml:"verbosity,omitempty"`
+	ServiceTier      string  `yaml:"service_tier,omitempty"`
 }
 
 type agentFrontmatter struct {

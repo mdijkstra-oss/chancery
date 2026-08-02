@@ -9,7 +9,7 @@ import (
 func newServeCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "serve",
-		Short: "Start the HTTP gateway",
+		Short: "Serve the configured agents over HTTP",
 		Args:  cobra.NoArgs,
 		RunE:  runServeCommand,
 	}

@@ -83,5 +83,7 @@ func rejectUnauthorized(w http.ResponseWriter, r *http.Request, reason string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("WWW-Authenticate", "Bearer")
 	w.WriteHeader(http.StatusUnauthorized)
-	json.NewEncoder(w).Encode(unauthorizedResponse{Error: "unauthorized"})
+	if err := json.NewEncoder(w).Encode(unauthorizedResponse{Error: "unauthorized"}); err != nil {
+		slog.WarnContext(ctx, "write unauthorized body", "component", "auth", "error", err)
+	}
 }

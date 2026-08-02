@@ -16,23 +16,18 @@ import (
 	"github.com/mdijkstra-oss/chancery/internal/config"
 	httpHandlers "github.com/mdijkstra-oss/chancery/internal/handlers/http"
 	"github.com/mdijkstra-oss/chancery/internal/prompts"
-	"github.com/mdijkstra-oss/chancery/internal/quota"
 	"github.com/mdijkstra-oss/chancery/internal/ratelimit"
+	"github.com/mdijkstra-oss/chancery/internal/responses"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func Run(ctx context.Context, registry prompts.Registry) error {
-	resolvedRegistry, err := registry.WithAPIKeys(os.Getenv)
+	runtimeConfig, err := config.Load()
 	if err != nil {
 		return err
 	}
-	embeddings, err := resolvedRegistry.ResolveAgent("embeddings")
-	if err != nil {
-		return fmt.Errorf("embeddings agent is required for serve")
-	}
-
-	runtimeConfig, err := config.Load()
+	client, err := responses.NewClient(runtimeConfig.Backend)
 	if err != nil {
 		return err
 	}
@@ -45,13 +40,11 @@ func Run(ctx context.Context, registry prompts.Registry) error {
 	if !validator.Enabled() {
 		slog.Warn("auth disabled — all requests accepted")
 	}
-	slog.Info("config loaded", "component", "startup", slog.Group("data", slog.Int("agents", len(resolvedRegistry.Agents))))
+	slog.Info("config loaded", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
 	limiter := ratelimit.NewLimiter()
-	quotaClient := quota.NewClient(runtimeConfig.Quota)
-	chatHandler := httpHandlers.NewChatHandler(resolvedRegistry, limiter, quotaClient)
-	embeddingsHandler := httpHandlers.NewEmbeddingsHandler(embeddings.Config, limiter, quotaClient)
+	chatHandler := httpHandlers.NewChatHandler(registry, client, limiter, runtimeConfig.RequestHeaders)
 	router := chi.NewRouter()
-	httpHandlers.SetupRoutes(router, chatHandler, embeddingsHandler, httpHandlers.JWTAuthentication(validator), runtimeConfig.CorsOrigins, runtimeConfig.RequestHeaders)
+	httpHandlers.SetupRoutes(router, chatHandler, httpHandlers.JWTAuthentication(validator), runtimeConfig.CorsOrigins, runtimeConfig.RequestHeaders)
 	srv := &http.Server{
 		Addr:              ":" + runtimeConfig.Port,
 		Handler:           router,
@@ -79,8 +72,11 @@ func Run(ctx context.Context, registry prompts.Registry) error {
 		return err
 	case <-shutdownCtx.Done():
 		slog.Info("server shutting down", "component", "startup", slog.Group("data", slog.Duration("grace", runtimeConfig.ShutdownTimeout)))
+		// The grace period starts where the signal canceled: a shutdown inheriting
+		// that context would abandon in-flight requests instead of draining them.
 		graceCtx, cancel := context.WithTimeout(context.Background(), runtimeConfig.ShutdownTimeout)
 		defer cancel()
+		//nolint:contextcheck // the grace period deliberately outlives the signal
 		if err := srv.Shutdown(graceCtx); err != nil {
 			return fmt.Errorf("shutdown: %w", err)
 		}

@@ -30,9 +30,8 @@ type listAgent struct {
 }
 
 type listSummary struct {
-	Agents    int `json:"agents"`
-	Models    int `json:"models"`
-	Providers int `json:"providers"`
+	Agents int `json:"agents"`
+	Models int `json:"models"`
 }
 
 type listOutput struct {
@@ -100,9 +99,8 @@ func buildListOutput(registry prompts.Registry) listOutput {
 	return listOutput{
 		Agents: agents,
 		Summary: listSummary{
-			Agents:    len(registry.Agents),
-			Models:    registry.ModelCount(),
-			Providers: registry.ProviderCount(),
+			Agents: len(registry.Agents),
+			Models: registry.ModelCount(),
 		},
 	}
 }
@@ -122,7 +120,7 @@ func renderListTable(output listOutput) string {
 		}
 	}
 	writer.Flush()
-	fmt.Fprintf(&buf, "%d agents · %d models · %d providers\n", output.Summary.Agents, output.Summary.Models, output.Summary.Providers)
+	fmt.Fprintf(&buf, "%d agents · %d models\n", output.Summary.Agents, output.Summary.Models)
 	return buf.String()
 }
 

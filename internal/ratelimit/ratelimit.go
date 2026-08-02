@@ -60,14 +60,20 @@ func NewLimiter() *Limiter {
 	return &Limiter{cooldown: make(map[string]time.Time)}
 }
 
-func Do[T any](ctx context.Context, l *Limiter, key string, maxAttempts int, fn func() (T, error)) (T, error) {
+func Do[T any](
+	ctx context.Context,
+	l *Limiter,
+	key string,
+	maxAttempts int,
+	fn func(context.Context) (T, error),
+) (T, error) {
 	var lastErr error
 	for attempt := range maxAttempts {
 		if err := l.waitIfNeeded(ctx, key); err != nil {
 			var zero T
 			return zero, err
 		}
-		result, err := fn()
+		result, err := fn(ctx)
 		if err == nil {
 			return result, nil
 		}
@@ -80,7 +86,7 @@ func Do[T any](ctx context.Context, l *Limiter, key string, maxAttempts int, fn 
 		delay := chooseDelay(serverDelay, attempt)
 		l.recordCooldown(key, delay)
 		if serverDelay > maxRetryWait {
-			slog.InfoContext(ctx, "rate limited, quota exhausted",
+			slog.InfoContext(ctx, "rate limited, delay exceeds the retry window",
 				"component", "ratelimit",
 				slog.Group("data",
 					slog.String("key", key),

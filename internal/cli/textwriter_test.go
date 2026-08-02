@@ -58,7 +58,7 @@ func TestTextWriterReturnsStreamFailure(t *testing.T) {
 	}
 }
 
-func TestOutputText(t *testing.T) {
+func TestTextWriterRendersOnlyOutputDeltas(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -79,12 +79,35 @@ func TestOutputText(t *testing.T) {
 			input: "event: response.reasoning_summary_text.delta\ndata: {\"delta\":\"internal thought\"}\n\nevent: response.output_text.delta\ndata: {\"delta\":\"visible\"}\n\n",
 			want:  "visible",
 		},
+		{
+			name:  "unnamed frames are read from the payload",
+			input: "data: {\"type\":\"response.reasoning_summary_text.delta\",\"delta\":\"internal thought\"}\n\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"visible\"}\n\n",
+			want:  "visible",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := outputText(strings.Split(test.input, "\n")); got != test.want {
-				t.Errorf("outputText() = %q, want %q", got, test.want)
+			var output bytes.Buffer
+			writer := newTextWriter(&output)
+			if _, err := writer.Write([]byte(test.input)); err != nil {
+				t.Fatalf("write: %v", err)
+			}
+			if got := output.String(); got != test.want {
+				t.Errorf("output = %q, want %q", got, test.want)
 			}
 		})
+	}
+}
+
+// A backend that frames without an event line still ends a stream, so the type in
+// the payload has to satisfy the terminal condition on its own.
+func TestTextWriterCompletesOnAnUnnamedFrame(t *testing.T) {
+	writer := newTextWriter(&bytes.Buffer{})
+	event := "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n"
+	if _, err := writer.Write([]byte(event)); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close: %v", err)
 	}
 }

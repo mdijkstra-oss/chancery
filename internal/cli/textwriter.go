@@ -67,84 +67,67 @@ func (w *textWriter) writeCompleteEvents() error {
 }
 
 func (w *textWriter) writeEvent(event []byte) error {
-	lines := strings.Split(string(event), "\n")
-	if _, err := io.WriteString(w.destination, outputText(lines)); err != nil {
-		return fmt.Errorf("write text: %w", err)
+	name, payload := decodeEvent(event)
+	// Only output deltas are shown. A reasoning summary is the model's working,
+	// not its answer, so it travels to the client and stops here.
+	if name == "response.output_text.delta" {
+		if _, err := io.WriteString(w.destination, payload.Delta); err != nil {
+			return fmt.Errorf("write text: %w", err)
+		}
 	}
-	if eventType(lines) == "response.completed" {
+	if name == "response.completed" {
 		w.completed = true
 	}
-	if w.failure == nil {
-		w.failure = failureFrom(lines)
+	if name == "response.failed" && w.failure == nil {
+		w.failure = failureOf(payload)
 	}
 	return nil
 }
 
-// Only output deltas are shown. A reasoning summary is the model's working, not its
-// answer, so it travels to the client and stops here.
-func outputText(lines []string) string {
-	text := ""
-	current := ""
-	for _, line := range lines {
-		switch {
-		case strings.HasPrefix(line, "event: "):
-			current = strings.TrimPrefix(line, "event: ")
-		case strings.HasPrefix(line, "data: ") && current == "response.output_text.delta":
-			text += extractDelta(strings.TrimPrefix(line, "data: "))
-		case line == "":
-			current = ""
-		}
-	}
-	return text
+// eventPayload is the part of an event the terminal reads. Everything else in the
+// frame is content for the caller and is never decoded here.
+type eventPayload struct {
+	Type     string `json:"type"`
+	Delta    string `json:"delta"`
+	Response struct {
+		Error struct {
+			Type    string `json:"type"`
+			Message string `json:"message"`
+		} `json:"error"`
+	} `json:"response"`
 }
 
-func eventType(lines []string) string {
-	for _, line := range lines {
-		if strings.HasPrefix(line, "event: ") {
-			return strings.TrimPrefix(line, "event: ")
+// An event names its type twice: once on the SSE event line, and again in the
+// payload. Either alone is enough, because a backend may frame with the line and
+// a backend may leave framing bare, and a stream that carries neither names an
+// event this renderer has nothing to do with.
+func decodeEvent(event []byte) (string, eventPayload) {
+	name := ""
+	data := ""
+	for _, line := range strings.Split(string(event), "\n") {
+		switch {
+		case strings.HasPrefix(line, "event: "):
+			name = strings.TrimPrefix(line, "event: ")
+		case strings.HasPrefix(line, "data: "):
+			data += strings.TrimPrefix(line, "data: ")
 		}
 	}
-	return ""
+	var payload eventPayload
+	if err := json.Unmarshal([]byte(data), &payload); err != nil {
+		return name, eventPayload{}
+	}
+	if name == "" {
+		name = payload.Type
+	}
+	return name, payload
 }
 
 // A failure the backend describes is reported as it described it; one it does not is
 // still a failure.
-func failureFrom(lines []string) error {
-	failed := false
-	for _, line := range lines {
-		if line == "event: response.failed" {
-			failed = true
-			continue
-		}
-		if !failed || !strings.HasPrefix(line, "data: ") {
-			continue
-		}
-		var payload struct {
-			Response struct {
-				Error struct {
-					Type    string `json:"type"`
-					Message string `json:"message"`
-				} `json:"error"`
-			} `json:"response"`
-		}
-		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &payload); err != nil {
-			return errStreamFailed
-		}
-		if payload.Response.Error.Message == "" {
-			return errStreamFailed
-		}
-		return fmt.Errorf("%w: %s: %s",
-			errStreamFailed, payload.Response.Error.Type, payload.Response.Error.Message)
+func failureOf(payload eventPayload) error {
+	if payload.Response.Error.Message == "" {
+		return errStreamFailed
 	}
-	return nil
-}
-
-func extractDelta(data string) string {
-	var payload struct {
-		Delta string `json:"delta"`
-	}
-	if err := json.Unmarshal([]byte(data), &payload); err != nil {
-		return ""
-	}
-	return payload.Delta
+	return fmt.Errorf("%w: %s: %s",
+		errStreamFailed, payload.Response.Error.Type, payload.Response.Error.Message)
 }

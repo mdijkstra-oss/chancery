@@ -31,9 +31,9 @@ func callBackend(t *testing.T, status int, stream string) (string, *[]byte) {
 
 func TestRunCallRendersStream(t *testing.T) {
 	stream := "event: response.created\ndata: {\"type\":\"response.created\"}\n\n" +
-		"event: response.output_text.delta\ndata: {\"delta\":\"hello \"}\n\n" +
-		"event: response.reasoning_summary_text.delta\ndata: {\"delta\":\"working\"}\n\n" +
-		"event: response.output_text.delta\ndata: {\"delta\":\"world\"}\n\n" +
+		"event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"hello \"}\n\n" +
+		"event: response.reasoning_summary_text.delta\ndata: {\"type\":\"response.reasoning_summary_text.delta\",\"delta\":\"working\"}\n\n" +
+		"event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"world\"}\n\n" +
 		"event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n"
 	backendURL, sent := callBackend(t, http.StatusOK, stream)
 	t.Setenv("RESPONSES_BASE_URL", backendURL)

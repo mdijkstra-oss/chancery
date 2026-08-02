@@ -1,0 +1,9 @@
+# The build needs the module manifests and the Go sources, so those are what the
+# context holds. An allowlist rather than a list of things to keep out: .gitignore has
+# no effect on a build context, and a denylist ships .env the day it is written under
+# a name nobody thought to exclude.
+*
+!go.mod
+!go.sum
+!cmd
+!internal

@@ -17,6 +17,13 @@ linters:
       enabled-tags:
         - diagnostic
         - performance
+      settings:
+        # Configuration, frontmatter and resolved-agent structs are read-only bundles
+        # passed by value on purpose: a pointer would trade a copy of a few hundred
+        # bytes for a nil at every call site. The check still catches a parameter big
+        # enough for the copy itself to be the argument.
+        hugeParam:
+          sizeThreshold: 512
     misspell:
       locale: US
     revive:

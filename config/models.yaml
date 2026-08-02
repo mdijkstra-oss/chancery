@@ -1,0 +1,10 @@
+models:
+  fast:
+    model: openai/gpt-5-mini
+    verbosity: low
+  smart:
+    model: anthropic/claude-opus-4-6
+    reasoning_effort: high
+  smart-prio:
+    extends: smart
+    service_tier: priority

@@ -1,0 +1,62 @@
+name: chancery
+
+services:
+  dragoman:
+    # A git URL is a complete build context, so one clone brings up both
+    # binaries. DRAGOMAN_REPO overrides it with a local path or another host,
+    # which is the whole of what pointing at a different backend costs. Once
+    # images are published this becomes:
+    #   image: ghcr.io/mdijkstra-oss/dragoman:latest
+    build:
+      context: ${DRAGOMAN_REPO:-https://github.com/mdijkstra-oss/dragoman.git}
+    # Every provider key is here and on no other service. dragoman performs no
+    # client authentication by design, which is safe only because it publishes
+    # no host port — see the absent `ports:` below.
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    volumes:
+      - ./dragoman.yaml:/etc/dragoman/dragoman.yaml:ro
+    # --config replaces dragoman's embedded service table wholesale rather than
+    # merging, so the mounted file is the complete list of services chancery may
+    # name. 0.0.0.0 is repeated from the image default because naming a command
+    # here replaces it, and the flag's own default is loopback — which the other
+    # container cannot reach, and which fails as a connection refused that reads
+    # like a wrong hostname.
+    command: ["serve", "--addr", "0.0.0.0:8080", "--config", "/etc/dragoman/dragoman.yaml"]
+    # The image carries its own HEALTHCHECK — the binary asks its own /health —
+    # so nothing is restated here. What the gate is for is below: depends_on
+    # alone waits for start, not for listening, and without a health condition
+    # the first requests after `up` fail against a process that has not finished
+    # binding.
+    # No ports. Publishing one would hand every provider key above to anyone who
+    # can reach the host. This is the single line the whole credential story
+    # rests on.
+    restart: unless-stopped
+
+  chancery:
+    # Once images are published: image: ghcr.io/mdijkstra-oss/chancery:latest
+    build:
+      context: .
+    ports:
+      - "${PORT:-8081}:8081"
+    # No provider key appears here. RESPONSES_BASE_URL is the entire coupling to
+    # the backend, and it reaches it by service name over the compose network.
+    environment:
+      RESPONSES_BASE_URL: http://dragoman:8080
+      PORT: 8081
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENV: ${ENV:-production}
+      LOG_REQUEST_HEADERS: ${LOG_REQUEST_HEADERS:-X-Session-ID,X-Project-ID}
+    # Read-only, and not baked into the image, so editing a prompt file and
+    # restarting is the whole edit cycle.
+    volumes:
+      - ./config:/config:ro
+    depends_on:
+      dragoman:
+        condition: service_healthy
+    restart: unless-stopped

@@ -4,15 +4,13 @@
 
 Turns a directory of Markdown into HTTP endpoints — the path is the route, the frontmatter picks the model, the body is the prompt.
 
-What separates this from a server that merely holds prompts is that the file also chooses the model behind it. A `.md` file is the complete definition of an endpoint: its route is the path, its model is the frontmatter, its behaviour is the Markdown body, and its per-request settings sit beside them. Nothing about that endpoint lives anywhere else.
+A `.md` file is the whole definition of an endpoint: its route is the path, its model is the frontmatter, its behaviour is the body. The directory is read into a route table at boot, and `validate` checks it without starting a server.
 
-The nearest familiar thing is a static site generator, and the resemblance is mechanical rather than rhetorical: a file's path is its URL down to the `index.md` rule, frontmatter configures the page, `shared/` holds partials pulled in by name, and `validate` is the build — a broken include fails it, and so does a fragment no agent includes. The difference is that the output is a live endpoint, so the build runs at boot instead of ahead of time.
-
-Requests and responses are [`openai-responses`](https://platform.openai.com/docs/api-reference/responses). Chancery writes `model`, `instructions`, and whatever sampling fields the frontmatter carries onto the body it received, `POST`s the result to `{RESPONSES_BASE_URL}/responses`, and relays the event stream back untouched. It never parses the message array and never decodes an event.
+Requests and responses are [`openai-responses`](https://platform.openai.com/docs/api-reference/responses). Chancery writes `model`, `instructions`, and whatever sampling fields the frontmatter carries onto the body it received, `POST`s the result to `{RESPONSES_BASE_URL}/responses`, and relays the event stream back untouched. Serving never parses the message array and never decodes an event; `call` decodes one only to render text in a terminal.
 
 ## Configuration directory
 
-Everything an agent is lives outside the binary, in a directory named by `--config`. `./config` in this repository is a working one, and every command below runs against it.
+`--config` names the directory, defaulting to `./config`. The one in this repository is a working example, and every command below runs against it.
 
 ```text
 config/
@@ -37,9 +35,9 @@ A file's path minus `.md` is its route. `index.md` takes the route of its direct
 Two directory names are reserved and hold no routes:
 
 - `shared/` — fragments any agent can include by name.
-- `tools/` — reserved. Answers no route; holds prompts a request pulls in by naming a tool.
+- `tools/` — prompts a request pulls in by naming a tool.
 
-A Markdown file that is not an agent and is not included by one is an error, so a fragment that stopped being used is reported rather than sitting there:
+A Markdown file that is neither an agent nor included by one is an error:
 
 ```text
 ✗ research/notes.md: orphaned Markdown file has no frontmatter and is not included by an agent
@@ -59,9 +57,7 @@ The name resolves against the agent's own directory first, then `shared/`. `rese
 
 ### Tool prompts
 
-A fragment is pulled in by the agent file. A tool prompt is pulled in by the request, which is what `tools/` is for: how to use a tool is worth saying only to a caller that can call it.
-
-The filename carries the condition. Everything after the last dot names the tool the prompt belongs to:
+A fragment is pulled in by the agent file; a tool prompt is pulled in by the request. Everything after the last dot in the filename names the tool it belongs to:
 
 ```text
 tools/
@@ -70,9 +66,9 @@ tools/
 └── shell/grep.run_shell.md        included when a tool named `run_shell` is offered
 ```
 
-A file whose name has no dot before `.md` is unconditional. Directories are walked, so the grouping is yours to choose and means nothing to the loader. What is selected is appended to `instructions`, behind the agent's own prompt.
+A file whose name has no dot before `.md` is unconditional. Directories are walked and mean nothing to the loader. What is selected is appended to `instructions`, behind the agent's own prompt.
 
-The name is read from the `tools` array of the request — a sibling of `input`, never inside it — and nothing else about a tool is looked at. A built-in tool the format identifies by type alone carries no name and asks for no prompt. The array itself travels to the backend byte for byte.
+Names come from the request's `tools` array; nothing else about a tool is read, and the array reaches the backend unchanged. A built-in tool identified by type alone carries no name and pulls in no prompt.
 
 ## Agent frontmatter
 
@@ -101,7 +97,7 @@ The body becomes `instructions`. Every other field is a body field or the alias 
 An agent's setting beats the alias's.
 
 > [!NOTE]
-> `instructions` is prepended, never replaced. A caller sending its own gets the agent's prompt in front of it, separated by a blank line — overwriting would silently discard something the caller wrote, and refusing would make an ordinary Responses body an error.
+> `instructions` is prepended, never replaced. A caller sending its own gets the agent's prompt in front of it, separated by a blank line.
 
 ### Named models
 
@@ -141,7 +137,7 @@ models:
     service_tier: priority
 ```
 
-`model` is the value that travels in the body, prefix included. The prefix belongs to whoever serves the request — a backend fronting several providers reads it, a backend that is one provider is handed a name without one. Chancery never reads it and never checks it; an unresolvable name comes back as an error from the backend.
+`model` travels in the body, prefix included. The prefix is read by whoever serves the request; chancery never parses or checks it, and an unresolvable name comes back as a backend error.
 
 `extends` inherits the lot and overrides what it names, up to five steps deep. Aliases accept `model`, `extends`, `max_tokens`, `reasoning_effort`, `reasoning_summary`, `verbosity`, `service_tier`, and `prompt` — a filename under `shared/` whose contents go in front of every agent's prompt on that alias.
 
@@ -153,17 +149,15 @@ models:
 | `models.yaml` | which model an alias names, prefix included, and the settings it runs with |
 | `dragoman.yaml` | where a prefix points, what it speaks, and which variable holds its key |
 
-The third file is the backend's, and `dragoman.yaml` in this repository is the deployment's copy of it: one entry per prefix, naming that provider's base URL, the dialect it speaks, and the environment variable holding its key.
-
-Placement and credentials belong to the thing that reaches the network; capability and intent belong to the thing that composes the request. Chancery cannot express an endpoint at all — no API key resolves inside this process, from `models.yaml` or anywhere else, and `auth` names a variable rather than holding a key even on the side that does.
+`dragoman.yaml` is the backend's file; the copy here is the deployment's. Chancery cannot express an endpoint at all, and no API key resolves in this process.
 
 ## The backend
 
 `RESPONSES_BASE_URL` is the whole coupling. Chancery builds one URL, `{base}/responses`, and writes only fields the format already has, so anything serving `openai-responses` answers it.
 
-[dragoman](https://github.com/mdijkstra-oss/dragoman) is the recommended target: it reaches several providers behind a single Responses surface, which is what makes a prefixed model name mean something. OpenAI's own `/responses` works identically, and so does anything else mirroring that surface. Nothing here names dragoman, checks for it, or depends on it existing.
+[dragoman](https://github.com/mdijkstra-oss/dragoman) is the recommended target: it reaches several providers behind one Responses surface, which is what a prefixed model name is for. OpenAI's own `/responses` works identically.
 
-Two limits are worth knowing before pointing at a provider directly. Positions travel but values do not — a reasoning level one provider accepts another may reject — and one base URL is one target for the whole instance, so every agent shares that target's catalogue and that target's key.
+Pointing directly at a provider costs two things. A reasoning level one provider accepts another may reject, and one base URL is one target for the whole instance — every agent shares that target's catalogue and its key.
 
 ## Quick start
 
@@ -172,11 +166,11 @@ Requirements: Go `1.26.5`, a configuration directory, and something serving `ope
 ### 1. Validate the configuration
 
 ```console
-$ go run ./cmd/chancery --config ./config validate
+$ go run ./cmd/chancery validate
 ✓ config valid (0 warnings)
 ```
 
-Nothing here reaches the network. `validate` checks the config it owns — aliases resolve, includes exist, nothing is orphaned — and stays offline. A broken directory reports every problem at once:
+`validate` is offline: aliases resolve, includes exist, nothing is orphaned. A broken directory reports every problem at once:
 
 ```console
 $ go run ./cmd/chancery --config ./broken validate
@@ -188,7 +182,7 @@ Error: config invalid (2 errors · 0 warnings)
 ### 2. Inspect the routes
 
 ```console
-$ go run ./cmd/chancery --config ./config list
+$ go run ./cmd/chancery list
 PATH                MODEL                      REASONING
 research                                       
   .deep             anthropic/claude-opus-4-6  high
@@ -200,7 +194,7 @@ summarize           openai/gpt-5-mini
 `list --json` prints the same thing as a document, descriptions included:
 
 ```console
-$ go run ./cmd/chancery --config ./config list --json
+$ go run ./cmd/chancery list --json
 {
   "agents": [
     {
@@ -236,7 +230,7 @@ $ go run ./cmd/chancery --config ./config list --json
 
 ```console
 $ RESPONSES_BASE_URL=http://localhost:8080 \
-    go run ./cmd/chancery --config ./config call summarize --input "When did Rome fall?"
+    go run ./cmd/chancery call summarize --input "When did Rome fall?"
 Rome fell in 476.
 ```
 
@@ -246,7 +240,7 @@ Rome fell in 476.
 
 ```console
 $ RESPONSES_BASE_URL=http://localhost:8080 \
-    go run ./cmd/chancery --config ./config serve
+    go run ./cmd/chancery serve
 {"time":"2026-08-01T00:05:16.047414+02:00","level":"WARN","msg":"auth disabled — all requests accepted","environment":"development"}
 {"time":"2026-08-01T00:05:16.047498+02:00","level":"INFO","msg":"config loaded","environment":"development","component":"startup","data":{"agents":2}}
 {"time":"2026-08-01T00:05:16.047644+02:00","level":"INFO","msg":"server starting","environment":"development","component":"startup","data":{"port":"8081"}}
@@ -269,11 +263,9 @@ event: response.completed
 data: {"type": "response.completed", "response": {"usage": {"input_tokens": 41, "output_tokens": 7}}}
 ```
 
-Nothing in that request is chancery's own dialect — it is the JSON a stock Responses client already writes, which is what makes the seam a public format rather than a shape a caller has to learn.
-
 ## CLI
 
-Every command takes `--config`.
+Every command takes `--config`, defaulting to `./config`.
 
 | command | does |
 |---|---|
@@ -281,8 +273,9 @@ Every command takes `--config`.
 | `list` | Print agents, routes and resolved models. `--json` prints a document. |
 | `call <agent-path>` | Send one turn to an agent and render the stream as text. `--input TEXT`, `--input @FILE`, or stdin. |
 | `serve` | Serve every agent over HTTP. |
+| `healthcheck` | Ask a running instance whether it is serving. Exits non-zero when it is not. `--addr` defaults to `127.0.0.1:$PORT`. |
 
-`call` and `serve` need `RESPONSES_BASE_URL`; `validate` and `list` do not.
+`call` and `serve` need `RESPONSES_BASE_URL`; `validate`, `list` and `healthcheck` do not.
 
 ## HTTP API
 
@@ -297,13 +290,13 @@ Two query parameters override a body field for one request, for callers that can
 - `?tool_choice=` → `tool_choice`
 - `?reasoning_summary=` → `reasoning.summary`
 
-Every other key of the request survives whatever it holds. Messages, tools and response formats are raw JSON on the way through — chancery reads none of them.
+Every other key survives whatever it holds. Messages, tools and response formats pass through as raw JSON.
 
 Bodies are capped at 10 MB. An unknown route is `404`, an undecodable body is `400`, and a backend that never answered is `503`.
 
 ### Outbound identity
 
-The forwarded request carries `X-Request-ID`, `X-Agent`, and `X-Subject` — the JWT subject where authentication is on — plus whatever `LOG_REQUEST_HEADERS` names. All of it is a log label at the far end. No credential travels: the caller's `Authorization` header is consumed by the middleware here and never forwarded.
+The forwarded request carries `X-Request-ID`, `X-Agent`, `X-Subject`, and whatever `LOG_REQUEST_HEADERS` names. All of it is a log label at the far end. The caller's `Authorization` header is consumed by the middleware here and never forwarded.
 
 ## Runtime environment
 
@@ -348,24 +341,24 @@ cp .env.example .env       # one provider key
 docker compose up
 ```
 
-The two binaries live in two repositories and a reader should not have to know that: Docker takes a git URL as a build context, so `compose.yaml` fetches dragoman itself. Both images are static Go binaries on `scratch` — a few MB each, seconds to build. Once images are published the `build:` keys become `image:` references and nothing compiles on the reader's machine at all.
+`compose.yaml` takes a git URL as dragoman's build context, so one clone brings up both. Both images are static Go binaries on `scratch`, a few MB each. `DRAGOMAN_REPO` overrides the context with a local path.
 
 Four files carry the deployment:
 
 - `compose.yaml` — the two services and the network between them.
 - `Dockerfile` — chancery's image.
 - `.env.example` — the provider keys, all of them on the dragoman service.
-- `dragoman.yaml` — the service table, mounted read-only. `--config` replaces dragoman's embedded table wholesale rather than merging, which makes this file exactly the one to read when asking what a deployment can reach.
+- `dragoman.yaml` — the service table, mounted read-only. `--config` replaces dragoman's embedded table wholesale rather than merging.
 
-`config/` and `dragoman.yaml` mount read-only, so editing a prompt file and restarting is enough; nothing is baked into an image.
+`config/` and `dragoman.yaml` mount read-only, so editing a prompt file and restarting is enough.
 
 > [!IMPORTANT]
-> Publishing dragoman's port would hand every provider key to anyone who can reach the host. It performs no client authentication by design, and that is safe only because it is unreachable from outside the compose network.
+> Publishing dragoman's port would hand every provider key to anyone who can reach the host. It performs no client authentication by design, which is safe only because it is unreachable from outside the compose network.
 
-Two more details fail quietly if missed, and `compose.yaml` states both at the line that carries them. dragoman must bind `0.0.0.0` inside its container, since its default is loopback and the symptom of getting it wrong is a connection refused that reads like a wrong hostname. And chancery gates on a dragoman healthcheck rather than on `depends_on` alone, which waits for start and not for listening — without the gate the first requests after `up` fail against a process that has not finished binding.
+Two details fail quietly if missed, and `compose.yaml` states both at the line that carries them. dragoman must bind `0.0.0.0` inside its container — its default is loopback, and the symptom is a connection refused that reads like a wrong hostname. And chancery gates on dragoman's healthcheck rather than `depends_on` alone, which waits for start and not for listening.
 
 > [!NOTE]
-> Both images are `scratch`: one binary, no shell, no `wget`. A healthcheck naming any command would name one the image cannot execute, so a one-shot `probe` service copies a static busybox into a volume that dragoman mounts read-only. It runs once and exits.
+> Both images are `scratch`: one binary, no shell. Each binary answers its own `/health` through a `healthcheck` subcommand, which is what a container runtime can execute there.
 
 ## Development
 
@@ -381,7 +374,7 @@ make vet fmt-check lint  # go vet, gofmt -l, golangci-lint
 make cover               # coverage profile and per-function report
 ```
 
-`CONFIG` defaults to `./config` and every target takes it: `make start CONFIG=~/prompts`. Environment for a local run comes from `.env.local` — not `.env`, which holds the compose stack's provider keys and has no business in this process.
+`CONFIG` defaults to `./config` and every target takes it: `make start CONFIG=~/prompts`. Environment for a local run comes from `.env.local`, not `.env` — that one holds the compose stack's provider keys.
 
 `make dev` needs [`watchexec`](https://github.com/watchexec/watchexec). Everything else is Go and the module's own dependencies.
 
@@ -402,7 +395,7 @@ internal/logging/            Context-carried log attributes
 internal/bootstrap/          Logger construction
 ```
 
-`internal/prompts` is roughly half the non-test code in the repository, which is the shape to expect: composing a request is a handful of fields, and turning a directory into a route table is the work.
+`internal/prompts` is roughly half the non-test code: composing a request is a handful of fields, and turning a directory into a route table is the work.
 
 ## Operational notes
 

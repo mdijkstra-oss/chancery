@@ -4,7 +4,7 @@ type: feat
 status: draft
 created: 2026-07-31
 repos:
-  chancery: /Users/matthijn/Documents/dev.nosync/hermes/hermes-logos
+  chancery: /Users/matthijn/Documents/dev.nosync/open-source/chancery
   dragoman: /Users/matthijn/Documents/dev.nosync/open-source/dragoman
 live_config: /Users/matthijn/Desktop/hermes-logos-config-full-2026-07-17
 ---
@@ -238,11 +238,12 @@ Which is what makes the layering legible. Three files, three questions, no overl
 | `models.yaml` | which model an alias names, prefix included, and the settings it runs with |
 | `dragoman.yaml` | where a prefix points, what it speaks, and which variable holds its key |
 
-The nearest familiar thing is a static site generator, and the resemblance is mechanical rather
-than rhetorical: a file's path is its URL down to the `index.md` rule, frontmatter configures the
-page, `shared/` holds partials pulled in by name, and `validate` is the build — failing on a
-broken include and warning on an orphaned fragment exactly as one would. The difference is that
-the output is a live endpoint, so the build runs at boot instead of ahead of time.
+A file's path being its route is worth stating and not worth comparing to anything. Every
+file-routed web framework does it, and the one comparison that reaches for a directory of Markdown
+— a static site generator — is wrong in the part that matters: a generator produces artifacts and
+leaves the request path, while this reads the directory into a route table at boot and answers
+every request thereafter. There is no build and no output, which is also why `validate` is a check
+rather than a build step.
 
 Written as an opening line: *turns a directory of Markdown into HTTP endpoints — the path is the
 route, the frontmatter picks the model, the body is the prompt.*

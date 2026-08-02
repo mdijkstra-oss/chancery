@@ -38,7 +38,7 @@ func newRootCommand() *cobra.Command {
 	// reads as though the flags were the problem when what failed was a config
 	// diagnostic or a backend. The error says what went wrong; --help says the rest.
 	root.SilenceUsage = true
-	root.PersistentFlags().String("config", "", "path to the external config directory")
+	root.PersistentFlags().String("config", defaultConfigDir, "path to the config directory")
 	root.AddCommand(
 		newValidateCommand(),
 		newListCommand(),
@@ -53,17 +53,15 @@ func runRootCommand(_ *cobra.Command, _ []string) error {
 	return errors.New("a command is required")
 }
 
-// commandConfigPath is the one place the flag is read, so it is the one place the
-// requirement belongs: a command that needs a config directory fails without one, and
-// a command that does not — asking a running process whether it is serving — is not
-// made to name a directory it will never open.
+// defaultConfigDir is where a directory of agents sits when nobody says otherwise.
+// A missing one is reported at boot naming the path, so a wrong working directory
+// says so rather than serving no routes.
+const defaultConfigDir = "./config"
+
 func commandConfigPath(command *cobra.Command) (string, error) {
 	configPath, err := command.Root().PersistentFlags().GetString("config")
 	if err != nil {
 		return "", fmt.Errorf("read config flag: %w", err)
-	}
-	if configPath == "" {
-		return "", errors.New("--config is required: name the directory holding the agent Markdown")
 	}
 	return configPath, nil
 }

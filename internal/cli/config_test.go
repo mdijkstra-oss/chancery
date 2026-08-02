@@ -12,7 +12,12 @@ import (
 // operator would have written.
 func writeConfigDir(t *testing.T, files map[string]string) string {
 	t.Helper()
-	root := t.TempDir()
+	return writeConfigDirAt(t, t.TempDir(), files)
+}
+
+// writeConfigDirAt builds one at a named path, for the tests that care where it sits.
+func writeConfigDirAt(t *testing.T, root string, files map[string]string) string {
+	t.Helper()
 	for path, content := range files {
 		full := filepath.Join(root, path)
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {

@@ -42,11 +42,12 @@ USER 65532:65532
 
 EXPOSE 8081
 
-# The configuration path is named here rather than left to the caller because
-# --config is required and has no default, so `docker run` alone would refuse.
-# The flag stays overridable, and so does the subcommand.
+# The working directory is where ./config resolves from, so mounting a
+# configuration at /config is the whole of what running this image takes.
+WORKDIR /
+
 ENTRYPOINT ["/chancery"]
-CMD ["--config", "/config", "serve"]
+CMD ["serve"]
 
 # The binary checks itself, because a scratch image holds one file and no shell,
 # no curl and no wget — any other command named here would be one the image

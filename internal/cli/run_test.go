@@ -36,7 +36,9 @@ func TestRunParser(t *testing.T) {
 	}
 }
 
-func TestRunRequiresConfig(t *testing.T) {
+// A command run with no --config reads ./config, and a directory that is not there
+// is named rather than being served as no routes at all.
+func TestRunFallsBackToTheDefaultConfigDir(t *testing.T) {
 	tests := []struct {
 		name string
 		args []string
@@ -48,15 +50,33 @@ func TestRunRequiresConfig(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			code, _, stderr := executeCLI(test.args)
+			t.Chdir(t.TempDir())
+			code, stdout, stderr := executeCLI(test.args)
 			if code != exitFailure {
 				t.Errorf("exit code = %d, want %d", code, exitFailure)
 			}
-			errorText := "--config is required"
-			if strings.Count(stderr, errorText) != 1 {
-				t.Errorf("stderr error count = %d, want 1: %q", strings.Count(stderr, errorText), stderr)
+			if !strings.Contains(stdout+stderr, defaultConfigDir) {
+				t.Errorf("output never names %q: %q", defaultConfigDir, stdout+stderr)
 			}
 		})
+	}
+}
+
+// The directory is read from the working directory, so the same command in a
+// configuration directory's parent needs no flag at all.
+func TestRunReadsTheDefaultConfigDir(t *testing.T) {
+	t.Chdir(t.TempDir())
+	writeConfigDirAt(t, defaultConfigDir, map[string]string{
+		"models.yaml": validModels,
+		"plain.md":    "---\ndescription: plain agent\nmodel: fast\n---\nYou are plain.",
+	})
+
+	code, stdout, stderr := executeCLI([]string{"validate"})
+	if code != exitSuccess {
+		t.Fatalf("exit code = %d, want %d: %s", code, exitSuccess, stderr)
+	}
+	if !strings.Contains(stdout, "config valid") {
+		t.Errorf("stdout = %q", stdout)
 	}
 }
 

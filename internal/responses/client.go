@@ -56,9 +56,22 @@ type Identity struct {
 	Headers   []Header
 }
 
+// PromptCacheBreakpoints is the alias's answer to whether its model accepts explicit
+// cache breakpoints. It is not a body field, so it rides on the URL: a directive to
+// whatever translates the request, not a value the model is asked to read.
 type Request struct {
-	Body     []byte
-	Identity Identity
+	Body                   []byte
+	Identity               Identity
+	PromptCacheBreakpoints *bool
+}
+
+// Only an explicit false is sent. Absent means the backend keeps its own default, and
+// a backend that has never heard of the parameter ignores it and answers as before.
+func (r Request) url(base string) string {
+	if r.PromptCacheBreakpoints == nil || *r.PromptCacheBreakpoints {
+		return base
+	}
+	return base + "?prompt_cache_breakpoints=false"
 }
 
 // Response is a backend answer whose body has not been read. The caller closes it.
@@ -144,7 +157,7 @@ func NewClient(cfg Config) (*Client, error) {
 // Send returns before anything is written to the caller, so a retryable error can be
 // retried with the response still unstarted.
 func (c *Client) Send(ctx context.Context, req Request) (*Response, error) {
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(req.Body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, req.url(c.url), bytes.NewReader(req.Body))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}

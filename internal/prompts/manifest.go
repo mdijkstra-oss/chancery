@@ -676,24 +676,27 @@ func overlayModel(base, child modelEntry) modelEntry {
 	result.ReasoningSummary = coalesce(base.ReasoningSummary, child.ReasoningSummary)
 	result.Verbosity = coalesce(base.Verbosity, child.Verbosity)
 	result.ServiceTier = coalesce(base.ServiceTier, child.ServiceTier)
+	result.PromptCacheBreakpoints = coalesce(base.PromptCacheBreakpoints, child.PromptCacheBreakpoints)
 	return result
 }
 
 func mergeConfig(model modelEntry, agent agentEntry) PromptConfig {
 	cfg := PromptConfig{
-		Model:            model.Model,
-		Prompt:           model.Prompt,
-		MaxTokens:        model.MaxTokens,
-		ReasoningEffort:  model.ReasoningEffort,
-		ReasoningSummary: model.ReasoningSummary,
-		Verbosity:        model.Verbosity,
-		ServiceTier:      model.ServiceTier,
+		Model:                  model.Model,
+		Prompt:                 model.Prompt,
+		MaxTokens:              model.MaxTokens,
+		ReasoningEffort:        model.ReasoningEffort,
+		ReasoningSummary:       model.ReasoningSummary,
+		Verbosity:              model.Verbosity,
+		ServiceTier:            model.ServiceTier,
+		PromptCacheBreakpoints: model.PromptCacheBreakpoints,
 	}
 	cfg.MaxTokens = coalesce(cfg.MaxTokens, agent.MaxTokens)
 	cfg.ReasoningEffort = coalesce(cfg.ReasoningEffort, agent.ReasoningEffort)
 	cfg.ReasoningSummary = coalesce(cfg.ReasoningSummary, agent.ReasoningSummary)
 	cfg.Verbosity = coalesce(cfg.Verbosity, agent.Verbosity)
 	cfg.ServiceTier = coalesce(cfg.ServiceTier, agent.ServiceTier)
+	cfg.PromptCacheBreakpoints = coalesce(cfg.PromptCacheBreakpoints, agent.PromptCacheBreakpoints)
 	return cfg
 }
 
@@ -705,6 +708,7 @@ func overlayAgent(base, child agentEntry) agentEntry {
 	result.ReasoningSummary = coalesce(base.ReasoningSummary, child.ReasoningSummary)
 	result.Verbosity = coalesce(base.Verbosity, child.Verbosity)
 	result.ServiceTier = coalesce(base.ServiceTier, child.ServiceTier)
+	result.PromptCacheBreakpoints = coalesce(base.PromptCacheBreakpoints, child.PromptCacheBreakpoints)
 	return result
 }
 

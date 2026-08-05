@@ -13,7 +13,7 @@ const maxRequestBodyBytes = 10 << 20
 func SetupRoutes(r *chi.Mux, chatHandler http.HandlerFunc, authMiddleware func(http.Handler) http.Handler, corsOrigins, requestHeaders []string) {
 	r.Use(middleware.Recoverer)
 	r.Use(RequestContext(requestHeaders))
-	r.Use(cors.Handler(corsOptions(corsOrigins, requestHeaders)))
+	r.Use(cors.Handler(corsOptions(corsOrigins)))
 
 	r.Get("/health", healthHandler)
 	r.Group(func(agents chi.Router) {
@@ -28,10 +28,13 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("ok\n"))
 }
 
-func corsOptions(corsOrigins, requestHeaders []string) cors.Options {
+// The origin allowlist is the control. A header allowlist beside it decides only
+// which headers a browser may send, which is a question about what this serves
+// rather than who may reach it.
+func corsOptions(corsOrigins []string) cors.Options {
 	options := cors.Options{
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   allowedHeaders(requestHeaders),
+		AllowedHeaders:   []string{"*"},
 		AllowCredentials: false,
 	}
 	if len(corsOrigins) == 0 {
@@ -44,10 +47,4 @@ func corsOptions(corsOrigins, requestHeaders []string) cors.Options {
 
 func denyAllOrigins(*http.Request, string) bool {
 	return false
-}
-
-func allowedHeaders(requestHeaders []string) []string {
-	headers := make([]string, 0, len(requestHeaders)+2)
-	headers = append(headers, "Content-Type", "Authorization")
-	return append(headers, requestHeaders...)
 }

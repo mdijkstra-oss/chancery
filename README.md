@@ -285,11 +285,6 @@ Every command takes `--config`, defaulting to `./config`.
 | `POST /<agent-path>` | an `openai-responses` request | the backend's event stream, relayed per event |
 | `POST /<agent-path>.<model>` | the same, on a named model | the same |
 
-Two query parameters override a body field for one request, for callers that cannot edit the body they send:
-
-- `?tool_choice=` → `tool_choice`
-- `?reasoning_summary=` → `reasoning.summary`
-
 Every other key survives whatever it holds. Messages, tools and response formats pass through as raw JSON.
 
 Bodies are capped at 10 MB. An unknown route is `404`, an undecodable body is `400`, and a backend that never answered is `503`.

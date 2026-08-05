@@ -205,10 +205,10 @@ func TestChatComposesAgentFields(t *testing.T) {
 			"reasoning":{"effort":"high"},"text":{"verbosity":"low"},
 			"service_tier":"priority","max_output_tokens":4096}`,
 	}, {
-		name: "a query override lands in its body position",
+		name: "a query string names nothing the agent resolves from",
 		path: "/plain?tool_choice=required&reasoning_summary=concise",
 		want: `{"input":[],"model":"openai/upstream-fast","instructions":"You are plain.",
-			"reasoning":{"effort":"low","summary":"concise"},"tool_choice":"required"}`,
+			"reasoning":{"effort":"low"}}`,
 	}}
 
 	for _, testCase := range cases {

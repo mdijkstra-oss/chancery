@@ -10,8 +10,7 @@ import (
 	"maps"
 )
 
-// Agent is what chancery writes onto the body: the resolved agent's fields, plus the
-// per-request overrides a caller names in the query string.
+// Agent is what chancery writes onto the body: the fields the resolved route names.
 type Agent struct {
 	Model            string
 	Instructions     string

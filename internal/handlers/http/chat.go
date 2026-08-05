@@ -5,7 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/mdijkstra-oss/chancery/internal/auth"
@@ -53,7 +52,6 @@ func handleChat(
 	}
 
 	agent := responses.AgentFrom(resolved)
-	applyQueryOverrides(&agent, r.URL.Query())
 	toolPrompt, _, err := prompts.LoadToolPrompts(registry.Root, responses.ToolNames(body))
 	if err != nil {
 		logChatError(r, "tool prompt error", urlPath, agent.Model, err)
@@ -109,17 +107,6 @@ func appendPrompt(instructions, addition string) string {
 		return addition
 	}
 	return instructions + "\n\n" + addition
-}
-
-// A query parameter names a field of the body it overrides, so a caller that cannot
-// edit the body it sends can still set one per request.
-func applyQueryOverrides(agent *responses.Agent, query url.Values) {
-	if choice := query.Get("tool_choice"); choice != "" {
-		agent.ToolChoice = choice
-	}
-	if summary := query.Get("reasoning_summary"); summary != "" {
-		agent.ReasoningSummary = summary
-	}
 }
 
 // Identity is what chancery knows about a request and nothing it was trusted with: the

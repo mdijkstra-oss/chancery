@@ -328,7 +328,7 @@ JWT validation is off unless a key source is configured, and `serve` says so at 
 
 ## Deployment
 
-Two containers under one compose file: dragoman holds every provider key and publishes no host port, chancery publishes `8081` and reaches it by service name.
+Two containers under one compose file: dragoman holds every provider key and publishes no host port, chancery publishes `8081` and reaches it by service name. `CHANCERY_PORT` moves the host side of that; the container listens on `8081` either way.
 
 ```sh
 git clone https://github.com/mdijkstra-oss/chancery && cd chancery

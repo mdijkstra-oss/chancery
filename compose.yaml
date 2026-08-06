@@ -41,8 +41,10 @@ services:
     # Once images are published: image: ghcr.io/mdijkstra-oss/chancery:latest
     build:
       context: .
+    # CHANCERY_PORT is the host's, PORT below is the container's. One name for
+    # both would read as a single setting and silently be two.
     ports:
-      - "${PORT:-8081}:8081"
+      - "${CHANCERY_PORT:-8081}:8081"
     # No provider key appears here. RESPONSES_BASE_URL is the entire coupling to
     # the backend, and it reaches it by service name over the compose network.
     environment:

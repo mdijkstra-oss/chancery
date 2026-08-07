@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/textproto"
 	"os"
 	"strings"
 	"time"
@@ -54,9 +53,6 @@ func Load() (Config, error) {
 		ShutdownTimeout: shutdownTimeout,
 	}
 	if err := cfg.Auth.Validate(); err != nil {
-		return Config{}, err
-	}
-	if err := validateRequestHeaders(cfg.RequestHeaders); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
@@ -115,33 +111,6 @@ func parseList(value string) []string {
 		values = append(values, value)
 	}
 	return values
-}
-
-func validateRequestHeaders(headers []string) error {
-	if len(headers) > 16 {
-		return fmt.Errorf("LOG_REQUEST_HEADERS contains more than 16 headers")
-	}
-	for _, header := range headers {
-		canonical := textproto.CanonicalMIMEHeaderKey(header)
-		if canonical == "" || !strings.HasPrefix(canonical, "X-") {
-			return fmt.Errorf("LOG_REQUEST_HEADERS contains invalid header %q", header)
-		}
-		if isCredentialHeader(canonical) {
-			return fmt.Errorf("LOG_REQUEST_HEADERS contains credential header %q", header)
-		}
-	}
-	return nil
-}
-
-func isCredentialHeader(header string) bool {
-	normalized := strings.ToLower(header)
-	forbiddenParts := []string{"access-token", "api-key", "auth", "credential", "password", "secret", "security-token"}
-	for _, part := range forbiddenParts {
-		if strings.Contains(normalized, part) {
-			return true
-		}
-	}
-	return false
 }
 
 // A misspelled level is the operator's mistake, not the program's, so it is reported

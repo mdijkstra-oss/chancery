@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -41,19 +42,13 @@ type Client struct {
 	http      *http.Client
 }
 
-// Header is one caller header an operator named for the backend's record.
-type Header struct {
-	Name   string
-	Values []string
-}
-
-// Identity is what chancery knows about a request. Every field of it is a log label
-// downstream and none of it is a credential.
+// Identity is what chancery knows about a request: its own three labels, and the
+// caller's headers to pass along beneath them.
 type Identity struct {
 	RequestID string
 	Agent     string
 	Subject   string
-	Headers   []Header
+	Headers   http.Header
 }
 
 // PromptCacheBreakpoints is the alias's answer to whether its model accepts explicit
@@ -181,37 +176,42 @@ func (c *Client) Send(ctx context.Context, req Request) (*Response, error) {
 	}, nil
 }
 
-// The outbound request is built fresh, so the only headers on it are the ones named
-// here; requiring the X- prefix keeps that true for a name that arrives configured.
-// The three chancery writes are chancery's: forwarding a caller's copy of one would let it
-// append to the backend's accounting record, and the request ID is the value that
-// makes chancery's log line and the backend's one story.
+// Headers that describe this request rather than the caller's, and so cannot be
+// carried over from it. The body is recomposed, the connection is this client's, and
+// Authorization holds RESPONSES_AUTH_TOKEN. Accept-Encoding is here because a caller
+// asking for gzip would get a compressed body relayed on as though it were an event
+// stream. The three identity headers are chancery's own: a caller sending its own copy
+// would otherwise append to the backend's record.
+var reservedHeaders = map[string]struct{}{
+	"Authorization":       {},
+	"Content-Length":      {},
+	"Content-Type":        {},
+	"Accept-Encoding":     {},
+	"Host":                {},
+	"Connection":          {},
+	"Keep-Alive":          {},
+	"Te":                  {},
+	"Trailer":             {},
+	"Transfer-Encoding":   {},
+	"Upgrade":             {},
+	"Proxy-Authenticate":  {},
+	"Proxy-Authorization": {},
+	requestIDHeader:       {},
+	agentHeader:           {},
+	subjectHeader:         {},
+}
+
 func setIdentity(header http.Header, identity Identity) {
+	for name, values := range identity.Headers {
+		canonical := http.CanonicalHeaderKey(name)
+		if _, reserved := reservedHeaders[canonical]; reserved {
+			continue
+		}
+		header[canonical] = slices.Clone(values)
+	}
 	setIfPresent(header, requestIDHeader, identity.RequestID)
 	setIfPresent(header, agentHeader, identity.Agent)
 	setIfPresent(header, subjectHeader, identity.Subject)
-	for _, forwarded := range identity.Headers {
-		name := http.CanonicalHeaderKey(forwarded.Name)
-		if !strings.HasPrefix(name, "X-") || isIdentityHeader(name) {
-			continue
-		}
-		for _, value := range forwarded.Values {
-			if value != "" {
-				header.Add(name, value)
-			}
-		}
-	}
-}
-
-func isIdentityHeader(canonical string) bool {
-	switch canonical {
-	case http.CanonicalHeaderKey(requestIDHeader),
-		http.CanonicalHeaderKey(agentHeader),
-		http.CanonicalHeaderKey(subjectHeader):
-		return true
-	default:
-		return false
-	}
 }
 
 func setIfPresent(header http.Header, name, value string) {

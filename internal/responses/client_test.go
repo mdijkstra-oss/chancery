@@ -76,7 +76,7 @@ func TestSendOutboundHeaders(t *testing.T) {
 		name:      "the caller's authorization never travels",
 		authToken: "",
 		identity: Identity{
-			Headers: []Header{{Name: "Authorization", Values: []string{"Bearer callers-jwt"}}},
+			Headers: http.Header{"Authorization": {"Bearer callers-jwt"}},
 		},
 		want: map[string][]string{"Authorization": nil},
 	}, {
@@ -86,7 +86,7 @@ func TestSendOutboundHeaders(t *testing.T) {
 			RequestID: "abc123",
 			Agent:     "support/triage",
 			Subject:   "user-7",
-			Headers:   []Header{{Name: "x-session-id", Values: []string{"s-1", "s-2"}}},
+			Headers:   http.Header{"x-session-id": {"s-1", "s-2"}},
 		},
 		want: map[string][]string{
 			"X-Request-Id": {"abc123"},
@@ -95,27 +95,49 @@ func TestSendOutboundHeaders(t *testing.T) {
 			"X-Session-Id": {"s-1", "s-2"},
 		},
 	}, {
-		name:      "an empty value is omitted rather than sent blank",
-		authToken: "",
-		identity:  Identity{RequestID: "abc123", Headers: []Header{{Name: "X-Project-ID"}}},
-		want:      map[string][]string{"X-Subject": nil, "X-Agent": nil, "X-Project-Id": nil},
-	}, {
-		name:      "a header outside the X- prefix is dropped",
+		name:      "a header nobody named travels unchanged",
 		authToken: "",
 		identity: Identity{
-			Headers: []Header{{Name: "Cookie", Values: []string{"session=1"}}},
+			Headers: http.Header{
+				"Cookie":       {"session=1"},
+				"X-Project-Id": {"p-9"},
+				"Accept":       {"text/event-stream"},
+			},
 		},
-		want: map[string][]string{"Cookie": nil},
+		want: map[string][]string{
+			"Cookie":       {"session=1"},
+			"X-Project-Id": {"p-9"},
+			"Accept":       {"text/event-stream"},
+		},
+	}, {
+		name:      "the headers describing this request are not carried over",
+		authToken: "",
+		identity: Identity{
+			Headers: http.Header{
+				"Content-Type":    {"text/plain"},
+				"Content-Length":  {"4"},
+				"Accept-Encoding": {"br"},
+				"Connection":      {"close"},
+			},
+		},
+		// Content-Length is the composed body's, and leaving Accept-Encoding to the
+		// transport is what keeps the response decompressed by the time Relay sees it.
+		want: map[string][]string{
+			"Content-Type":    {"application/json"},
+			"Content-Length":  {"12"},
+			"Accept-Encoding": {"gzip"},
+			"Connection":      nil,
+		},
 	}, {
 		name:      "a forwarded copy of chancery's own identity is dropped",
 		authToken: "",
 		identity: Identity{
 			RequestID: "abc123",
 			Agent:     "support/triage",
-			Headers: []Header{
-				{Name: "X-Request-ID", Values: []string{"forged"}},
-				{Name: "x-agent", Values: []string{"forged"}},
-				{Name: "X-Subject", Values: []string{"forged"}},
+			Headers: http.Header{
+				"X-Request-ID": {"forged"},
+				"x-agent":      {"forged"},
+				"X-Subject":    {"forged"},
 			},
 		},
 		want: map[string][]string{

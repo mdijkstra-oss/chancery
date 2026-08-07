@@ -109,7 +109,7 @@ func chatBackend(t *testing.T, reply backendReply) (string, *forwarded) {
 }
 
 // chatRouter wires the real middleware chain, so the request ID, the JWT subject and
-// the header allowlist reach the handler the way they do when serving.
+// the logged headers reach the handler the way they do when serving.
 func chatRouter(
 	t *testing.T,
 	backendURL string,
@@ -132,7 +132,7 @@ func chatRouterWith(
 		t.Fatalf("NewClient: %v", err)
 	}
 	router := chi.NewRouter()
-	handler := NewChatHandler(chatRegistryWith(t, extra), client, ratelimit.NewLimiter(), headers)
+	handler := NewChatHandler(chatRegistryWith(t, extra), client, ratelimit.NewLimiter())
 	SetupRoutes(router, handler, JWTAuthentication(validator), []string{"*"}, headers)
 	return router
 }
@@ -316,6 +316,7 @@ func TestChatOutboundIdentity(t *testing.T) {
 		strings.NewReader(`{"input":[]}`))
 	request.Header.Set("Authorization", "Bearer "+token)
 	request.Header.Set("X-Session-ID", "session-1")
+	request.Header.Set("X-Trace", "trace-1")
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, request)
 
@@ -329,6 +330,7 @@ func TestChatOutboundIdentity(t *testing.T) {
 		{header: "X-Agent", want: "named.thorough"},
 		{header: "X-Subject", want: "user-7"},
 		{header: "X-Session-Id", want: "session-1"},
+		{header: "X-Trace", want: "trace-1"},
 		{header: "X-Project-Id", want: ""},
 		{header: "Authorization", want: ""},
 	}

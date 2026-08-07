@@ -42,7 +42,7 @@ func Run(ctx context.Context, registry prompts.Registry) error {
 	}
 	slog.Info("config loaded", "component", "startup", slog.Group("data", slog.Int("agents", len(registry.Agents))))
 	limiter := ratelimit.NewLimiter()
-	chatHandler := httpHandlers.NewChatHandler(registry, client, limiter, runtimeConfig.RequestHeaders)
+	chatHandler := httpHandlers.NewChatHandler(registry, client, limiter)
 	router := chi.NewRouter()
 	httpHandlers.SetupRoutes(router, chatHandler, httpHandlers.JWTAuthentication(validator), runtimeConfig.CorsOrigins, runtimeConfig.RequestHeaders)
 	srv := &http.Server{

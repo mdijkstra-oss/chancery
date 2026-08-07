@@ -38,6 +38,13 @@ func TestLoad(t *testing.T) {
 	}{
 		{name: "disabled defaults", wantHeaders: []string{"X-Session-ID", "X-Project-ID"}},
 		{
+			name: "any header name is a log field",
+			env: map[string]string{
+				"LOG_REQUEST_HEADERS": "User-Agent, Traceparent ,user-agent",
+			},
+			wantHeaders: []string{"User-Agent", "Traceparent"},
+		},
+		{
 			name: "JWKS enabled",
 			env: map[string]string{
 				"AUTH_JWT_JWKS_URL":   "https://issuer.example/jwks.json",
@@ -131,25 +138,11 @@ func TestLoad(t *testing.T) {
 			wantError: "unsupported JWT algorithm",
 		},
 		{
-			name: "credential header rejected",
-			env: map[string]string{
-				"LOG_REQUEST_HEADERS": "X-API-Key",
-			},
-			wantError: "credential header",
-		},
-		{
 			name: "unknown log level rejected",
 			env: map[string]string{
 				"LOG_LEVEL": "verbose",
 			},
 			wantError: `LOG_LEVEL "verbose" must be debug, info, warn, or error`,
-		},
-		{
-			name: "non X header rejected",
-			env: map[string]string{
-				"LOG_REQUEST_HEADERS": "Traceparent",
-			},
-			wantError: "invalid header",
 		},
 	}
 	for _, test := range tests {

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/mdijkstra-oss/chancery/internal/auth"
-	"github.com/mdijkstra-oss/chancery/internal/fn"
 	"github.com/mdijkstra-oss/chancery/internal/prompts"
 	"github.com/mdijkstra-oss/chancery/internal/ratelimit"
 	"github.com/mdijkstra-oss/chancery/internal/responses"
@@ -16,16 +15,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// NewChatHandler serves every agent route. forwardHeaders is the operator's allowlist,
-// copied onto the outbound request so the backend can record who a request came from.
 func NewChatHandler(
 	registry prompts.Registry,
 	client *responses.Client,
 	limiter *ratelimit.Limiter,
-	forwardHeaders []string,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleChat(w, r, registry, client, limiter, forwardHeaders)
+		handleChat(w, r, registry, client, limiter)
 	}
 }
 
@@ -35,7 +31,6 @@ func handleChat(
 	registry prompts.Registry,
 	client *responses.Client,
 	limiter *ratelimit.Limiter,
-	forwardHeaders []string,
 ) {
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 	resolved, err := registry.ResolveAgent(urlPath)
@@ -75,7 +70,7 @@ func handleChat(
 
 	request := responses.Request{
 		Body:                   composed,
-		Identity:               identityFor(r, urlPath, forwardHeaders),
+		Identity:               identityFor(r, urlPath),
 		PromptCacheBreakpoints: resolved.Config.PromptCacheBreakpoints,
 	}
 	result, err := ratelimit.Do(r.Context(), limiter, agent.Model, 3,
@@ -109,22 +104,13 @@ func appendPrompt(instructions, addition string) string {
 	return instructions + "\n\n" + addition
 }
 
-// Identity is what chancery knows about a request and nothing it was trusted with: the
-// caller's bearer token is consumed by the middleware and never reaches here.
-func identityFor(r *http.Request, urlPath string, forwardHeaders []string) responses.Identity {
-	headers := fn.Map(forwardHeaders, func(name string) responses.Header {
-		return responses.Header{Name: name, Values: r.Header.Values(name)}
-	})
+func identityFor(r *http.Request, urlPath string) responses.Identity {
 	return responses.Identity{
 		RequestID: RequestIDFromContext(r.Context()),
 		Agent:     urlPath,
 		Subject:   auth.UserFromContext(r.Context()),
-		Headers:   fn.Filter(headers, hasValues),
+		Headers:   r.Header,
 	}
-}
-
-func hasValues(header responses.Header) bool {
-	return len(header.Values) > 0
 }
 
 func logChatError(r *http.Request, message, urlPath, model string, err error) {

@@ -4,13 +4,15 @@
 
 Turns a directory of Markdown into HTTP endpoints — the path is the route, the frontmatter picks the model, the body is the prompt.
 
-A `.md` file is the whole definition of an endpoint: its route is the path, its model is the frontmatter, its behaviour is the body. The directory is read into a route table at boot, and `validate` checks it without starting a server.
+Requests and responses are [`openai-responses`](https://platform.openai.com/docs/api-reference/responses). Chancery writes `model`, `instructions`, and whatever sampling fields the frontmatter carries onto the body it received, `POST`s the result to `{RESPONSES_BASE_URL}/responses`, and relays the event stream back untouched.
 
-Requests and responses are [`openai-responses`](https://platform.openai.com/docs/api-reference/responses). Chancery writes `model`, `instructions`, and whatever sampling fields the frontmatter carries onto the body it received, `POST`s the result to `{RESPONSES_BASE_URL}/responses`, and relays the event stream back untouched. Serving never parses the message array and never decodes an event; `call` decodes one only to render text in a terminal.
+Every other key survives whatever it holds. Messages, tools and response formats pass through as raw JSON.
+
+The backend is anything serving that format: OpenAI's own `/responses`, a local server, or a router in front of several providers.
 
 ## Configuration directory
 
-`--config` names the directory, defaulting to `./config`. The one in this repository is a working example, and every command below runs against it.
+`--config` names the directory, defaulting to `./config`. The one in this repository is a working example, and the commands below run against it.
 
 ```text
 config/
@@ -57,18 +59,16 @@ The name resolves against the agent's own directory first, then `shared/`. `rese
 
 ### Tool prompts
 
-A fragment is pulled in by the agent file; a tool prompt is pulled in by the request. Everything after the last dot in the filename names the tool it belongs to:
+A fragment is pulled in by the agent file; a tool prompt is pulled in by the request. A request's `tools` array names the tools it offers, and everything after the last dot in a filename names the tool that file belongs to:
 
 ```text
 tools/
 ├── preamble.md                    always included
-├── search/semantic.search.md      included when a tool named `search` is offered
-└── shell/grep.run_shell.md        included when a tool named `run_shell` is offered
+├── search/semantic.search.md      included when the request offers `search`
+└── shell/grep.run_shell.md        included when the request offers `run_shell`
 ```
 
-A file whose name has no dot before `.md` is unconditional. Directories are walked and mean nothing to the loader. What is selected is appended to `instructions`, behind the agent's own prompt.
-
-Names come from the request's `tools` array; nothing else about a tool is read, and the array reaches the backend unchanged. A built-in tool identified by type alone carries no name and pulls in no prompt.
+A file whose name has no dot before `.md` is unconditional. Directories under `tools/` group files and select nothing. What is selected goes into `instructions`, behind the agent's own prompt. A built-in tool the format identifies by type alone carries no name and pulls in no prompt.
 
 ## Agent frontmatter
 
@@ -82,19 +82,24 @@ You summarize documents in exactly three sentences.
 [voice.md]
 ```
 
-The body becomes `instructions`. Every other field is a body field or the alias that supplies one:
+The body becomes `instructions`. The rest of the frontmatter is how this agent runs:
 
-| field | body position |
+| field | what it changes |
 |---|---|
-| `model` | an alias defined in `models.yaml` |
-| `description` | none — it is what `list` prints |
-| `max_tokens` | `max_output_tokens` |
-| `reasoning_effort` | `reasoning.effort` |
-| `reasoning_summary` | `reasoning.summary` |
-| `verbosity` | `text.verbosity` |
-| `service_tier` | `service_tier` |
+| `model` * | which alias in `models.yaml` answers the route |
+| `description` | nothing at runtime — it is the line `list` prints beside the route |
+| `max_tokens` | ceiling on the length of a reply |
+| `reasoning_effort` | how hard the model thinks before answering |
+| `reasoning_summary` | whether the stream carries an account of that thinking |
+| `verbosity` | how much the model says at a given effort |
+| `service_tier` | which queue the request joins, where the backend offers a choice |
+| `prompt_cache_breakpoints` | whether this model accepts explicit cache breakpoints |
 
-An agent's setting beats the alias's.
+\* Required, and the only one that is. An agent defines exactly one of `model` or the `models` map below; both, or neither, fails validation.
+
+An agent's setting beats the alias's. Values reach the backend as written and are its to interpret; chancery does not check them against the model.
+
+`prompt_cache_breakpoints` is the one field that never reaches the body. Only `false` is sent, as a query parameter on the request, telling whatever serves it that this model refuses breakpoints. A backend that has never heard of the parameter answers as before.
 
 > [!NOTE]
 > `instructions` is prepended, never replaced. A caller sending its own gets the agent's prompt in front of it, separated by a blank line.
@@ -120,6 +125,8 @@ You are a research assistant.
 
 That is three routes: `POST /research` and `POST /research.quick` reach `fast`, `POST /research.deep` reaches `smart-prio`. Frontmatter set outside `models` applies to every entry; an entry overrides it.
 
+Every entry names a `model`. `default` is required once there is more than one entry; with a single entry it is that entry.
+
 ## models.yaml
 
 One flat map. A key is an alias an agent names; underneath it are the body fields that alias runs with.
@@ -137,27 +144,9 @@ models:
     service_tier: priority
 ```
 
-`model` travels in the body, prefix included. The prefix is read by whoever serves the request; chancery never parses or checks it, and an unresolvable name comes back as a backend error.
+`model` travels in the body verbatim, so write whatever the backend expects — `gpt-5-mini` against OpenAI, the prefixed form above against a router. Chancery never parses the name, and one it cannot resolve comes back as a backend error.
 
-`extends` inherits the lot and overrides what it names, up to five steps deep. Aliases accept `model`, `extends`, `max_tokens`, `reasoning_effort`, `reasoning_summary`, `verbosity`, `service_tier`, and `prompt` — a filename under `shared/` whose contents go in front of every agent's prompt on that alias.
-
-## Three files, three questions
-
-| file | answers |
-|---|---|
-| `<agent>.md` | what this agent is — route, model alias, settings, prompt |
-| `models.yaml` | which model an alias names, prefix included, and the settings it runs with |
-| `dragoman.yaml` | where a prefix points, what it speaks, and which variable holds its key |
-
-`dragoman.yaml` is the backend's file; the copy here is the deployment's. Chancery cannot express an endpoint at all, and no API key resolves in this process.
-
-## The backend
-
-`RESPONSES_BASE_URL` is the whole coupling. Chancery builds one URL, `{base}/responses`, and writes only fields the format already has, so anything serving `openai-responses` answers it.
-
-[dragoman](https://github.com/mdijkstra-oss/dragoman) is the recommended target: it reaches several providers behind one Responses surface, which is what a prefixed model name is for. OpenAI's own `/responses` works identically.
-
-Pointing directly at a provider costs two things. A reasoning level one provider accepts another may reject, and one base URL is one target for the whole instance — every agent shares that target's catalogue and its key.
+`extends` inherits the lot and overrides what it names, up to five steps deep. An alias must end up with a `model`, its own or an inherited one; the rest is optional. Beyond the agent fields above, an alias takes `extends` and `prompt` — a filename under `shared/` whose contents go in front of every agent's prompt on that alias.
 
 ## Quick start
 
@@ -170,7 +159,7 @@ $ go run ./cmd/chancery validate
 ✓ config valid (0 warnings)
 ```
 
-`validate` is offline: aliases resolve, includes exist, nothing is orphaned. A broken directory reports every problem at once:
+`validate` checks that aliases resolve, includes exist and nothing is orphaned. A broken directory reports every problem at once:
 
 ```console
 $ go run ./cmd/chancery --config ./broken validate
@@ -191,41 +180,6 @@ summarize           openai/gpt-5-mini
 2 agents · 3 models
 ```
 
-`list --json` prints the same thing as a document, descriptions included:
-
-```console
-$ go run ./cmd/chancery list --json
-{
-  "agents": [
-    {
-      "path": "research",
-      "description": "answers questions about a corpus",
-      "models": [
-        {
-          "name": "deep",
-          "model": "anthropic/claude-opus-4-6",
-          "reasoning_effort": "high"
-        },
-        {
-          "name": "quick",
-          "model": "openai/gpt-5-mini",
-          "default": true
-        }
-      ]
-    },
-    {
-      "path": "summarize",
-      "description": "condenses a document into three sentences",
-      "model": "openai/gpt-5-mini"
-    }
-  ],
-  "summary": {
-    "agents": 2,
-    "models": 3
-  }
-}
-```
-
 ### 3. Call an agent from the terminal
 
 ```console
@@ -239,8 +193,7 @@ Rome fell in 476.
 ### 4. Start the server
 
 ```console
-$ RESPONSES_BASE_URL=http://localhost:8080 \
-    go run ./cmd/chancery serve
+$ RESPONSES_BASE_URL=http://localhost:8080 go run ./cmd/chancery serve
 {"time":"2026-08-01T00:05:16.047414+02:00","level":"WARN","msg":"auth disabled — all requests accepted","environment":"development"}
 {"time":"2026-08-01T00:05:16.047498+02:00","level":"INFO","msg":"config loaded","environment":"development","component":"startup","data":{"agents":2}}
 {"time":"2026-08-01T00:05:16.047644+02:00","level":"INFO","msg":"server starting","environment":"development","component":"startup","data":{"port":"8081"}}
@@ -263,20 +216,6 @@ event: response.completed
 data: {"type": "response.completed", "response": {"usage": {"input_tokens": 41, "output_tokens": 7}}}
 ```
 
-## CLI
-
-Every command takes `--config`, defaulting to `./config`.
-
-| command | does |
-|---|---|
-| `validate` | Load the configuration and report every diagnostic. Exits non-zero on any error. |
-| `list` | Print agents, routes and resolved models. `--json` prints a document. |
-| `call <agent-path>` | Send one turn to an agent and render the stream as text. `--input TEXT`, `--input @FILE`, or stdin. |
-| `serve` | Serve every agent over HTTP. |
-| `healthcheck` | Ask a running instance whether it is serving. Exits non-zero when it is not. `--addr` defaults to `127.0.0.1:$PORT`. |
-
-`call` and `serve` need `RESPONSES_BASE_URL`; `validate`, `list` and `healthcheck` do not.
-
 ## HTTP API
 
 | route | body | response |
@@ -285,13 +224,11 @@ Every command takes `--config`, defaulting to `./config`.
 | `POST /<agent-path>` | an `openai-responses` request | the backend's event stream, relayed per event |
 | `POST /<agent-path>.<model>` | the same, on a named model | the same |
 
-Every other key survives whatever it holds. Messages, tools and response formats pass through as raw JSON.
-
 Bodies are capped at 10 MB. An unknown route is `404`, an undecodable body is `400`, and a backend that never answered is `503`.
 
-### Outbound identity
+A `429` from the backend costs three attempts at most — the first and two retries — honouring `Retry-After`, with a per-model cooldown shared across requests in this process. A backend that accepts a connection and then goes silent for 90 seconds ends the stream rather than holding the caller open.
 
-The forwarded request carries `X-Request-ID`, `X-Agent`, `X-Subject`, and whatever `LOG_REQUEST_HEADERS` names. All of it is a log label at the far end. The caller's `Authorization` header is consumed by the middleware here and never forwarded.
+Chancery adds `X-Request-ID`, `X-Agent` and `X-Subject` for the backend's record, and passes on everything the caller sent except the headers that describe the request it rebuilt: `Content-Type` and `Content-Length`, because the body is recomposed; `Authorization`, because it carries `RESPONSES_AUTH_TOKEN` rather than the caller's token; `Accept-Encoding` and the hop-by-hop headers, because the connection to the backend is chancery's own. The three identity headers are chancery's too, so a caller sending its own copy of one does not append to the backend's record.
 
 ## Runtime environment
 
@@ -304,9 +241,9 @@ The forwarded request carries `X-Request-ID`, `X-Agent`, `X-Subject`, and whatev
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error`. |
 | `ENV` | `development` | Recorded on every log line. |
 | `SHUTDOWN_TIMEOUT` | `60s` | Grace period for in-flight requests on `SIGTERM`. |
-| `LOG_REQUEST_HEADERS` | `X-Session-ID,X-Project-ID` | Caller headers to log and forward. At most sixteen, each canonicalizing to `X-*`, none containing a credential-like term. |
+| `LOG_REQUEST_HEADERS` | `X-Session-ID,X-Project-ID` | Caller headers to put on every log line for the request. A value over 512 characters is truncated and the line says so. |
 
-Logs are JSON on stdout. A request line carries the endpoint, the resolved model, the request ID, and the allowlisted headers:
+Logs are JSON on stdout:
 
 ```json
 {"time":"2026-08-01T00:02:22.944642+02:00","level":"INFO","msg":"request forwarded","environment":"development","component":"chat","data":{"endpoint":"summarize","model":"openai/gpt-5-mini"},"request_id":"5b3e6b1ee9613282","headers":{"x-session-id":"s-42"},"user":""}
@@ -328,7 +265,9 @@ JWT validation is off unless a key source is configured, and `serve` says so at 
 
 ## Deployment
 
-Two containers under one compose file: dragoman holds every provider key and publishes no host port, chancery publishes `8081` and reaches it by service name. `CHANCERY_PORT` moves the host side of that; the container listens on `8081` either way.
+`Dockerfile` builds a static Go binary on `scratch` — one binary, no shell, answering its own `/health` through the `healthcheck` subcommand, which is what a container runtime can execute there. Point it at a backend with `RESPONSES_BASE_URL` and mount a configuration directory at `/config`.
+
+`compose.yaml` does that alongside [dragoman](https://github.com/mdijkstra-oss/dragoman), which reaches several providers behind one Responses surface:
 
 ```sh
 git clone https://github.com/mdijkstra-oss/chancery && cd chancery
@@ -336,24 +275,13 @@ cp .env.example .env       # one provider key
 docker compose up
 ```
 
-`compose.yaml` takes a git URL as dragoman's build context, so one clone brings up both. Both images are static Go binaries on `scratch`, a few MB each. `DRAGOMAN_REPO` overrides the context with a local path.
+dragoman holds every provider key and publishes no host port — publishing one would hand those keys to anyone who can reach the host — while chancery publishes `8081` and reaches it by service name. `CHANCERY_PORT` moves the host side of that.
 
-Four files carry the deployment:
+`config/` and `dragoman.yaml` mount read-only, so editing either and restarting is the whole edit cycle. `dragoman.yaml` lists the prefixes a `models.yaml` alias may name, each with its endpoint, the protocol it speaks, and the environment variable holding its key.
 
-- `compose.yaml` — the two services and the network between them.
-- `Dockerfile` — chancery's image.
-- `.env.example` — the provider keys, all of them on the dragoman service.
-- `dragoman.yaml` — the service table, mounted read-only. `--config` replaces dragoman's embedded table wholesale rather than merging.
+Compose builds dragoman from a git URL, so cloning chancery is enough to bring up both services. `DRAGOMAN_REPO` replaces that URL with a local path.
 
-`config/` and `dragoman.yaml` mount read-only, so editing a prompt file and restarting is enough.
-
-> [!IMPORTANT]
-> Publishing dragoman's port would hand every provider key to anyone who can reach the host. It performs no client authentication by design, which is safe only because it is unreachable from outside the compose network.
-
-Two details fail quietly if missed, and `compose.yaml` states both at the line that carries them. dragoman must bind `0.0.0.0` inside its container — its default is loopback, and the symptom is a connection refused that reads like a wrong hostname. And chancery gates on dragoman's healthcheck rather than `depends_on` alone, which waits for start and not for listening.
-
-> [!NOTE]
-> Both images are `scratch`: one binary, no shell. Each binary answers its own `/health` through a `healthcheck` subcommand, which is what a container runtime can execute there.
+Two details fail quietly if missed. dragoman must bind `0.0.0.0` inside its container, or the other container cannot reach it and the symptom reads as a wrong hostname. Chancery waits on dragoman's healthcheck rather than `depends_on` alone, which waits for start and not for listening. `compose.yaml` states both at the line that carries them.
 
 ## Development
 
@@ -369,31 +297,26 @@ make vet fmt-check lint  # go vet, gofmt -l, golangci-lint
 make cover               # coverage profile and per-function report
 ```
 
-`CONFIG` defaults to `./config` and every target takes it: `make start CONFIG=~/prompts`. Environment for a local run comes from `.env.local`, not `.env` — that one holds the compose stack's provider keys.
+`CONFIG` defaults to `./config`, and the targets that read a configuration take it: `make start CONFIG=~/prompts`. Environment for a local run comes from `.env.local`, not `.env` — that one holds the compose stack's provider keys.
 
 `make dev` needs [`watchexec`](https://github.com/watchexec/watchexec). Everything else is Go and the module's own dependencies.
 
-## Repository layout
+`internal/prompts` is the largest package, because turning a directory into a route table is most of the work. `internal/responses` composes the body and relays the stream.
 
-```text
-cmd/chancery/            Entry point
-internal/prompts/            Markdown discovery, frontmatter, aliases, fragments, validation
-internal/responses/          Body composition, the backend client, stream relay
-internal/handlers/http/      Routes, middleware, the agent handler
-internal/server/             Listener, signal handling, graceful shutdown
-internal/cli/                Commands and terminal rendering
-internal/auth/               JWT validation
-internal/config/             Environment configuration
-internal/ratelimit/          Retry and per-model cooldown
-internal/fn/                 Generic slice helpers
-internal/logging/            Context-carried log attributes
-internal/bootstrap/          Logger construction
-```
+## CLI
 
-`internal/prompts` is roughly half the non-test code: composing a request is a handful of fields, and turning a directory into a route table is the work.
+Every command takes `--config`, defaulting to `./config`.
 
-## Operational notes
+| command | does |
+|---|---|
+| `validate` | Load the configuration and report every diagnostic. Exits non-zero on any error. |
+| `list` | Print agents, routes and resolved models. `--json` prints the same as a document, descriptions included. |
+| `call <agent-path>` | Send one turn to an agent and render the stream as text. `--input TEXT`, `--input @FILE`, or stdin. |
+| `serve` | Serve every agent over HTTP. |
+| `healthcheck` | Ask a running instance whether it is serving. Exits non-zero when it is not. `--addr` defaults to `127.0.0.1:$PORT`. |
 
-- A `429` from the backend costs three attempts at most — the first and two retries — honouring `Retry-After`, with a per-model cooldown shared across requests. Cooldowns are process-local and are not shared between replicas.
-- A backend that accepts a connection and then goes silent for 90 seconds ends the stream rather than holding the caller open.
-- Usage counts arrive on `response.completed` where the format puts them; chancery relays them and does not read them.
+`call` and `serve` need `RESPONSES_BASE_URL`; `validate`, `list` and `healthcheck` do not.
+
+## See also
+
+- [dragoman](https://github.com/mdijkstra-oss/dragoman) — one Responses endpoint over several providers, which is what a prefixed model name in `models.yaml` is for. One `RESPONSES_BASE_URL` is one target for the whole instance, so reaching more than one provider's catalogue means putting something like this in front.

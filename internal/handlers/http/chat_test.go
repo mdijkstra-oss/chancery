@@ -523,3 +523,142 @@ func TestChatServesEveryConfiguredRoute(t *testing.T) {
 		})
 	}
 }
+
+// An agent whose own route ends in /responses is reached as itself: the exact
+// path resolves before any suffix comes off.
+func TestChatResponsesSuffixExactMatchWins(t *testing.T) {
+	extra := map[string]string{
+		"research/index.md":     "---\ndescription: research agent\nmodel: fast\n---\nYou are research.",
+		"research/responses.md": "---\ndescription: responses agent\nmodel: bare\n---\nYou are responses.",
+	}
+	backendURL, seen := chatBackend(t, streamReply)
+	router := chatRouterWith(t, backendURL, disabledValidator(t), nil, extra)
+
+	request := httptest.NewRequest(http.MethodPost, "/research/responses",
+		strings.NewReader(`{"input":[]}`))
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", response.Code, response.Body)
+	}
+	got := decodeBody(t, seen.body)
+	if got["instructions"] != "You are responses." {
+		t.Fatalf("instructions = %q, want the responses agent's own", got["instructions"])
+	}
+	if seen.header.Get("X-Agent") != "research/responses" {
+		t.Fatalf("X-Agent = %q, want research/responses", seen.header.Get("X-Agent"))
+	}
+}
+
+// The suffix is SDK plumbing, so a double miss names the agent path the SDK's
+// base_url addressed, not the raw path.
+func TestChatResponsesSuffixMissNamesStrippedReference(t *testing.T) {
+	backendURL, seen := chatBackend(t, streamReply)
+	router := chatRouter(t, backendURL, disabledValidator(t), nil)
+
+	request := httptest.NewRequest(http.MethodPost, "/unknown/responses",
+		strings.NewReader(`{"input":[]}`))
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", response.Code)
+	}
+	if got, want := response.Body.String(), "unknown agent: unknown\n"; got != want {
+		t.Fatalf("body = %q, want %q", got, want)
+	}
+	if seen.body != nil {
+		t.Fatalf("an unresolved route reached the backend: %s", seen.body)
+	}
+}
+
+// The suffix strips off the full path before the dot split, so the named-model
+// variants come along free, and the stripped reference is what the backend sees
+// as X-Agent.
+func TestChatResponsesSuffixResolvesAgent(t *testing.T) {
+	cases := []struct {
+		name      string
+		path      string
+		wantModel string
+		wantAgent string
+	}{{
+		name:      "an agent path",
+		path:      "/plain/responses",
+		wantModel: "openai/upstream-fast",
+		wantAgent: "plain",
+	}, {
+		name:      "a named model",
+		path:      "/named.thorough/responses",
+		wantModel: "openai/upstream-deep",
+		wantAgent: "named.thorough",
+	}}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			backendURL, seen := chatBackend(t, streamReply)
+			router := chatRouter(t, backendURL, disabledValidator(t), nil)
+
+			request := httptest.NewRequest(http.MethodPost, testCase.path,
+				strings.NewReader(`{"input":[]}`))
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+
+			if response.Code != http.StatusOK {
+				t.Fatalf("status = %d: %s", response.Code, response.Body)
+			}
+			if got := response.Body.String(); got != completedStream {
+				t.Fatalf("relayed %q, want %q", got, completedStream)
+			}
+			if got := decodeBody(t, seen.body)["model"]; got != testCase.wantModel {
+				t.Fatalf("model = %q, want %q", got, testCase.wantModel)
+			}
+			if got := seen.header.Get("X-Agent"); got != testCase.wantAgent {
+				t.Fatalf("X-Agent = %q, want %q", got, testCase.wantAgent)
+			}
+		})
+	}
+}
+
+// The suffixed paths sit under the same wildcard, hence behind the same auth.
+func TestChatResponsesSuffixRequiresAuth(t *testing.T) {
+	key := middlewareRSAKey(t)
+	validator := middlewareValidator(t, key)
+	token := middlewareToken(t, key, time.Now().Add(time.Hour), "user-7")
+
+	backendURL, _ := chatBackend(t, streamReply)
+	router := chatRouter(t, backendURL, validator, nil)
+
+	request := httptest.NewRequest(http.MethodPost, "/plain/responses",
+		strings.NewReader(`{"input":[]}`))
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status without token = %d, want 401", response.Code)
+	}
+	if got := response.Header().Get("WWW-Authenticate"); got != "Bearer" {
+		t.Fatalf("WWW-Authenticate = %q, want Bearer", got)
+	}
+
+	request = httptest.NewRequest(http.MethodPost, "/plain/responses",
+		strings.NewReader(`{"input":[]}`))
+	request.Header.Set("Authorization", "Bearer "+token)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status with token = %d: %s", response.Code, response.Body)
+	}
+}
+
+func TestChatResponsesSuffixKeepsPostOnly(t *testing.T) {
+	backendURL, _ := chatBackend(t, streamReply)
+	router := chatRouter(t, backendURL, disabledValidator(t), nil)
+
+	request := httptest.NewRequest(http.MethodGet, "/plain/responses", nil)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want 405", response.Code)
+	}
+}

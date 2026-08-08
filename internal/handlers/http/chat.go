@@ -35,6 +35,16 @@ func handleChat(
 	urlPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 	resolved, err := registry.ResolveAgent(urlPath)
 	if err != nil {
+		// A stock OpenAI SDK appends /responses to its base_url. The suffix is
+		// SDK plumbing, not part of the agent's identity, so the stripped path is
+		// what resolves, gets logged and travels as X-Agent — but only after the
+		// exact path missed, so an agent literally named responses keeps its own.
+		if stripped, ok := strings.CutSuffix(urlPath, "/responses"); ok {
+			urlPath = stripped
+			resolved, err = registry.ResolveAgent(urlPath)
+		}
+	}
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}

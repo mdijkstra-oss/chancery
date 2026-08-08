@@ -223,6 +223,10 @@ data: {"type": "response.completed", "response": {"usage": {"input_tokens": 41, 
 | `GET /health` | — | `ok` |
 | `POST /<agent-path>` | an `openai-responses` request | the backend's event stream, relayed per event |
 | `POST /<agent-path>.<model>` | the same, on a named model | the same |
+| `POST /<agent-path>/responses` | the same | the same |
+| `POST /<agent-path>.<model>/responses` | the same | the same |
+
+A stock OpenAI SDK appends `/responses` to whatever `base_url` it is given, so the suffixed forms make any agent path a valid `base_url`. The suffix comes off only when the literal path matches no route: an agent whose own path ends in `/responses` keeps it.
 
 Bodies are capped at 10 MB. An unknown route is `404`, an undecodable body is `400`, and a backend that never answered is `503`.
 

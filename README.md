@@ -4,7 +4,7 @@
 
 Turns a directory of Markdown into HTTP endpoints — the path is the route, the frontmatter picks the model, the body is the prompt.
 
-Requests and responses are [`openai-responses`](https://platform.openai.com/docs/api-reference/responses). Chancery writes `model`, `instructions`, and whatever sampling fields the frontmatter carries onto the body it received, `POST`s the result to `{RESPONSES_BASE_URL}/responses`, and relays the event stream back untouched.
+Requests and responses are [`openai-responses`](https://platform.openai.com/docs/api-reference/responses). Chancery writes `model`, `instructions`, and whatever sampling fields the frontmatter carries onto the body it received. It `POST`s the result to `{RESPONSES_BASE_URL}/responses` and relays the event stream back untouched.
 
 Every other key passes through unchanged. Messages, tools and response formats are forwarded as raw JSON.
 
@@ -66,10 +66,36 @@ tools/
 
 - A file whose name has no dot before `.md` is always included.
 - Directories under `tools/` group files and select nothing.
+- Only tools of type `function` select anything.
 - What is selected goes into `instructions`, behind the agent's own prompt.
 
-> [!NOTE]
-> Only applies to tools of type: `function` 
+## Model aliases
+
+`models.yaml` is one flat map. A key is an alias an agent names; underneath it are the body fields that alias runs with.
+
+```yaml
+models:
+  fast:
+    model: openai/gpt-5-mini
+    verbosity: low
+  smart:
+    model: anthropic/claude-opus-4-6
+    reasoning_effort: high
+  smart-prio:
+    extends: smart          # every field of smart, plus the ones set here
+    service_tier: priority
+```
+
+`model` travels in the body verbatim, so write whatever the backend expects — `gpt-5-mini` against OpenAI, the prefixed form above against a router. Chancery never parses the name, and one it cannot resolve comes back as a backend error.
+
+Beyond the agent frontmatter fields below, an alias takes two of its own:
+
+| field | what it changes |
+|---|---|
+| `extends` | inherit every field of the named alias; a field set here overrides the inherited one. Chains run five steps at most. |
+| `prompt` | a filename under `shared/` whose contents go in front of every agent's prompt on this alias |
+
+An alias must end up with a `model`, its own or an inherited one. Every other field is optional.
 
 ## Agent frontmatter
 
@@ -87,7 +113,7 @@ The body becomes `instructions`. The rest of the frontmatter is how this agent r
 
 | field | what it changes |
 |---|---|
-| `model` * | which alias in `models.yaml` answers the route |
+| `model` | which alias in `models.yaml` answers the route. Required, unless the `models` map below replaces it. |
 | `description` | nothing at runtime — it is the line `list` prints beside the route |
 | `max_tokens` | ceiling on the length of a reply |
 | `reasoning_effort` | how hard the model thinks before answering |
@@ -96,14 +122,11 @@ The body becomes `instructions`. The rest of the frontmatter is how this agent r
 | `service_tier` | which queue the request joins, where the backend offers a choice |
 | `prompt_cache_breakpoints` | whether this model accepts explicit cache breakpoints |
 
-\* `model` is the only required field. An agent defines exactly one of `model` or the `models` map below; both, or neither, fails validation.
+An agent defines exactly one of `model` or the `models` map below. Both, or neither, fails validation.
 
 An agent's setting overrides the alias's. Values reach the backend as written and are its to interpret; chancery does not check them against the model.
 
-`prompt_cache_breakpoints` is the one field that never reaches the body. Only `false` is sent, as a query parameter on the request, telling whatever serves it that this model refuses breakpoints. A backend that does not recognise the parameter answers as before.
-
-> [!NOTE]
-> `instructions` is prepended, never replaced. A caller sending its own gets the agent's prompt in front of it, separated by a blank line.
+`instructions` is prepended, never replaced. A caller sending its own gets the agent's prompt in front of it, separated by a blank line.
 
 ### Named models
 
@@ -128,43 +151,23 @@ That is three routes: `POST /research` and `POST /research.quick` reach `fast`, 
 
 Every entry names a `model`. `default` is required once there is more than one entry; with a single entry it is that entry.
 
-## models.yaml
-
-One flat map. A key is an alias an agent names; underneath it are the body fields that alias runs with.
-
-```yaml
-models:
-  fast:
-    model: openai/gpt-5-mini
-    verbosity: low
-  smart:
-    model: anthropic/claude-opus-4-6
-    reasoning_effort: high
-  smart-prio:
-    extends: smart
-    service_tier: priority
-```
-
-`model` travels in the body verbatim, so write whatever the backend expects — `gpt-5-mini` against OpenAI, the prefixed form above against a router. Chancery never parses the name, and one it cannot resolve comes back as a backend error.
-
-Beyond the agent fields above, an alias takes two of its own:
-
-| field | what it changes |
-|---|---|
-| `extends` | inherit every field of the named alias; a field set here overrides the inherited one. Chains run five steps at most. |
-| `prompt` | a filename under `shared/` whose contents go in front of every agent's prompt on this alias |
-
-An alias must end up with a `model`, its own or an inherited one; every other field is optional.
-
 ## Quick start
 
-Requirements: Go `1.26.5`, a configuration directory, and something serving `openai-responses`.
+Needs Go `1.26.5`, a configuration directory, and something serving `openai-responses`.
 
-### 1. Validate the configuration
+### 1. Check the configuration
 
 ```console
 $ go run ./cmd/chancery validate
 ✓ config valid (0 warnings)
+
+$ go run ./cmd/chancery list
+PATH                MODEL                      REASONING
+research                                       
+  .deep             anthropic/claude-opus-4-6  high
+  .quick (default)  openai/gpt-5-mini          
+summarize           openai/gpt-5-mini          
+2 agents · 3 models
 ```
 
 `validate` checks that aliases resolve, includes exist and nothing is orphaned. A broken directory reports every problem at once:
@@ -176,19 +179,7 @@ $ go run ./cmd/chancery --config ./broken validate
 Error: config invalid (2 errors · 0 warnings)
 ```
 
-### 2. Inspect the routes
-
-```console
-$ go run ./cmd/chancery list
-PATH                MODEL                      REASONING
-research                                       
-  .deep             anthropic/claude-opus-4-6  high
-  .quick (default)  openai/gpt-5-mini          
-summarize           openai/gpt-5-mini          
-2 agents · 3 models
-```
-
-### 3. Call an agent from the terminal
+### 2. Call an agent
 
 ```console
 $ RESPONSES_BASE_URL=http://localhost:8080 \
@@ -198,16 +189,12 @@ Rome fell in 476.
 
 `call` reads stdin when `--input` is omitted, and `--input @file` reads a file. It renders the stream as text and exits non-zero when the backend reports a failure.
 
-### 4. Start the server
+### 3. Start as server
 
 ```console
 $ RESPONSES_BASE_URL=http://localhost:8080 go run ./cmd/chancery serve
-{"time":"2026-08-01T00:05:16.047414+02:00","level":"WARN","msg":"auth disabled — all requests accepted","environment":"development"}
-{"time":"2026-08-01T00:05:16.047498+02:00","level":"INFO","msg":"config loaded","environment":"development","component":"startup","data":{"agents":2}}
-{"time":"2026-08-01T00:05:16.047644+02:00","level":"INFO","msg":"server starting","environment":"development","component":"startup","data":{"port":"8081"}}
-```
 
-```console
+# from another terminal
 $ curl -N -X POST http://localhost:8081/summarize \
     -H 'Content-Type: application/json' \
     -d '{"input":[{"type":"message","role":"user","content":"When did Rome fall?"}],"stream":true}'
@@ -230,17 +217,13 @@ data: {"type": "response.completed", "response": {"usage": {"input_tokens": 41, 
 |---|---|---|
 | `GET /health` | — | `ok` |
 | `POST /<agent-path>` | an `openai-responses` request | the backend's event stream, relayed per event |
-| `POST /<agent-path>.<model>` | the same, on a named model | the same |
-| `POST /<agent-path>/responses` | the same | the same |
-| `POST /<agent-path>.<model>/responses` | the same | the same |
 
-A stock OpenAI SDK appends `/responses` to whatever `base_url` it is given, so the suffixed forms make any agent path a valid `base_url`. The suffix is stripped only when the literal path matches no route: an agent whose own path ends in `/responses` keeps it.
+Chancery adds `X-Request-ID`, `X-Agent` and `X-Subject` for the backend's record, and forwards the rest of the caller's headers.
 
-Chancery adds `X-Request-ID`, `X-Agent` and `X-Subject` for the backend's record, and passes on everything the caller sent except the headers that describe the request it rebuilt:
-
-- `Content-Type` and `Content-Length`, because the body is recomposed.
-- `Authorization`, because it carries `RESPONSES_AUTH_TOKEN` rather than the caller's token.
-- `Accept-Encoding` and the hop-by-hop headers, because the connection to the backend is chancery's own.
+> [!NOTE]
+> **Cache breakpoints.** [OpenAI takes explicit breakpoints from GPT-5.6 on](https://developers.openai.com/api/docs/guides/prompt-caching). Older models reject `prompt_cache_breakpoint` and `prompt_cache_options`, and cache automatically instead.
+>
+> An agent or alias setting `prompt_cache_breakpoints: false` strips both from the body on the way out, leaving `prompt_cache_key` alone. So a client can mark every prompt it sends, whichever route it addresses.
 
 ## Runtime environment
 
@@ -277,28 +260,18 @@ JWT validation is off unless a key source is configured, and `serve` says so at 
 
 ## Deployment
 
-`Dockerfile` builds a static Go binary on `scratch` — one binary, no shell, answering its own `/health` through the `healthcheck` subcommand, which is what a container runtime can execute there. Point it at a backend with `RESPONSES_BASE_URL` and mount a configuration directory at `/config`.
-
-`compose.yaml` does that alongside [dragoman](https://github.com/mdijkstra-oss/dragoman), which reaches several providers behind one Responses surface:
+`Dockerfile` builds a static Go binary on `scratch` — one binary, no shell, answering its own `/health` through the `healthcheck` subcommand, which is what a container runtime can execute there. It needs `RESPONSES_BASE_URL` and a configuration directory mounted at `/config`.
 
 ```sh
-git clone https://github.com/mdijkstra-oss/chancery && cd chancery
-cp .env.example .env       # one provider key
-docker compose up
+docker build -t chancery .
+docker run -p 8081:8081 \
+    -e RESPONSES_BASE_URL=https://api.openai.com/v1 \
+    -e RESPONSES_AUTH_TOKEN=sk-... \
+    -v "$PWD/config:/config:ro" \
+    chancery
 ```
 
-dragoman holds every provider key and publishes no host port — publishing one would expose those keys to anyone who can reach the host — while chancery publishes `8081` and reaches it by service name. `CHANCERY_PORT` moves the host side of that.
-
-`config/` and `dragoman.yaml` mount read-only, so editing either and restarting is the whole edit cycle.
-
-`dragoman.yaml` lists the prefixes a `models.yaml` alias may name, each with its endpoint, the protocol it speaks, and the environment variable holding its key.
-
-Compose builds dragoman from a git URL, so cloning chancery is enough to bring up both services. `DRAGOMAN_REPO` replaces that URL with a local path.
-
-Two details fail quietly if missed; `compose.yaml` states both at the line that carries them:
-
-- dragoman must bind `0.0.0.0` inside its container. Bound narrower, connections from the chancery container are refused, an error that suggests a wrong hostname.
-- chancery waits on dragoman's healthcheck. `depends_on` alone waits for the container to start, not for it to listen.
+The image carries no configuration and no key, so it is the same bytes for every deployment and editing a prompt costs a restart rather than a rebuild.
 
 ## Development
 
@@ -316,7 +289,7 @@ make cover               # coverage profile and per-function report
 
 `CONFIG` defaults to `./config`, and the targets that read a configuration take it: `make start CONFIG=~/prompts`.
 
-Environment for a local run comes from `.env.local`, not `.env` — that one holds the compose stack's provider keys.
+Environment for a local run comes from `.env.local`. `.env.example` lists every variable with a default worth stating.
 
 `make dev` needs [`watchexec`](https://github.com/watchexec/watchexec). Everything else is Go and the module's own dependencies.
 

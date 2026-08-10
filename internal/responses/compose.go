@@ -11,15 +11,17 @@ import (
 )
 
 // Agent is what chancery writes onto the body: the fields the resolved route names.
+// StripCacheBreakpoints is the one that removes rather than writes.
 type Agent struct {
-	Model            string
-	Instructions     string
-	ReasoningEffort  string
-	ReasoningSummary string
-	Verbosity        string
-	ServiceTier      string
-	ToolChoice       string
-	MaxOutputTokens  int
+	Model                 string
+	Instructions          string
+	ReasoningEffort       string
+	ReasoningSummary      string
+	Verbosity             string
+	ServiceTier           string
+	ToolChoice            string
+	MaxOutputTokens       int
+	StripCacheBreakpoints bool
 }
 
 // Compose keeps the received body as raw per-key JSON, so a key the agent does not
@@ -67,6 +69,10 @@ func Compose(body []byte, agent Agent) ([]byte, error) {
 	}
 	if err := mergeObject(fields, "text", text); err != nil {
 		return nil, err
+	}
+
+	if agent.StripCacheBreakpoints {
+		stripCacheBreakpoints(fields)
 	}
 
 	composed, err := json.Marshal(fields)

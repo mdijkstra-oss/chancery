@@ -79,9 +79,8 @@ func handleChat(
 	)
 
 	request := responses.Request{
-		Body:                   composed,
-		Identity:               identityFor(r, urlPath),
-		PromptCacheBreakpoints: resolved.Config.PromptCacheBreakpoints,
+		Body:     composed,
+		Identity: identityFor(r, urlPath),
 	}
 	result, err := ratelimit.Do(r.Context(), limiter, agent.Model, 3,
 		func(ctx context.Context) (*responses.Response, error) {

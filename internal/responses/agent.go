@@ -16,6 +16,9 @@ func AgentFrom(resolved prompts.ResolvedAgent) Agent {
 		Verbosity:        config.Verbosity,
 		ServiceTier:      config.ServiceTier,
 		MaxOutputTokens:  config.MaxTokens,
+		// Absent means the model takes whatever the caller sent. Only an explicit
+		// false claims the model refuses breakpoints.
+		StripCacheBreakpoints: config.PromptCacheBreakpoints != nil && !*config.PromptCacheBreakpoints,
 	}
 }
 

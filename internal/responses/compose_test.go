@@ -86,6 +86,28 @@ func TestCompose(t *testing.T) {
 		body:  `{"input":[],"instructions":null}`,
 		agent: Agent{Instructions: "You are a hound."},
 		want:  `{"input":[],"instructions":"You are a hound."}`,
+	}, {
+		// The caller marks its prompt once and addresses whichever route it likes;
+		// the agent behind an older model is where the markers stop.
+		name: "a model refusing breakpoints loses the markers and their options",
+		body: `{"input":[{"role":"user","content":[{"type":"input_text","text":"hi",
+			"prompt_cache_breakpoint":true}]}],"prompt_cache_options":{"ttl":"30m"},
+			"prompt_cache_key":"tenant-7"}`,
+		agent: Agent{Model: "openai/gpt-5.5", StripCacheBreakpoints: true},
+		want: `{"input":[{"role":"user","content":[{"type":"input_text","text":"hi"}]}],
+			"prompt_cache_key":"tenant-7","model":"openai/gpt-5.5"}`,
+	}, {
+		// Implicit caching is a separate mechanism, and a model that refuses
+		// breakpoints still has it.
+		name:  "the cache key survives a model that refuses breakpoints",
+		body:  `{"input":[],"prompt_cache_key":"tenant-7"}`,
+		agent: Agent{StripCacheBreakpoints: true},
+		want:  `{"input":[],"prompt_cache_key":"tenant-7"}`,
+	}, {
+		name:  "content that is a bare string carries no marker to strip",
+		body:  `{"input":[{"role":"user","content":"hi"}]}`,
+		agent: Agent{StripCacheBreakpoints: true},
+		want:  `{"input":[{"role":"user","content":"hi"}]}`,
 	}}
 
 	for _, testCase := range cases {

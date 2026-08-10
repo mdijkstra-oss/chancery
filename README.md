@@ -321,6 +321,12 @@ Every command takes `--config`, defaulting to `./config`.
 
 `call` and `serve` need `RESPONSES_BASE_URL`; `validate`, `list` and `healthcheck` do not.
 
+## License
+
+AGPL-3.0. The full text is in [LICENSE](./LICENSE).
+
+AGPL-3.0 is strong copyleft, and its network clause applies where no copy is distributed at all: anyone who runs a modified chancery as a network service must offer the source of that version to the users that service reaches. Read the terms before deploying a modified copy, not after.
+
 ## See also
 
 - [dragoman](https://github.com/mdijkstra-oss/dragoman) — one Responses endpoint over several providers, which is what a prefixed model name in `models.yaml` is for. One `RESPONSES_BASE_URL` is one target for the whole instance, so reaching more than one provider's catalogue means putting something like this in front.

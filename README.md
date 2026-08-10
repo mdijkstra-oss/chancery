@@ -6,7 +6,7 @@ Turns a directory of Markdown into HTTP endpoints — the path is the route, the
 
 Requests and responses are [`openai-responses`](https://platform.openai.com/docs/api-reference/responses). Chancery writes `model`, `instructions`, and whatever sampling fields the frontmatter carries onto the body it received, `POST`s the result to `{RESPONSES_BASE_URL}/responses`, and relays the event stream back untouched.
 
-Every other key survives whatever it holds. Messages, tools and response formats pass through as raw JSON.
+Every other key passes through unchanged. Messages, tools and response formats are forwarded as raw JSON.
 
 The backend is anything serving that format: OpenAI's own `/responses`, a local server, or a router in front of several providers.
 
@@ -32,18 +32,14 @@ That directory serves two routes:
 | `summarize.md` | `POST /summarize` |
 | `research/index.md` | `POST /research` |
 
-A file's path minus `.md` is its route. `index.md` takes the route of its directory, so `research/index.md` answers `/research` rather than `/research/index`. Nesting is free: `deep/analysis/filter.md` answers `/deep/analysis/filter`.
+A file's path minus `.md` is its route. `index.md` takes the route of its directory, so `research/index.md` answers `/research` rather than `/research/index`. Deeper paths nest the same way: `deep/analysis/filter.md` answers `/deep/analysis/filter`.
 
 Two directory names are reserved and hold no routes:
 
 - `shared/` — fragments any agent can include by name.
 - `tools/` — prompts a request pulls in by naming a tool.
 
-A Markdown file that is neither an agent nor included by one is an error:
-
-```text
-✗ research/notes.md: orphaned Markdown file has no frontmatter and is not included by an agent
-```
+A Markdown file that is neither an agent nor included by one fails validation.
 
 ### Fragments
 
@@ -68,7 +64,12 @@ tools/
 └── shell/grep.run_shell.md        included when the request offers `run_shell`
 ```
 
-A file whose name has no dot before `.md` is unconditional. Directories under `tools/` group files and select nothing. What is selected goes into `instructions`, behind the agent's own prompt. A built-in tool the format identifies by type alone carries no name and pulls in no prompt.
+- A file whose name has no dot before `.md` is always included.
+- Directories under `tools/` group files and select nothing.
+- What is selected goes into `instructions`, behind the agent's own prompt.
+
+> [!NOTE]
+> Only applies to tools of type: `function` 
 
 ## Agent frontmatter
 
@@ -95,11 +96,11 @@ The body becomes `instructions`. The rest of the frontmatter is how this agent r
 | `service_tier` | which queue the request joins, where the backend offers a choice |
 | `prompt_cache_breakpoints` | whether this model accepts explicit cache breakpoints |
 
-\* Required, and the only one that is. An agent defines exactly one of `model` or the `models` map below; both, or neither, fails validation.
+\* `model` is the only required field. An agent defines exactly one of `model` or the `models` map below; both, or neither, fails validation.
 
-An agent's setting beats the alias's. Values reach the backend as written and are its to interpret; chancery does not check them against the model.
+An agent's setting overrides the alias's. Values reach the backend as written and are its to interpret; chancery does not check them against the model.
 
-`prompt_cache_breakpoints` is the one field that never reaches the body. Only `false` is sent, as a query parameter on the request, telling whatever serves it that this model refuses breakpoints. A backend that has never heard of the parameter answers as before.
+`prompt_cache_breakpoints` is the one field that never reaches the body. Only `false` is sent, as a query parameter on the request, telling whatever serves it that this model refuses breakpoints. A backend that does not recognise the parameter answers as before.
 
 > [!NOTE]
 > `instructions` is prepended, never replaced. A caller sending its own gets the agent's prompt in front of it, separated by a blank line.
@@ -146,7 +147,14 @@ models:
 
 `model` travels in the body verbatim, so write whatever the backend expects — `gpt-5-mini` against OpenAI, the prefixed form above against a router. Chancery never parses the name, and one it cannot resolve comes back as a backend error.
 
-`extends` inherits the lot and overrides what it names, up to five steps deep. An alias must end up with a `model`, its own or an inherited one; the rest is optional. Beyond the agent fields above, an alias takes `extends` and `prompt` — a filename under `shared/` whose contents go in front of every agent's prompt on that alias.
+Beyond the agent fields above, an alias takes two of its own:
+
+| field | what it changes |
+|---|---|
+| `extends` | inherit every field of the named alias; a field set here overrides the inherited one. Chains run five steps at most. |
+| `prompt` | a filename under `shared/` whose contents go in front of every agent's prompt on this alias |
+
+An alias must end up with a `model`, its own or an inherited one; every other field is optional.
 
 ## Quick start
 
@@ -226,13 +234,13 @@ data: {"type": "response.completed", "response": {"usage": {"input_tokens": 41, 
 | `POST /<agent-path>/responses` | the same | the same |
 | `POST /<agent-path>.<model>/responses` | the same | the same |
 
-A stock OpenAI SDK appends `/responses` to whatever `base_url` it is given, so the suffixed forms make any agent path a valid `base_url`. The suffix comes off only when the literal path matches no route: an agent whose own path ends in `/responses` keeps it.
+A stock OpenAI SDK appends `/responses` to whatever `base_url` it is given, so the suffixed forms make any agent path a valid `base_url`. The suffix is stripped only when the literal path matches no route: an agent whose own path ends in `/responses` keeps it.
 
-Bodies are capped at 10 MB. An unknown route is `404`, an undecodable body is `400`, and a backend that never answered is `503`.
+Chancery adds `X-Request-ID`, `X-Agent` and `X-Subject` for the backend's record, and passes on everything the caller sent except the headers that describe the request it rebuilt:
 
-A `429` from the backend costs three attempts at most — the first and two retries — honouring `Retry-After`, with a per-model cooldown shared across requests in this process. A backend that accepts a connection and then goes silent for 90 seconds ends the stream rather than holding the caller open.
-
-Chancery adds `X-Request-ID`, `X-Agent` and `X-Subject` for the backend's record, and passes on everything the caller sent except the headers that describe the request it rebuilt: `Content-Type` and `Content-Length`, because the body is recomposed; `Authorization`, because it carries `RESPONSES_AUTH_TOKEN` rather than the caller's token; `Accept-Encoding` and the hop-by-hop headers, because the connection to the backend is chancery's own. The three identity headers are chancery's too, so a caller sending its own copy of one does not append to the backend's record.
+- `Content-Type` and `Content-Length`, because the body is recomposed.
+- `Authorization`, because it carries `RESPONSES_AUTH_TOKEN` rather than the caller's token.
+- `Accept-Encoding` and the hop-by-hop headers, because the connection to the backend is chancery's own.
 
 ## Runtime environment
 
@@ -279,13 +287,18 @@ cp .env.example .env       # one provider key
 docker compose up
 ```
 
-dragoman holds every provider key and publishes no host port — publishing one would hand those keys to anyone who can reach the host — while chancery publishes `8081` and reaches it by service name. `CHANCERY_PORT` moves the host side of that.
+dragoman holds every provider key and publishes no host port — publishing one would expose those keys to anyone who can reach the host — while chancery publishes `8081` and reaches it by service name. `CHANCERY_PORT` moves the host side of that.
 
-`config/` and `dragoman.yaml` mount read-only, so editing either and restarting is the whole edit cycle. `dragoman.yaml` lists the prefixes a `models.yaml` alias may name, each with its endpoint, the protocol it speaks, and the environment variable holding its key.
+`config/` and `dragoman.yaml` mount read-only, so editing either and restarting is the whole edit cycle.
+
+`dragoman.yaml` lists the prefixes a `models.yaml` alias may name, each with its endpoint, the protocol it speaks, and the environment variable holding its key.
 
 Compose builds dragoman from a git URL, so cloning chancery is enough to bring up both services. `DRAGOMAN_REPO` replaces that URL with a local path.
 
-Two details fail quietly if missed. dragoman must bind `0.0.0.0` inside its container, or the other container cannot reach it and the symptom reads as a wrong hostname. Chancery waits on dragoman's healthcheck rather than `depends_on` alone, which waits for start and not for listening. `compose.yaml` states both at the line that carries them.
+Two details fail quietly if missed; `compose.yaml` states both at the line that carries them:
+
+- dragoman must bind `0.0.0.0` inside its container. Bound narrower, connections from the chancery container are refused, an error that suggests a wrong hostname.
+- chancery waits on dragoman's healthcheck. `depends_on` alone waits for the container to start, not for it to listen.
 
 ## Development
 
@@ -301,11 +314,13 @@ make vet fmt-check lint  # go vet, gofmt -l, golangci-lint
 make cover               # coverage profile and per-function report
 ```
 
-`CONFIG` defaults to `./config`, and the targets that read a configuration take it: `make start CONFIG=~/prompts`. Environment for a local run comes from `.env.local`, not `.env` — that one holds the compose stack's provider keys.
+`CONFIG` defaults to `./config`, and the targets that read a configuration take it: `make start CONFIG=~/prompts`.
+
+Environment for a local run comes from `.env.local`, not `.env` — that one holds the compose stack's provider keys.
 
 `make dev` needs [`watchexec`](https://github.com/watchexec/watchexec). Everything else is Go and the module's own dependencies.
 
-`internal/prompts` is the largest package, because turning a directory into a route table is most of the work. `internal/responses` composes the body and relays the stream.
+`internal/prompts` turns the configuration directory into the route table; `internal/responses` composes the body and relays the stream.
 
 ## CLI
 
@@ -324,8 +339,6 @@ Every command takes `--config`, defaulting to `./config`.
 ## License
 
 AGPL-3.0. The full text is in [LICENSE](./LICENSE).
-
-AGPL-3.0 is strong copyleft, and its network clause applies where no copy is distributed at all: anyone who runs a modified chancery as a network service must offer the source of that version to the users that service reaches. Read the terms before deploying a modified copy, not after.
 
 ## See also
 

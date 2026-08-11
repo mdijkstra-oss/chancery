@@ -317,4 +317,4 @@ AGPL-3.0. The full text is in [LICENSE](./LICENSE).
 
 ## See also
 
-- [dragoman](https://github.com/mdijkstra-oss/dragoman) — one Responses endpoint over several providers. One `RESPONSES_BASE_URL` is one target for the whole instance, so reaching more than one provider's catalogue means putting something like this in front.
+- [dragoman](https://github.com/mdijkstra-oss/dragoman) — a cross-provider LLM translation service. One request format goes in; OpenAI, Anthropic, Gemini, DeepSeek or OpenRouter comes out.

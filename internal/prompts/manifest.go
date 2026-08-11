@@ -16,6 +16,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const DefaultModelsFile = "models.yaml"
+
 type Line struct {
 	Include string
 	Literal string
@@ -201,7 +203,7 @@ func ManifestKeyFromPath(path, root string) string {
 	return dir + "/" + name
 }
 
-func Load(root string) (Registry, Report) {
+func Load(root, modelsFile string) (Registry, Report) {
 	registry := Registry{
 		Root:         root,
 		Agents:       make(map[string]CompiledAgent),
@@ -223,11 +225,18 @@ func Load(root string) (Registry, Report) {
 		return registry, report
 	}
 
-	loadModels(root, &registry, &report)
+	loadModels(root, modelsFile, &registry, &report)
 	validateToolPaths(root, &report)
 	loadAgents(root, &registry, &report)
 	report.sort()
 	return registry, report
+}
+
+func modelsPath(root, name string) string {
+	if filepath.IsAbs(name) {
+		return name
+	}
+	return filepath.Join(root, name)
 }
 
 func resolveInclude(include string, readFile func(string) (string, error), localDir, sharedDir string) (string, error) {
@@ -241,35 +250,34 @@ func resolveInclude(include string, readFile func(string) (string, error), local
 
 // An alias named twice is rejected by the decoder, which reports both lines, so the
 // flat map needs no duplicate check of its own.
-func loadModels(root string, registry *Registry, report *Report) {
-	path := filepath.Join(root, "models.yaml")
-	data, err := readConfigFile(root, path)
+func loadModels(root, name string, registry *Registry, report *Report) {
+	data, err := os.ReadFile(modelsPath(root, name))
 	if err != nil {
-		report.addError("models.yaml", err.Error())
+		report.addError(name, err.Error())
 		return
 	}
 	var file modelsFile
 	if err := decodeYAML(data, &file); err != nil {
-		report.addError("models.yaml", "malformed YAML: "+err.Error())
+		report.addError(name, "malformed YAML: "+err.Error())
 		return
 	}
 	if len(file.Models) == 0 {
-		report.addError("models.yaml", "no models configured")
+		report.addError(name, "no models configured")
 		return
 	}
 	resolved, err := resolveModels(file.Models)
 	if err != nil {
-		report.addError("models.yaml", err.Error())
+		report.addError(name, err.Error())
 		return
 	}
 	registry.models = resolved
 	registry.modelsLoaded = true
 }
 
-// A models.yaml that did not load leaves an empty alias table, against which every
+// A models file that did not load leaves an empty alias table, against which every
 // agent's alias reads as undefined. The file's own diagnostic is the true one, so the
 // per-agent line is withheld rather than contradicting it.
-var errModelsUnavailable = errors.New("models.yaml did not load")
+var errModelsUnavailable = errors.New("the models file did not load")
 
 func reportAgentError(report *Report, path, prefix string, err error) {
 	if errors.Is(err, errModelsUnavailable) {

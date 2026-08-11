@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
 )
 
 // writeConfigDir builds a real configuration directory. Every CLI test loads one of
@@ -50,7 +52,7 @@ func validConfig(t *testing.T) string {
 }
 
 func TestLoadRegistry(t *testing.T) {
-	registry, err := loadRegistry(validConfig(t))
+	registry, err := loadRegistry(configLocation{Root: validConfig(t), ModelsFile: prompts.DefaultModelsFile})
 	if err != nil {
 		t.Fatalf("load registry: %v", err)
 	}
@@ -80,7 +82,7 @@ func TestLoadRegistryReportsEveryError(t *testing.T) {
 		"first.md":    "---\ndescription: first\nmodel: missing-alias\n---\nbody",
 		"second.md":   "---\ndescription: second\nmodel: other-missing\n---\nbody",
 	})
-	_, err := loadRegistry(root)
+	_, err := loadRegistry(configLocation{Root: root, ModelsFile: prompts.DefaultModelsFile})
 	if err == nil {
 		t.Fatal("want an error, got none")
 	}

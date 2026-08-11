@@ -19,15 +19,15 @@ func newValidateCommand() *cobra.Command {
 }
 
 func runValidateCommand(command *cobra.Command, _ []string) error {
-	configPath, err := commandConfigPath(command)
+	location, err := commandConfigLocation(command)
 	if err != nil {
 		return err
 	}
-	return runValidate(configPath, command.OutOrStdout())
+	return runValidate(location, command.OutOrStdout())
 }
 
-func runValidate(configPath string, output io.Writer) error {
-	_, report := prompts.Load(configPath)
+func runValidate(location configLocation, output io.Writer) error {
+	_, report := prompts.Load(location.Root, location.ModelsFile)
 	for _, diagnostic := range report.Diagnostics {
 		if _, err := fmt.Fprintf(output, "%s %s: %s\n", diagnosticSymbol(diagnostic), diagnostic.Path, diagnostic.Message); err != nil {
 			return fmt.Errorf("write diagnostic: %w", err)

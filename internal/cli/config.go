@@ -8,8 +8,8 @@ import (
 	"github.com/mdijkstra-oss/chancery/internal/prompts"
 )
 
-func loadRegistry(configPath string) (prompts.Registry, error) {
-	registry, report := prompts.Load(configPath)
+func loadRegistry(location configLocation) (prompts.Registry, error) {
+	registry, report := prompts.Load(location.Root, location.ModelsFile)
 	if err := configReportError(report); err != nil {
 		return prompts.Registry{}, err
 	}

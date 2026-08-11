@@ -16,11 +16,11 @@ func newServeCommand() *cobra.Command {
 }
 
 func runServeCommand(command *cobra.Command, _ []string) error {
-	configPath, err := commandConfigPath(command)
+	location, err := commandConfigLocation(command)
 	if err != nil {
 		return err
 	}
-	registry, err := loadRegistry(configPath)
+	registry, err := loadRegistry(location)
 	if err != nil {
 		return err
 	}

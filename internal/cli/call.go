@@ -39,7 +39,7 @@ func newCallCommand() *cobra.Command {
 }
 
 func runCallCommand(command *cobra.Command, args []string) error {
-	configPath, err := commandConfigPath(command)
+	location, err := commandConfigLocation(command)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func runCallCommand(command *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("read input flag: %w", err)
 	}
-	registry, err := loadRegistry(configPath)
+	registry, err := loadRegistry(location)
 	if err != nil {
 		return err
 	}

@@ -81,7 +81,7 @@ func chatRegistry(t *testing.T) prompts.Registry {
 
 func chatRegistryWith(t *testing.T, extra map[string]string) prompts.Registry {
 	t.Helper()
-	registry, report := prompts.Load(chatConfigWith(t, extra))
+	registry, report := prompts.Load(chatConfigWith(t, extra), prompts.DefaultModelsFile)
 	if report.HasErrors() {
 		t.Fatalf("load config: %v", report.Diagnostics)
 	}

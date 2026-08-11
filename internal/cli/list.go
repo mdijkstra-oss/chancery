@@ -51,7 +51,7 @@ func newListCommand() *cobra.Command {
 }
 
 func runListCommand(command *cobra.Command, _ []string) error {
-	configPath, err := commandConfigPath(command)
+	location, err := commandConfigLocation(command)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func runListCommand(command *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("read JSON flag: %w", err)
 	}
-	registry, err := loadRegistry(configPath)
+	registry, err := loadRegistry(location)
 	if err != nil {
 		return err
 	}

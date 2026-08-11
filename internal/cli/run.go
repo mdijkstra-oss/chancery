@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mdijkstra-oss/chancery/internal/prompts"
+
 	"github.com/spf13/cobra"
 )
 
@@ -39,6 +41,7 @@ func newRootCommand() *cobra.Command {
 	// diagnostic or a backend. The error says what went wrong; --help says the rest.
 	root.SilenceUsage = true
 	root.PersistentFlags().String("config", defaultConfigDir, "path to the config directory")
+	root.PersistentFlags().String("models", prompts.DefaultModelsFile, "alias table to read, relative to the config directory")
 	root.AddCommand(
 		newValidateCommand(),
 		newListCommand(),
@@ -58,10 +61,20 @@ func runRootCommand(_ *cobra.Command, _ []string) error {
 // says so rather than serving no routes.
 const defaultConfigDir = "./config"
 
-func commandConfigPath(command *cobra.Command) (string, error) {
-	configPath, err := command.Root().PersistentFlags().GetString("config")
+type configLocation struct {
+	Root       string
+	ModelsFile string
+}
+
+func commandConfigLocation(command *cobra.Command) (configLocation, error) {
+	flags := command.Root().PersistentFlags()
+	root, err := flags.GetString("config")
 	if err != nil {
-		return "", fmt.Errorf("read config flag: %w", err)
+		return configLocation{}, fmt.Errorf("read config flag: %w", err)
 	}
-	return configPath, nil
+	modelsFile, err := flags.GetString("models")
+	if err != nil {
+		return configLocation{}, fmt.Errorf("read models flag: %w", err)
+	}
+	return configLocation{Root: root, ModelsFile: modelsFile}, nil
 }

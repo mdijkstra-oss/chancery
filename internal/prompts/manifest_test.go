@@ -90,7 +90,7 @@ func TestManifestKeyFromPath(t *testing.T) {
 
 func TestLoad(t *testing.T) {
 	root := writeValidConfig(t)
-	registry, report := Load(root)
+	registry, report := Load(root, DefaultModelsFile)
 	if report.HasErrors() {
 		t.Fatalf("load errors: %v", report.Diagnostics)
 	}
@@ -270,7 +270,7 @@ func TestLoadValidation(t *testing.T) {
 			}
 			writeTestFile(t, filepath.Join(root, "models.yaml"), models)
 			writeTestFile(t, filepath.Join(root, test.agentPath), test.agent)
-			_, report := Load(root)
+			_, report := Load(root, DefaultModelsFile)
 			severity := SeverityError
 			if test.wantWarning {
 				severity = SeverityWarning
@@ -312,12 +312,52 @@ func TestBrokenModelsFileReportsOnlyItself(t *testing.T) {
 				writeTestFile(t, filepath.Join(root, "models.yaml"), test.models)
 			}
 			writeTestFile(t, filepath.Join(root, "agent.md"), agentFile("model-fast", "prompt"))
-			_, report := Load(root)
+			_, report := Load(root, DefaultModelsFile)
 			if hasDiagnostic(report, SeverityError, "unknown model alias") {
 				t.Fatalf("a defined alias reported unknown: %v", report.Diagnostics)
 			}
 			if report.ErrorCount() != 1 || report.Diagnostics[0].Path != "models.yaml" {
 				t.Fatalf("want one models.yaml error: %v", report.Diagnostics)
+			}
+		})
+	}
+}
+
+func TestModelsFileSelection(t *testing.T) {
+	outsideTable := filepath.Join(t.TempDir(), "elsewhere.yaml")
+	tests := []struct {
+		name        string
+		modelsFile  string
+		wantModel   string
+		wantMessage string
+	}{
+		{name: "default", modelsFile: DefaultModelsFile, wantModel: "openai/upstream-fast"},
+		{name: "alternate table", modelsFile: "models.alt.yaml", wantModel: "alt/upstream-fast"},
+		{name: "absent table", modelsFile: "models.absent.yaml", wantMessage: "no such file"},
+		{name: "table outside the config directory", modelsFile: outsideTable, wantModel: "outside/upstream-fast"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := writeValidConfig(t)
+			writeTestFile(t, filepath.Join(root, "models.alt.yaml"),
+				strings.ReplaceAll(validModelsYAML(), "openai/", "alt/"))
+			writeTestFile(t, outsideTable, strings.ReplaceAll(validModelsYAML(), "openai/", "outside/"))
+
+			registry, report := Load(root, test.modelsFile)
+			if test.wantMessage == "" {
+				if report.HasErrors() {
+					t.Fatalf("load errors: %v", report.Diagnostics)
+				}
+				if model := registry.Configs["simple"].Model; model != test.wantModel {
+					t.Errorf("simple model = %q, want %q", model, test.wantModel)
+				}
+				return
+			}
+			if !hasDiagnostic(report, SeverityError, test.wantMessage) {
+				t.Fatalf("missing diagnostic %q: %v", test.wantMessage, report.Diagnostics)
+			}
+			if !hasDiagnosticPath(report, test.modelsFile) {
+				t.Errorf("diagnostic does not name %q: %v", test.modelsFile, report.Diagnostics)
 			}
 		})
 	}
@@ -329,7 +369,7 @@ func TestUnknownFieldLeaksNoGoType(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, filepath.Join(root, "models.yaml"), validModelsYAML())
 	writeTestFile(t, filepath.Join(root, "agent.md"), "---\nmodel: model-fast\nseed: true\n---\nbody")
-	_, report := Load(root)
+	_, report := Load(root, DefaultModelsFile)
 	for _, diagnostic := range report.Diagnostics {
 		for _, leak := range []string{"agentEntry", "agentFrontmatter", "modelEntry", "prompts."} {
 			if strings.Contains(diagnostic.Message, leak) {
@@ -340,7 +380,7 @@ func TestUnknownFieldLeaksNoGoType(t *testing.T) {
 }
 
 func TestResolveAgent(t *testing.T) {
-	registry, report := Load(writeValidConfig(t))
+	registry, report := Load(writeValidConfig(t), DefaultModelsFile)
 	if report.HasErrors() {
 		t.Fatalf("load errors: %v", report.Diagnostics)
 	}
@@ -380,7 +420,7 @@ func TestResolveAgent(t *testing.T) {
 func TestNamedRouteCollision(t *testing.T) {
 	root := writeValidConfig(t)
 	writeTestFile(t, filepath.Join(root, "folder.fast.md"), agentFile("model-fast", "collision"))
-	_, report := Load(root)
+	_, report := Load(root, DefaultModelsFile)
 	if !hasDiagnostic(report, SeverityError, "collides with named model route") {
 		t.Fatalf("missing collision diagnostic: %v", report.Diagnostics)
 	}
@@ -391,7 +431,7 @@ func TestNamedRouteCollision(t *testing.T) {
 func TestToolsDirectoryAnswersNoRoute(t *testing.T) {
 	root := writeValidConfig(t)
 	writeTestFile(t, filepath.Join(root, "tools", "shell", "grep.run_shell.md"), "tool prompt")
-	registry, report := Load(root)
+	registry, report := Load(root, DefaultModelsFile)
 	if report.HasErrors() || report.WarningCount() != 0 {
 		t.Fatalf("tools/ produced diagnostics: %v", report.Diagnostics)
 	}
@@ -411,7 +451,7 @@ func TestToolPromptCannotEscapeConfig(t *testing.T) {
 	if err := os.Symlink(outside, toolPath); err != nil {
 		t.Skipf("create symlink: %v", err)
 	}
-	_, report := Load(root)
+	_, report := Load(root, DefaultModelsFile)
 	if !hasDiagnostic(report, SeverityError, "escapes config directory through symlink") {
 		t.Fatalf("missing symlink diagnostic: %v", report.Diagnostics)
 	}
@@ -427,7 +467,7 @@ func TestToolsDirectoryCannotEscapeConfig(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root, "tools")); err != nil {
 		t.Skipf("create symlink: %v", err)
 	}
-	_, report := Load(root)
+	_, report := Load(root, DefaultModelsFile)
 	if !hasDiagnostic(report, SeverityError, "escapes config directory through symlink") {
 		t.Fatalf("missing tools directory diagnostic: %v", report.Diagnostics)
 	}
@@ -521,6 +561,15 @@ func validModelsYAML() string {
 
 func agentFile(model, body string) string {
 	return fmt.Sprintf("---\ndescription: test agent\nmodel: %s\n---\n%s", model, body)
+}
+
+func hasDiagnosticPath(report Report, path string) bool {
+	for _, diagnostic := range report.Diagnostics {
+		if diagnostic.Path == path {
+			return true
+		}
+	}
+	return false
 }
 
 func hasDiagnostic(report Report, severity Severity, message string) bool {

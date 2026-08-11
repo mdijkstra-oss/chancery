@@ -12,7 +12,7 @@ The backend is anything serving that format: OpenAI's own `/responses`, a local 
 
 ## Configuration directory
 
-`--config` names the directory, defaulting to `./config`. The one in this repository is a working example, and the commands below run against it.
+`--config` names the directory, defaulting to `./config`. `--models` names the alias table, defaulting to `models.yaml` inside that directory. The directory in this repository is a working example, and the commands below run against it.
 
 ```text
 config/
@@ -297,7 +297,9 @@ Environment for a local run comes from `.env.local`. `.env.example` lists every 
 
 ## CLI
 
-Every command takes `--config`, defaulting to `./config`.
+Every command takes `--config`, defaulting to `./config`, and `--models`, defaulting to `models.yaml`.
+
+A directory can hold several alias tables and pick one per instance: `--models models.anthropic.yaml` runs the same routes on another provider without touching a file. A relative name resolves inside the configuration directory; an absolute path is read as given, so the table can live anywhere.
 
 | command | does |
 |---|---|

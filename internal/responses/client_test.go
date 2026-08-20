@@ -58,10 +58,12 @@ func send(t *testing.T, cfg Config, req Request) (*Response, error) {
 
 func TestSendOutboundHeaders(t *testing.T) {
 	cases := []struct {
-		name      string
-		authToken string
-		identity  Identity
-		want      map[string][]string
+		name          string
+		authToken     string
+		gatewayHeader string
+		gatewayToken  string
+		identity      Identity
+		want          map[string][]string
 	}{{
 		name:      "no bearer when the token is unset",
 		authToken: "",
@@ -145,13 +147,37 @@ func TestSendOutboundHeaders(t *testing.T) {
 			"X-Agent":      {"support/triage"},
 			"X-Subject":    nil,
 		},
+	}, {
+		name:          "the gateway credential travels under the name it was given",
+		gatewayHeader: "X-Auth-Token",
+		gatewayToken:  "invoke-key",
+		identity:      Identity{},
+		want:          map[string][]string{"X-Auth-Token": {"invoke-key"}},
+	}, {
+		name:          "a caller cannot overwrite the gateway credential",
+		gatewayHeader: "X-Auth-Token",
+		gatewayToken:  "invoke-key",
+		identity: Identity{
+			Headers: http.Header{"x-auth-token": {"forged"}},
+		},
+		want: map[string][]string{"X-Auth-Token": {"invoke-key"}},
+	}, {
+		name:      "no gateway header when the pair is unset",
+		authToken: "proxy-token",
+		identity:  Identity{},
+		want:      map[string][]string{"X-Auth-Token": nil},
 	}}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			server, recorded := recordingBackend(t, http.StatusOK, "application/json", "{}")
 			resp, err := send(t,
-				Config{BaseURL: server.URL, AuthToken: testCase.authToken},
+				Config{
+					BaseURL:       server.URL,
+					AuthToken:     testCase.authToken,
+					GatewayHeader: testCase.gatewayHeader,
+					GatewayToken:  testCase.gatewayToken,
+				},
 				Request{Body: []byte(`{"input":[]}`), Identity: testCase.identity},
 			)
 			if err != nil {
@@ -350,6 +376,49 @@ func TestNewClientRejectsUnusableBaseURL(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), "RESPONSES_BASE_URL") {
 				t.Fatalf("error %q does not name the variable", err)
+			}
+		})
+	}
+}
+
+func TestNewClientRejectsUnusableGatewayHeader(t *testing.T) {
+	cases := []struct {
+		name     string
+		header   string
+		token    string
+		wantsVar string
+	}{{
+		name:     "a token with no header name",
+		token:    "invoke-key",
+		wantsVar: "RESPONSES_GATEWAY_HEADER",
+	}, {
+		name:     "a header name with no token",
+		header:   "X-Auth-Token",
+		wantsVar: "RESPONSES_GATEWAY_TOKEN",
+	}, {
+		name:     "a name carrying a second header",
+		header:   "X-Auth-Token: forged\r\nX-Other",
+		token:    "invoke-key",
+		wantsVar: "RESPONSES_GATEWAY_HEADER",
+	}, {
+		name:     "a name with a space in it",
+		header:   "X Auth Token",
+		token:    "invoke-key",
+		wantsVar: "RESPONSES_GATEWAY_HEADER",
+	}}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := NewClient(Config{
+				BaseURL:       "http://backend:8080",
+				GatewayHeader: testCase.header,
+				GatewayToken:  testCase.token,
+			})
+			if err == nil {
+				t.Fatal("want an error, got none")
+			}
+			if !strings.Contains(err.Error(), testCase.wantsVar) {
+				t.Fatalf("error %q does not name %s", err, testCase.wantsVar)
 			}
 		})
 	}

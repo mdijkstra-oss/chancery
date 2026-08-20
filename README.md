@@ -231,6 +231,8 @@ Chancery adds `X-Request-ID`, `X-Agent` and `X-Subject` for the backend's record
 |---|---|---|
 | `RESPONSES_BASE_URL` | none | Required. Scheme, host and port of the backend. Missing, and `serve` refuses at boot rather than failing per request. |
 | `RESPONSES_AUTH_TOKEN` | empty | Optional bearer token on every outbound request, for whatever fronts the backend. |
+| `RESPONSES_GATEWAY_HEADER` | empty | Name of a second credential header, for a platform guarding the endpoint rather than the backend: `X-Auth-Token` on Scaleway, `Authorization` on Cloud Run. |
+| `RESPONSES_GATEWAY_TOKEN` | empty | Value of that header. Set both or neither; one alone is refused at boot. A caller sending the same header cannot overwrite it. |
 | `PORT` | `8081` | Listen port. |
 | `CORS_ORIGINS` | empty | Comma-separated allowed origins. Empty denies every cross-origin request. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error`. |

@@ -58,13 +58,15 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
-// LoadBackend reads the two variables that reach the backend. The base URL has no
+// LoadBackend reads the variables that reach the backend. The base URL has no
 // default: silently assuming localhost fails as a refused connection deep in a
 // request rather than at boot, where the mistake is.
 func LoadBackend() (responses.Config, error) {
 	cfg := responses.Config{
-		BaseURL:   os.Getenv("RESPONSES_BASE_URL"),
-		AuthToken: os.Getenv("RESPONSES_AUTH_TOKEN"),
+		BaseURL:       os.Getenv("RESPONSES_BASE_URL"),
+		AuthToken:     os.Getenv("RESPONSES_AUTH_TOKEN"),
+		GatewayHeader: os.Getenv("RESPONSES_GATEWAY_HEADER"),
+		GatewayToken:  os.Getenv("RESPONSES_GATEWAY_TOKEN"),
 	}
 	if cfg.BaseURL == "" {
 		return responses.Config{}, errors.New("RESPONSES_BASE_URL is required")

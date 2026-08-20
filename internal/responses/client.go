@@ -32,14 +32,18 @@ const (
 )
 
 type Config struct {
-	BaseURL   string
-	AuthToken string
+	BaseURL       string
+	AuthToken     string
+	GatewayHeader string
+	GatewayToken  string
 }
 
 type Client struct {
-	url       string
-	authToken string
-	http      *http.Client
+	url           string
+	authToken     string
+	gatewayHeader string
+	gatewayToken  string
+	http          *http.Client
 }
 
 // Identity is what chancery knows about a request: its own three labels, and the
@@ -116,9 +120,15 @@ func NewClient(cfg Config) (*Client, error) {
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return nil, fmt.Errorf("RESPONSES_BASE_URL %q needs a scheme and a host", cfg.BaseURL)
 	}
+	gatewayHeader, err := gatewayHeaderName(cfg.GatewayHeader, cfg.GatewayToken)
+	if err != nil {
+		return nil, err
+	}
 	return &Client{
-		url:       strings.TrimSuffix(cfg.BaseURL, "/") + "/responses",
-		authToken: cfg.AuthToken,
+		url:           strings.TrimSuffix(cfg.BaseURL, "/") + "/responses",
+		authToken:     cfg.AuthToken,
+		gatewayHeader: gatewayHeader,
+		gatewayToken:  cfg.GatewayToken,
 		http: &http.Client{
 			Transport: &http.Transport{
 				Proxy:                 http.ProxyFromEnvironment,
@@ -147,7 +157,10 @@ func (c *Client) Send(ctx context.Context, req Request) (*Response, error) {
 	if c.authToken != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+c.authToken)
 	}
-	setIdentity(httpReq.Header, req.Identity)
+	if c.gatewayHeader != "" {
+		httpReq.Header.Set(c.gatewayHeader, c.gatewayToken)
+	}
+	c.setIdentity(httpReq.Header, req.Identity)
 
 	resp, err := c.http.Do(httpReq)
 	if err != nil {
@@ -188,10 +201,13 @@ var reservedHeaders = map[string]struct{}{
 	subjectHeader:         {},
 }
 
-func setIdentity(header http.Header, identity Identity) {
+func (c *Client) setIdentity(header http.Header, identity Identity) {
 	for name, values := range identity.Headers {
 		canonical := http.CanonicalHeaderKey(name)
 		if _, reserved := reservedHeaders[canonical]; reserved {
+			continue
+		}
+		if c.gatewayHeader != "" && canonical == c.gatewayHeader {
 			continue
 		}
 		header[canonical] = slices.Clone(values)
@@ -199,6 +215,42 @@ func setIdentity(header http.Header, identity Identity) {
 	setIfPresent(header, requestIDHeader, identity.RequestID)
 	setIfPresent(header, agentHeader, identity.Agent)
 	setIfPresent(header, subjectHeader, identity.Subject)
+}
+
+// Whatever stands in front of the backend names the header its credential arrives
+// under, and the names disagree: X-Auth-Token on Scaleway, Authorization on Cloud Run.
+// Half a pair is a deployment that would either send an unauthenticated request or
+// hold a credential it never sends, so it is refused at boot rather than at the first
+// call.
+func gatewayHeaderName(name, token string) (string, error) {
+	switch {
+	case name == "" && token == "":
+		return "", nil
+	case name == "":
+		return "", errors.New("RESPONSES_GATEWAY_TOKEN is set without RESPONSES_GATEWAY_HEADER")
+	case token == "":
+		return "", errors.New("RESPONSES_GATEWAY_HEADER is set without RESPONSES_GATEWAY_TOKEN")
+	}
+	if !validHeaderName(name) {
+		return "", fmt.Errorf("RESPONSES_GATEWAY_HEADER %q is not a header name", name)
+	}
+	return http.CanonicalHeaderKey(name), nil
+}
+
+// RFC 9110 token characters. Anything else reaches the wire verbatim, where a colon
+// or a newline is a second header of the caller's choosing.
+func validHeaderName(name string) bool {
+	const special = "!#$%&'*+-.^_`|~"
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9':
+		case strings.IndexByte(special, c) >= 0:
+		default:
+			return false
+		}
+	}
+	return name != ""
 }
 
 func setIfPresent(header http.Header, name, value string) {
